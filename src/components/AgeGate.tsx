@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 
 export function AgeGate() {
@@ -67,15 +68,25 @@ export function AgeGate() {
           transition={{ delay: 0.2, duration: 0.5 }}
           className="relative z-10 text-center px-6 max-w-md"
         >
-          {/* Brand Name */}
-          <h1 className="font-[var(--font-oswald)] text-5xl md:text-7xl font-bold tracking-wider mb-2 uppercase">
-            <span className="text-untamed-white">UNT</span>
-            <span className="text-panther-light">/</span>
-            <span className="text-untamed-white">MED</span>
-          </h1>
-          <p className="text-untamed-white-muted text-sm tracking-[0.3em] uppercase mb-12">
-            Beverages
-          </p>
+          {/* Brand Logo */}
+          <div className="flex flex-col items-center mb-12">
+            <Image
+              src="/images/logo-mark.png"
+              alt="Untamed Beverages"
+              width={120}
+              height={120}
+              className="w-24 h-24 md:w-32 md:h-32 invert mb-4"
+              priority
+            />
+            <Image
+              src="/images/logo-text.png"
+              alt="Untamed Beverages"
+              width={280}
+              height={56}
+              className="h-8 md:h-12 w-auto"
+              priority
+            />
+          </div>
 
           {!declined ? (
             <motion.div

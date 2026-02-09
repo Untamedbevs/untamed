@@ -61,16 +61,25 @@ export default function HomePage() {
                 </span>
               </motion.div>
 
-              {/* Main headline */}
-              <h1 className="font-[var(--font-oswald)] text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-bold uppercase tracking-wider leading-none mb-4">
-                <span className="text-untamed-white">UNT</span>
-                <span className="text-panther-light">/</span>
-                <span className="text-untamed-white">MED</span>
-              </h1>
-
-              <p className="text-untamed-white-muted text-lg md:text-xl tracking-[0.25em] uppercase mb-6">
-                Beverages
-              </p>
+              {/* Brand Logo */}
+              <div className="flex flex-col items-center mb-6">
+                <Image
+                  src="/images/logo-mark.png"
+                  alt="Untamed Beverages"
+                  width={160}
+                  height={160}
+                  className="w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44 lg:w-48 lg:h-48 invert mb-4"
+                  priority
+                />
+                <Image
+                  src="/images/logo-text.png"
+                  alt="Untamed Beverages"
+                  width={500}
+                  height={80}
+                  className="h-10 sm:h-12 md:h-16 lg:h-20 w-auto"
+                  priority
+                />
+              </div>
 
               {/* Tagline */}
               <p className="text-2xl md:text-3xl lg:text-4xl font-light text-untamed-white mb-4 italic">

@@ -41,4 +41,5 @@ next-env.d.ts
 
 # Original brand assets (web copies are in public/images/)
 /Images/
+/Images copy/
 *.pdf

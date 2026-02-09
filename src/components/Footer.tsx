@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { Instagram } from 'lucide-react'
 import { drinks } from '@/lib/drinks'
 
@@ -11,12 +12,21 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-16">
           {/* Brand */}
           <div>
-            <Link href="/" className="inline-block mb-4">
-              <span className="font-[var(--font-oswald)] text-3xl font-bold tracking-wider uppercase">
-                <span className="text-untamed-white">UNT</span>
-                <span className="text-panther-light">/</span>
-                <span className="text-untamed-white">MED</span>
-              </span>
+            <Link href="/" className="inline-flex items-center gap-3 mb-4">
+              <Image
+                src="/images/logo-mark.png"
+                alt="Untamed Beverages"
+                width={40}
+                height={40}
+                className="w-10 h-10 invert"
+              />
+              <Image
+                src="/images/logo-text.png"
+                alt="Untamed Beverages"
+                width={140}
+                height={28}
+                className="h-6 w-auto"
+              />
             </Link>
             <p className="text-untamed-white-muted text-sm leading-relaxed mb-4">
               Premium ready-to-drink vodka martinis. Get in touch with your wild side.

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { Menu, X } from 'lucide-react'
 import { drinks } from '@/lib/drinks'
@@ -33,16 +34,21 @@ export function Navigation() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 md:h-20">
             {/* Logo */}
-            <Link href="/" className="flex items-center gap-1 group">
-              <span className="font-[var(--font-oswald)] text-2xl md:text-3xl font-bold tracking-wider uppercase">
-                <span className="text-untamed-white group-hover:text-panther-light transition-colors duration-300">
-                  UNT
-                </span>
-                <span className="text-panther-light">/</span>
-                <span className="text-untamed-white group-hover:text-panther-light transition-colors duration-300">
-                  MED
-                </span>
-              </span>
+            <Link href="/" className="flex items-center gap-2 group">
+              <Image
+                src="/images/logo-mark.png"
+                alt="Untamed Beverages"
+                width={36}
+                height={36}
+                className="w-8 h-8 md:w-9 md:h-9 invert group-hover:opacity-80 transition-opacity duration-300"
+              />
+              <Image
+                src="/images/logo-text.png"
+                alt="Untamed Beverages"
+                width={140}
+                height={28}
+                className="h-5 md:h-6 w-auto group-hover:opacity-80 transition-opacity duration-300"
+              />
             </Link>
 
             {/* Desktop Nav */}
