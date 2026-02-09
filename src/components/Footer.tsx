@@ -18,7 +18,7 @@ export function Footer() {
                 alt="Untamed Beverages"
                 width={40}
                 height={40}
-                className="w-10 h-10 invert"
+                className="w-10 h-10"
               />
               <Image
                 src="/images/logo-text.png"

@@ -180,8 +180,8 @@ body {
 }
 
 /* Gradient text utility */
-.text-gradient-panther {
-  background: linear-gradient(135deg, var(--panther-light), var(--panther));
+.text-gradient-wild {
+  background: linear-gradient(135deg, #FFD700, #FFA500);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

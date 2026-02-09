@@ -75,7 +75,7 @@ export function AgeGate() {
               alt="Untamed Beverages"
               width={120}
               height={120}
-              className="w-24 h-24 md:w-32 md:h-32 invert mb-4"
+              className="w-24 h-24 md:w-32 md:h-32 mb-4"
               priority
             />
             <Image

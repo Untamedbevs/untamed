@@ -68,7 +68,7 @@ export default function HomePage() {
                   alt="Untamed Beverages"
                   width={160}
                   height={160}
-                  className="w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44 lg:w-48 lg:h-48 invert mb-4"
+                  className="w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44 lg:w-48 lg:h-48 mb-4"
                   priority
                 />
                 <Image
@@ -84,7 +84,7 @@ export default function HomePage() {
               {/* Tagline */}
               <p className="text-2xl md:text-3xl lg:text-4xl font-light text-untamed-white mb-4 italic">
                 Get In Touch With Your{' '}
-                <span className="font-semibold not-italic text-gradient-panther">
+                <span className="font-semibold not-italic text-gradient-wild">
                   Wild Side
                 </span>
               </p>
@@ -331,7 +331,7 @@ export default function HomePage() {
             >
               <h2 className="font-[var(--font-oswald)] text-4xl md:text-5xl lg:text-6xl font-bold uppercase tracking-wider text-untamed-white mb-6">
                 Unleash Your{' '}
-                <span className="text-gradient-panther">Wild Side</span>
+                <span className="text-gradient-wild">Wild Side</span>
               </h2>
               <p className="text-untamed-white-muted text-lg md:text-xl mb-10 max-w-xl mx-auto">
                 Follow us on Instagram to stay updated on where to find Untamed near you.
