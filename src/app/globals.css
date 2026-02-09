@@ -1,0 +1,209 @@
+@import "tailwindcss";
+
+/* ============================================
+   UNTAMED BEVERAGES - Design System Tokens
+   ============================================ */
+
+:root {
+  /* Base Colors */
+  --untamed-black: #0A0A0A;
+  --untamed-black-light: #1A1A1A;
+  --untamed-black-card: #141414;
+  --untamed-white: #FAFAFA;
+  --untamed-white-muted: #A0A0A0;
+  --untamed-silver: #C0C0C0;
+
+  /* Black Panther - Espresso Martini */
+  --panther: #7B2D8E;
+  --panther-light: #9B30FF;
+  --panther-dark: #5A1F6A;
+  --panther-glow: rgba(155, 48, 255, 0.3);
+
+  /* Cheetah - Lemon Drop Martini */
+  --cheetah: #D4D700;
+  --cheetah-light: #E6D800;
+  --cheetah-dark: #9E9E00;
+  --cheetah-glow: rgba(212, 215, 0, 0.3);
+
+  /* Cougar - Classic Dirty Martini */
+  --cougar: #4A7C0F;
+  --cougar-light: #6B8E23;
+  --cougar-dark: #355E0A;
+  --cougar-glow: rgba(107, 142, 35, 0.3);
+
+  /* Lioness - Peach & Rosemary Martini */
+  --lioness: #E87511;
+  --lioness-light: #FF8C2A;
+  --lioness-dark: #D4680F;
+  --lioness-glow: rgba(232, 117, 17, 0.3);
+
+  /* UI */
+  --background: #0A0A0A;
+  --foreground: #FAFAFA;
+  --card-background: #141414;
+  --card-border: #2A2A2A;
+  --muted: #666666;
+  --muted-foreground: #999999;
+}
+
+@theme inline {
+  /* Core Colors */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  /* Base Brand */
+  --color-untamed-black: var(--untamed-black);
+  --color-untamed-black-light: var(--untamed-black-light);
+  --color-untamed-black-card: var(--untamed-black-card);
+  --color-untamed-white: var(--untamed-white);
+  --color-untamed-white-muted: var(--untamed-white-muted);
+  --color-untamed-silver: var(--untamed-silver);
+
+  /* Black Panther - Purple */
+  --color-panther: var(--panther);
+  --color-panther-light: var(--panther-light);
+  --color-panther-dark: var(--panther-dark);
+
+  /* Cheetah - Yellow */
+  --color-cheetah: var(--cheetah);
+  --color-cheetah-light: var(--cheetah-light);
+  --color-cheetah-dark: var(--cheetah-dark);
+
+  /* Cougar - Green */
+  --color-cougar: var(--cougar);
+  --color-cougar-light: var(--cougar-light);
+  --color-cougar-dark: var(--cougar-dark);
+
+  /* Lioness - Orange */
+  --color-lioness: var(--lioness);
+  --color-lioness-light: var(--lioness-light);
+  --color-lioness-dark: var(--lioness-dark);
+
+  /* UI Colors */
+  --color-card: var(--card-background);
+  --color-card-border: var(--card-border);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  /* Typography */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Oswald', 'Impact', sans-serif;
+  --font-mono: 'Courier New', monospace;
+}
+
+/* ============================================
+   Global Styles
+   ============================================ */
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--untamed-black);
+  color: var(--untamed-white);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Selection color */
+::selection {
+  background-color: var(--panther);
+  color: white;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--untamed-black);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--card-border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+
+/* Claw scratch animation */
+@keyframes scratch-reveal {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-scratch {
+  animation: scratch-reveal 0.8s ease-out forwards;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* Glass morphism utility */
+.glass {
+  background: rgba(10, 10, 10, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Gradient text utility */
+.text-gradient-panther {
+  background: linear-gradient(135deg, var(--panther-light), var(--panther));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-cheetah {
+  background: linear-gradient(135deg, var(--cheetah-light), var(--cheetah));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-cougar {
+  background: linear-gradient(135deg, var(--cougar-light), var(--cougar));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-lioness {
+  background: linear-gradient(135deg, var(--lioness-light), var(--lioness));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
