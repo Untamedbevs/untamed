@@ -1,15 +1,19 @@
 'use client'
 
+import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { ArrowDown, Instagram, Mail, Sparkles } from 'lucide-react'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
+import { ContactModal } from '@/components/ContactModal'
 import { DrinkCard } from '@/components/DrinkCard'
 import { drinks } from '@/lib/drinks'
 
 export default function HomePage() {
+  const [contactOpen, setContactOpen] = useState(false)
+
   return (
     <>
       <Navigation />
@@ -350,15 +354,15 @@ export default function HomePage() {
                   <Instagram className="w-5 h-5" />
                   Follow @untamedbevs
                 </a>
-                <a
-                  href="mailto:info@untamedbevs.com"
+                <button
+                  onClick={() => setContactOpen(true)}
                   className="px-8 py-3 border border-untamed-white-muted/30 text-untamed-white-muted font-medium text-base rounded-full
                     hover:border-untamed-white hover:text-untamed-white transition-all duration-300 active:scale-95
-                    inline-flex items-center gap-2"
+                    inline-flex items-center gap-2 cursor-pointer"
                 >
                   <Mail className="w-4 h-4" />
                   Contact Us
-                </a>
+                </button>
               </div>
 
               {/* Stats */}
@@ -382,6 +386,8 @@ export default function HomePage() {
       </main>
 
       <Footer />
+
+      <ContactModal open={contactOpen} onClose={() => setContactOpen(false)} />
     </>
   )
 }
