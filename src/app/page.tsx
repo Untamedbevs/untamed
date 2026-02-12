@@ -183,7 +183,7 @@ export default function HomePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {[
                   { text: 'Being fearless in pursuing your dreams', dot: 'var(--panther-light)' },
-                  { text: 'Staying true to who you are, even when it\'s not easy', dot: 'var(--cheetah)' },
+                  { text: 'Staying true to you, even when it\'s not easy', dot: 'var(--cheetah)' },
                   { text: 'Saying yes to adventure and growth', dot: 'var(--cougar-light)' },
                   { text: 'Refusing to conform to others\' expectations', dot: 'var(--lioness-light)' },
                 ].map((item, idx) => (
