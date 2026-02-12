@@ -16,6 +16,7 @@ export interface Drink {
   servings: string
   personality: string
   personalityQuestion: string
+  story: string
   canImage: string
   animalImage: string
   scratchBackground: string
@@ -48,6 +49,8 @@ export const drinks: Drink[] = [
     personality:
       'Mystery & shadow power \u2013 strength that moves unseen. Protection \u2013 a guardian energy, especially of loved ones or inner truth. Rebellion & sovereignty \u2013 refusing to be controlled or defined. A black panther often means owning your shadow \u2014 embracing your depth, intuition, and power without needing the spotlight.',
     personalityQuestion: 'Are You a Black Panther?',
+    story:
+      'The Black Panther moves through the shadows \u2014 unseen, unbothered, unstoppable. This isn\u2019t a cocktail for the loud. It\u2019s for the ones who own every room without saying a word. Rich espresso, smooth caramel, a hint of vanilla \u2014 dark, layered, and impossible to forget. Just like you.',
     canImage: '/images/can-black-panther.png',
     animalImage: '/images/animal-black-panther.png',
     scratchBackground: '/images/scratch-panther.png',
@@ -78,6 +81,8 @@ export const drinks: Drink[] = [
     personality:
       'Speed & decisiveness \u2013 acting fast when the moment is right. Focus \u2013 locking onto a goal and committing fully. Efficiency \u2013 no wasted energy; doing things the smart way. Confidence without aggression \u2013 power that doesn\u2019t need to dominate. Living in bursts \u2013 knowing when to rest and when to go all-in. A cheetah often means \u201Ctrust your timing.\u201D',
     personalityQuestion: 'Are You a Cheetah?',
+    story:
+      'The Cheetah doesn\u2019t hesitate. When the moment is right, it strikes \u2014 fast, focused, and fearless. This is a cocktail built for people who trust their instincts and move with precision. Bright lemon, clean citrus, pure energy in a can. No wasted motion. No second-guessing. Just go.',
     canImage: '/images/can-cheetah.png',
     animalImage: '/images/animal-cheetah.png',
     scratchBackground: '/images/scratch-cheetah.png',
@@ -107,6 +112,8 @@ export const drinks: Drink[] = [
     personality:
       'Quiet power \u2013 Strength that doesn\u2019t need to announce itself. Patience \u2013 waiting calmly, then acting with precision. Leadership \u2013 natural authority without force. Fearlessness \u2013 standing your ground when it matters. A cougar often means mastery of your territory \u2014 knowing who you are, what you want, and not needing approval to claim it.',
     personalityQuestion: 'Are You a Cougar?',
+    story:
+      'The Cougar doesn\u2019t chase \u2014 it commands. Quiet power, earned authority, and the patience to wait for exactly the right moment. This classic dirty martini is bold, savory, and unapologetically strong. It\u2019s for those who\u2019ve already proven themselves and don\u2019t need anyone\u2019s permission to own it.',
     canImage: '/images/can-cougar.png',
     animalImage: '/images/animal-cougar.png',
     scratchBackground: '/images/scratch-cougar.png',
@@ -138,6 +145,8 @@ export const drinks: Drink[] = [
     personality:
       'Loyalty and Family \u2013 A lioness symbolizes loyalty, unity, and deep bonds with family and community. Independence and Confidence \u2013 A lioness moves with self-assurance. Someone who knows their worth and stands strong. A lioness often means power balanced with compassion, authority guided by love, and confidence rooted in purpose.',
     personalityQuestion: 'Are You a Lioness?',
+    story:
+      'The Lioness leads with heart and fights with fire. Loyalty runs deep, compassion runs deeper, but make no mistake \u2014 she will protect what\u2019s hers. Sweet peach, aromatic rosemary, and a finish that lingers. This is for the ones who hold it all together and make it look effortless.',
     canImage: '/images/can-lioness.png',
     animalImage: '/images/animal-lioness.png',
     scratchBackground: '/images/scratch-lioness.png',

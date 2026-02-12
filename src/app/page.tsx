@@ -139,6 +139,101 @@ export default function HomePage() {
         </section>
 
         {/* ============================================
+            LIVE LIFE UNTAMED SECTION
+            ============================================ */}
+        <section className="relative py-20 md:py-32 overflow-hidden">
+          {/* Background accents */}
+          <div className="absolute inset-0">
+            <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-card-border to-transparent" />
+            <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-card-border to-transparent" />
+            <div className="absolute top-1/4 left-0 w-96 h-96 rounded-full blur-[180px] opacity-10 bg-panther" />
+            <div className="absolute bottom-1/4 right-0 w-96 h-96 rounded-full blur-[180px] opacity-10 bg-lioness" />
+          </div>
+
+          <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="text-center mb-12"
+            >
+              <p className="text-panther-light text-sm tracking-[0.3em] uppercase mb-3">
+                The Untamed Way
+              </p>
+              <h2 className="font-[var(--font-oswald)] text-4xl md:text-5xl lg:text-6xl font-bold uppercase tracking-wider text-untamed-white mb-6">
+                Live Life{' '}
+                <span className="text-gradient-wild">Untamed</span>
+              </h2>
+              <p className="text-untamed-white-muted text-lg md:text-xl leading-relaxed max-w-2xl mx-auto">
+                &ldquo;Live Life Untamed&rdquo; means embracing freedom, authenticity, and courage. It&apos;s about rejecting limitations&mdash;whether they come from society, fear, or self-doubt&mdash;and living boldly on your own terms.
+              </p>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+              className="mb-12"
+            >
+              <p className="text-untamed-white-muted text-base md:text-lg leading-relaxed text-center mb-10">
+                To Live Life Untamed is to let go of what holds you back and fully experience all that life offers.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[
+                  { text: 'Being fearless in pursuing your dreams', dot: 'var(--panther-light)' },
+                  { text: 'Staying true to who you are, even when it\'s not easy', dot: 'var(--cheetah)' },
+                  { text: 'Saying yes to adventure and growth', dot: 'var(--cougar-light)' },
+                  { text: 'Refusing to conform to others\' expectations', dot: 'var(--lioness-light)' },
+                ].map((item, idx) => (
+                  <motion.div
+                    key={idx}
+                    initial={{ opacity: 0, x: idx % 2 === 0 ? -20 : 20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.5, delay: 0.1 + idx * 0.08 }}
+                    className="flex items-center gap-3 px-5 py-4 rounded-xl border border-card-border bg-untamed-black-card hover:border-panther-light/30 transition-colors duration-300"
+                  >
+                    <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: item.dot }} />
+                    <span className="text-untamed-white text-sm md:text-base font-medium">
+                      {item.text}
+                    </span>
+                  </motion.div>
+                ))}
+              </div>
+              <p className="text-untamed-white-muted text-base md:text-lg leading-relaxed text-center mt-10">
+                It&apos;s a mindset&mdash;one that values passion over comfort, authenticity over approval, and soul over routine.
+              </p>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+              className="relative text-center px-6 py-8 rounded-2xl border border-panther-light/20 overflow-hidden"
+            >
+              {/* Cheetah scratch background - only behind this quote */}
+              <div className="absolute inset-0">
+                <Image
+                  src="/images/scratch-cheetah.png"
+                  alt=""
+                  fill
+                  className="object-cover opacity-40"
+                  aria-hidden="true"
+                />
+                <div className="absolute inset-0 bg-gradient-to-b from-untamed-black/80 via-untamed-black/60 to-untamed-black" />
+                <div className="absolute inset-0 bg-gradient-to-r from-untamed-black/70 to-transparent" />
+              </div>
+              <p className="relative z-10 text-untamed-white text-xl md:text-2xl font-light leading-relaxed italic max-w-3xl mx-auto">
+                &ldquo;Live Life Untamed&rdquo; means choosing freedom over fear, passion over predictability, and authenticity over acceptance. It&apos;s about running wild in your truth&mdash;unapologetic, alive, and unstoppable.
+              </p>
+            </motion.div>
+          </div>
+        </section>
+
+        {/* ============================================
             THE DRINKS SECTION
             ============================================ */}
         <section id="drinks" className="relative py-20 md:py-32">

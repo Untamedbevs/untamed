@@ -204,6 +204,67 @@ export function DrinkDetailPage({ drink }: DrinkDetailPageProps) {
         </section>
 
         {/* ============================================
+            THE STORY SECTION
+            ============================================ */}
+        <section className="relative py-20 md:py-32 overflow-hidden">
+          {/* Background accents */}
+          <div className="absolute inset-0">
+            <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-card-border to-transparent" />
+            <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-card-border to-transparent" />
+            <div
+              className="absolute top-1/2 left-0 w-72 h-72 rounded-full blur-[150px] opacity-10"
+              style={{ backgroundColor: drink.color }}
+            />
+            <div
+              className="absolute top-1/2 right-0 w-72 h-72 rounded-full blur-[150px] opacity-10"
+              style={{ backgroundColor: drink.color }}
+            />
+          </div>
+
+          <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+            >
+              <p
+                className="text-sm tracking-[0.3em] uppercase mb-3"
+                style={{ color: drink.color }}
+              >
+                Our Story
+              </p>
+              <h2 className="font-[var(--font-oswald)] text-4xl md:text-5xl lg:text-6xl font-bold uppercase tracking-wider text-untamed-white mb-8">
+                Born to Be{' '}
+                <span className={`text-gradient-${drink.cssVar}`}>Wild</span>
+              </h2>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="space-y-6"
+            >
+              <p className="text-untamed-white-muted text-lg md:text-xl leading-relaxed">
+                {drink.story}
+              </p>
+              <p className="text-untamed-white-muted text-lg md:text-xl leading-relaxed">
+                Every one of us has a wild side &mdash; an untamed spirit that refuses to be boxed in.
+                At Untamed Beverages, we crafted four premium vodka martinis, each inspired by the world&apos;s most
+                powerful big cats. The{' '}
+                <span style={{ color: drink.color }} className="font-medium">{drink.name}</span>{' '}
+                is yours.
+              </p>
+              <p className="text-untamed-white text-xl md:text-2xl font-light italic mt-8">
+                &ldquo;Chill it. Shake it. Unleash it!&rdquo;
+              </p>
+            </motion.div>
+          </div>
+        </section>
+
+        {/* ============================================
             INGREDIENTS SECTION
             ============================================ */}
         <section className="relative py-20 md:py-28">

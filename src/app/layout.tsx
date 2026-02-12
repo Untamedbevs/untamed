@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Inter, Oswald } from 'next/font/google'
+import { Inter, Oswald, Metal_Mania, Permanent_Marker, Rubik_Dirt } from 'next/font/google'
 import './globals.css'
 import { AgeGate } from '@/components/AgeGate'
 
@@ -13,6 +13,27 @@ const oswald = Oswald({
   subsets: ['latin'],
   variable: '--font-oswald',
   weight: ['400', '500', '600', '700'],
+  display: 'swap',
+})
+
+const metalMania = Metal_Mania({
+  subsets: ['latin'],
+  variable: '--font-metal-mania',
+  weight: '400',
+  display: 'swap',
+})
+
+const permanentMarker = Permanent_Marker({
+  subsets: ['latin'],
+  variable: '--font-permanent-marker',
+  weight: '400',
+  display: 'swap',
+})
+
+const rubikDirt = Rubik_Dirt({
+  subsets: ['latin'],
+  variable: '--font-rubik-dirt',
+  weight: '400',
   display: 'swap',
 })
 
@@ -59,7 +80,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${oswald.variable}`}>
+    <html lang="en" className={`${inter.variable} ${oswald.variable} ${metalMania.variable} ${permanentMarker.variable} ${rubikDirt.variable}`}>
       <body className="bg-untamed-black text-untamed-white antialiased">
         <AgeGate />
         {children}
