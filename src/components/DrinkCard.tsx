@@ -18,12 +18,13 @@ export function DrinkCard({ drink, index }: DrinkCardProps) {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-50px' }}
       transition={{ duration: 0.6, delay: index * 0.15 }}
+      className="h-full"
     >
       <Link
         href={`/drinks/${drink.slug}`}
         className="group block relative rounded-2xl overflow-hidden border border-card-border
           bg-untamed-black-card transition-all duration-500
-          hover:border-opacity-60 hover:scale-[1.02] hover:-translate-y-1"
+          hover:border-opacity-60 hover:scale-[1.02] hover:-translate-y-1 h-full"
         style={{
           '--hover-color': drink.color,
           '--hover-glow': drink.colorGlow,
@@ -62,7 +63,7 @@ export function DrinkCard({ drink, index }: DrinkCardProps) {
 
           {/* Drink Info */}
           <h3
-            className="font-[var(--font-oswald)] text-2xl md:text-3xl font-bold uppercase tracking-wider mb-1"
+            className="font-[var(--font-oswald)] text-2xl md:text-3xl font-bold uppercase tracking-wider mb-1 whitespace-nowrap"
             style={{ color: drink.color }}
           >
             {drink.name}
