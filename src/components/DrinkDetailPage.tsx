@@ -276,37 +276,14 @@ export function DrinkDetailPage({ drink }: DrinkDetailPageProps) {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
-              className="text-center mb-12"
+              className="text-center"
             >
               <h2 className="font-[var(--font-oswald)] text-3xl md:text-4xl font-bold uppercase tracking-wider text-untamed-white mb-4">
                 What&apos;s Inside
               </h2>
               <p className="text-untamed-white-muted text-lg">
-                Premium ingredients, expertly crafted.
+                Premium Vodka Martini with Natural Flavors
               </p>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="grid grid-cols-1 sm:grid-cols-2 gap-4"
-            >
-              {drink.ingredients.map((ingredient, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center gap-3 px-5 py-4 rounded-xl border border-card-border bg-untamed-black-card"
-                >
-                  <div
-                    className="w-2 h-2 rounded-full shrink-0"
-                    style={{ backgroundColor: drink.color }}
-                  />
-                  <span className="text-untamed-white text-sm md:text-base">
-                    {ingredient}
-                  </span>
-                </div>
-              ))}
             </motion.div>
 
             {/* ABV Warning */}
@@ -360,7 +337,7 @@ export function DrinkDetailPage({ drink }: DrinkDetailPageProps) {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
               {[
                 { step: '01', title: 'Chill It', desc: 'Best served ice cold. Refrigerate or keep on ice until ready.' },
-                { step: '02', title: 'Shake It', desc: 'Give it a good shake to blend the premium ingredients perfectly.' },
+                { step: '02', title: 'Shake It', desc: 'Give it a good shake to blend everything perfectly.' },
                 { step: '03', title: 'Unleash It!', desc: 'Crack it open and pour into your favorite glass, or drink straight from the can.' },
               ].map((item, idx) => (
                 <motion.div

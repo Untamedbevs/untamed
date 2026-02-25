@@ -1,0 +1,99 @@
+import { createAdminClient } from '@/lib/supabase/admin'
+import { NextRequest, NextResponse } from 'next/server'
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params
+  const supabase = createAdminClient()
+
+  const { data, error } = await supabase
+    .from('flow_posts')
+    .select(`
+      *,
+      reference_media:media!flow_posts_reference_media_id_fkey(id, filename, url, file_type),
+      generated_media:media!flow_posts_generated_media_id_fkey(id, filename, url, file_type, mime_type)
+    `)
+    .eq('flow_id', id)
+    .order('sort_order', { ascending: true })
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  return NextResponse.json(data)
+}
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params
+  const supabase = createAdminClient()
+  const body = await request.json()
+
+  const posts = Array.isArray(body) ? body : [body]
+
+  const inserts = posts.map((post, index) => ({
+    flow_id: id,
+    sort_order: post.sort_order ?? index,
+    concept: post.concept,
+    prompt: post.prompt,
+    generation_mode: post.generation_mode || 'generate',
+    target_size: post.target_size || 'square_1_1',
+    reference_media_id: post.reference_media_id || null,
+    status: 'pending',
+  }))
+
+  const { data, error } = await supabase
+    .from('flow_posts')
+    .insert(inserts)
+    .select()
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  return NextResponse.json(data, { status: 201 })
+}
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params
+  const supabase = createAdminClient()
+  const body = await request.json()
+
+  const posts = Array.isArray(body) ? body : [body]
+  const results = []
+
+  for (const post of posts) {
+    if (!post.id) continue
+
+    const updatePayload: Record<string, unknown> = {}
+    if (post.concept !== undefined) updatePayload.concept = post.concept
+    if (post.prompt !== undefined) updatePayload.prompt = post.prompt
+    if (post.generation_mode !== undefined) updatePayload.generation_mode = post.generation_mode
+    if (post.target_size !== undefined) updatePayload.target_size = post.target_size
+    if (post.reference_media_id !== undefined) updatePayload.reference_media_id = post.reference_media_id
+    if (post.generated_media_id !== undefined) updatePayload.generated_media_id = post.generated_media_id
+    if (post.status !== undefined) updatePayload.status = post.status
+    if (post.sort_order !== undefined) updatePayload.sort_order = post.sort_order
+    if (post.fal_model !== undefined) updatePayload.fal_model = post.fal_model
+    if (post.generation_metadata !== undefined) updatePayload.generation_metadata = post.generation_metadata
+
+    const { data, error } = await supabase
+      .from('flow_posts')
+      .update(updatePayload)
+      .eq('id', post.id)
+      .eq('flow_id', id)
+      .select()
+      .single()
+
+    if (!error && data) results.push(data)
+  }
+
+  return NextResponse.json(results)
+}

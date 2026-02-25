@@ -10,7 +10,6 @@ export interface Drink {
   colorDark: string
   colorGlow: string
   cssVar: string
-  ingredients: string[]
   abv: string
   size: string
   servings: string
@@ -35,14 +34,6 @@ export const drinks: Drink[] = [
     colorDark: '#5A1F6A',
     colorGlow: 'rgba(155, 48, 255, 0.3)',
     cssVar: 'panther',
-    ingredients: [
-      'Filtered Water',
-      'Ethanol',
-      'Cane Sugar',
-      'Espresso Concentrate',
-      'Natural Flavors',
-      'Citric Acid',
-    ],
     abv: '15%',
     size: '12 FL OZ / 355mL',
     servings: '2 Vodka Martinis Per Can',
@@ -67,14 +58,6 @@ export const drinks: Drink[] = [
     colorDark: '#9E9E00',
     colorGlow: 'rgba(212, 215, 0, 0.3)',
     cssVar: 'cheetah',
-    ingredients: [
-      'Filtered Water',
-      'Ethanol',
-      'Cane Sugar',
-      'Lemon Juice Concentrate',
-      'Natural Flavors',
-      'Natural Colors',
-    ],
     abv: '15%',
     size: '12 FL OZ / 355mL',
     servings: '2 Vodka Martinis Per Can',
@@ -99,13 +82,6 @@ export const drinks: Drink[] = [
     colorDark: '#355E0A',
     colorGlow: 'rgba(107, 142, 35, 0.3)',
     cssVar: 'cougar',
-    ingredients: [
-      'Filtered Water',
-      'Ethanol',
-      'Dirty Martini Olive Juice (Olive Juice, Water, Salt, Lactic Acid, Vinegar)',
-      'Cane Sugar',
-      'Citric Acid',
-    ],
     abv: '15%',
     size: '12 FL OZ / 355mL',
     servings: '2 Vodka Martinis Per Can',
@@ -130,15 +106,6 @@ export const drinks: Drink[] = [
     colorDark: '#D4680F',
     colorGlow: 'rgba(232, 117, 17, 0.3)',
     cssVar: 'lioness',
-    ingredients: [
-      'Filtered Water',
-      'Ethanol',
-      'Cane Sugar',
-      'Peach Juice Concentrate',
-      'Natural Flavors',
-      'Citric Acid',
-      'Natural Colors',
-    ],
     abv: '15%',
     size: '12 FL OZ / 355mL',
     servings: '2 Vodka Martinis Per Can',
