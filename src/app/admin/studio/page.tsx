@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { Suspense, useEffect, useState, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import {
   Wand2,
@@ -119,6 +119,14 @@ const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export default function StudioPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center py-20 text-[#666] text-sm">Loading studio...</div>}>
+      <StudioContent />
+    </Suspense>
+  )
+}
+
+function StudioContent() {
   const searchParams = useSearchParams()
   const [phase, setPhase] = useState<Phase>('plan')
   const [flow, setFlow] = useState<Flow | null>(null)
