@@ -187,6 +187,13 @@ body {
   background-clip: text;
 }
 
+.text-gradient-panther {
+  background: linear-gradient(135deg, var(--panther-light), var(--panther));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
 .text-gradient-cheetah {
   background: linear-gradient(135deg, var(--cheetah-light), var(--cheetah));
   -webkit-background-clip: text;

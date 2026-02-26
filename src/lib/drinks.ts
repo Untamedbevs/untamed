@@ -16,6 +16,7 @@ export interface Drink {
   personality: string
   personalityQuestion: string
   story: string
+  whatsInside: string
   canImage: string
   animalImage: string
   scratchBackground: string
@@ -42,6 +43,8 @@ export const drinks: Drink[] = [
     personalityQuestion: 'Are You a Black Panther?',
     story:
       'The Black Panther moves through the shadows \u2014 unseen, unbothered, unstoppable. This isn\u2019t a cocktail for the loud. It\u2019s for the ones who own every room without saying a word. Rich espresso, smooth caramel, a hint of vanilla \u2014 dark, layered, and impossible to forget. Just like you.',
+    whatsInside:
+      'Deep, bold espresso meets velvety caramel and a whisper of vanilla, all carried by premium vodka. Every sip is smooth, dark, and layered \u2014 like the shadows the panther moves through. This isn\u2019t just a martini. It\u2019s midnight in a can.',
     canImage: '/images/can-black-panther.png',
     animalImage: '/images/animal-black-panther.png',
     scratchBackground: '/images/scratch-panther.png',
@@ -66,6 +69,8 @@ export const drinks: Drink[] = [
     personalityQuestion: 'Are You a Cheetah?',
     story:
       'The Cheetah doesn\u2019t hesitate. When the moment is right, it strikes \u2014 fast, focused, and fearless. This is a cocktail built for people who trust their instincts and move with precision. Bright lemon, clean citrus, pure energy in a can. No wasted motion. No second-guessing. Just go.',
+    whatsInside:
+      'Bright, electric citrus hits first \u2014 sharp lemon balanced with just enough sweetness to keep you locked in. Premium vodka gives it a clean, crisp backbone that finishes fast and leaves you wanting more. Pure energy, zero hesitation.',
     canImage: '/images/can-cheetah.png',
     animalImage: '/images/animal-cheetah.png',
     scratchBackground: '/images/scratch-cheetah.png',
@@ -90,6 +95,8 @@ export const drinks: Drink[] = [
     personalityQuestion: 'Are You a Cougar?',
     story:
       'The Cougar doesn\u2019t chase \u2014 it commands. Quiet power, earned authority, and the patience to wait for exactly the right moment. This classic dirty martini is bold, savory, and unapologetically strong. It\u2019s for those who\u2019ve already proven themselves and don\u2019t need anyone\u2019s permission to own it.',
+    whatsInside:
+      'Briny, savory, and unapologetically bold \u2014 olive brine meets premium vodka in a classic dirty martini that doesn\u2019t hold back. There\u2019s nothing sweet about this one. Just clean spirit, sharp salt, and a finish that commands respect.',
     canImage: '/images/can-cougar.png',
     animalImage: '/images/animal-cougar.png',
     scratchBackground: '/images/scratch-cougar.png',
@@ -114,6 +121,8 @@ export const drinks: Drink[] = [
     personalityQuestion: 'Are You a Lioness?',
     story:
       'The Lioness leads with heart and fights with fire. Loyalty runs deep, compassion runs deeper, but make no mistake \u2014 she will protect what\u2019s hers. Sweet peach, aromatic rosemary, and a finish that lingers. This is for the ones who hold it all together and make it look effortless.',
+    whatsInside:
+      'Lush, sun-ripened peach meets aromatic rosemary and premium vodka for a cocktail that\u2019s equal parts sweet and sophisticated. The herbal notes ground the fruit with warmth, and the finish lingers long after the last sip \u2014 effortless and unforgettable.',
     canImage: '/images/can-lioness.png',
     animalImage: '/images/animal-lioness.png',
     scratchBackground: '/images/scratch-lioness.png',

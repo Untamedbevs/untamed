@@ -281,8 +281,8 @@ export function DrinkDetailPage({ drink }: DrinkDetailPageProps) {
               <h2 className="font-[var(--font-oswald)] text-3xl md:text-4xl font-bold uppercase tracking-wider text-untamed-white mb-4">
                 What&apos;s Inside
               </h2>
-              <p className="text-untamed-white-muted text-lg">
-                Premium Vodka Martini with Natural Flavors
+              <p className="text-untamed-white-muted text-lg md:text-xl leading-relaxed">
+                {drink.whatsInside}
               </p>
             </motion.div>
 
