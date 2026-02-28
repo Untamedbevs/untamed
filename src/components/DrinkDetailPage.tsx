@@ -298,7 +298,7 @@ export function DrinkDetailPage({ drink }: DrinkDetailPageProps) {
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-full border text-sm"
                 style={{ borderColor: `${drink.color}30`, color: drink.color }}
               >
-                <Martini className="w-4 h-4" />
+                <Martini className="w-4 h-4 shrink-0" />
                 Contains the equivalent of (2) 6 oz vodka martinis in a single 12 fl oz can.
               </p>
             </motion.div>
