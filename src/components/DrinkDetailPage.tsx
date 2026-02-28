@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Droplets, Wine, Flame } from 'lucide-react'
+import { ArrowLeft, Droplets, Martini, Wine, Flame } from 'lucide-react'
 import type { Drink } from '@/lib/drinks'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
@@ -298,7 +298,7 @@ export function DrinkDetailPage({ drink }: DrinkDetailPageProps) {
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-full border text-sm"
                 style={{ borderColor: `${drink.color}30`, color: drink.color }}
               >
-                <Wine className="w-4 h-4" />
+                <Martini className="w-4 h-4" />
                 Contains the equivalent of (2) 6 oz vodka martinis in a single 12 fl oz can.
               </p>
             </motion.div>
