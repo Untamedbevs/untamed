@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Droplets, Martini, Wine, Flame } from 'lucide-react'
+import { ArrowLeft, Droplets, Martini, Flame } from 'lucide-react'
 import type { Drink } from '@/lib/drinks'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
@@ -94,7 +94,7 @@ export function DrinkDetailPage({ drink }: DrinkDetailPageProps) {
                     className="flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-medium"
                     style={{ borderColor: `${drink.color}40`, color: drink.color }}
                   >
-                    <Wine className="w-4 h-4" />
+                    <Martini className="w-4 h-4" />
                     {drink.abv} ALC/VOL
                   </div>
                   <div
