@@ -288,17 +288,20 @@ export function DrinkDetailPage({ drink }: DrinkDetailPageProps) {
 
             {/* ABV Warning */}
             <motion.div
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: 0.4 }}
-              className="mt-8 text-center"
+              className="mt-10 flex flex-col items-center gap-3"
             >
+              <div className="flex items-center gap-3" style={{ color: drink.color }}>
+                <Martini className="w-10 h-10 md:w-12 md:h-12" />
+                <Martini className="w-10 h-10 md:w-12 md:h-12" />
+              </div>
               <p
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-full border text-sm"
                 style={{ borderColor: `${drink.color}30`, color: drink.color }}
               >
-                <Martini className="w-4 h-4 shrink-0" />
                 Contains the equivalent of (2) 6 oz vodka martinis in a single 12 fl oz can.
               </p>
             </motion.div>
