@@ -9,12 +9,16 @@ interface ReceiptUploadProps {
   drink: Drink
   memberId: string
   onUploaded: () => void
+  accentColor?: string
+  accentGlow?: string
 }
 
-export function ReceiptUpload({ drink, memberId, onUploaded }: ReceiptUploadProps) {
+export function ReceiptUpload({ drink, memberId, onUploaded, accentColor, accentGlow }: ReceiptUploadProps) {
+  const color = accentColor || drink.color
+  const glow = accentGlow || drink.colorGlow
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
-  const [drinkSlug, setDrinkSlug] = useState(drink.slug)
+  const [drinkSlug, setDrinkSlug] = useState(drink.slug || drinks[0].slug)
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
@@ -85,11 +89,11 @@ export function ReceiptUpload({ drink, memberId, onUploaded }: ReceiptUploadProp
     <div className="space-y-4">
       <h3
         className="font-[var(--font-oswald)] text-2xl font-bold uppercase tracking-wider"
-        style={{ color: drink.color }}
+        style={{ color }}
       >
         Upload Receipt
       </h3>
-      <p className="text-[#999] text-sm">
+      <p className="text-untamed-white-muted text-sm">
         Snap a photo of your purchase receipt to earn 25 points. We&apos;ll review and credit your account.
       </p>
 
@@ -97,7 +101,7 @@ export function ReceiptUpload({ drink, memberId, onUploaded }: ReceiptUploadProp
         <select
           value={drinkSlug}
           onChange={(e) => setDrinkSlug(e.target.value)}
-          className="flex-1 px-4 py-3 bg-[#1A1A1A] border border-[#333] rounded-xl text-white text-sm focus:outline-none"
+          className="flex-1 px-4 py-3 bg-untamed-black-light border border-card-border rounded-xl text-white text-sm focus:outline-none"
         >
           {drinks.map((d) => (
             <option key={d.slug} value={d.slug}>
@@ -117,9 +121,9 @@ export function ReceiptUpload({ drink, memberId, onUploaded }: ReceiptUploadProp
       />
 
       {preview ? (
-        <div className="relative rounded-xl overflow-hidden border border-[#333]">
+        <div className="relative rounded-xl overflow-hidden border border-card-border">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={preview} alt="Receipt preview" className="w-full max-h-64 object-contain bg-[#1A1A1A]" />
+          <img src={preview} alt="Receipt preview" className="w-full max-h-64 object-contain bg-untamed-black-light" />
           <button
             onClick={() => {
               setFile(null)
@@ -133,8 +137,7 @@ export function ReceiptUpload({ drink, memberId, onUploaded }: ReceiptUploadProp
       ) : (
         <button
           onClick={() => inputRef.current?.click()}
-          className="w-full flex flex-col items-center justify-center gap-3 py-8 border-2 border-dashed border-[#333] rounded-xl hover:border-current transition-colors"
-          style={{ color: '#666' }}
+          className="w-full flex flex-col items-center justify-center gap-3 py-10 border-2 border-dashed border-card-border rounded-xl hover:border-current transition-colors text-muted"
         >
           <div className="flex items-center gap-4">
             <Camera className="w-8 h-8" />
@@ -157,8 +160,8 @@ export function ReceiptUpload({ drink, memberId, onUploaded }: ReceiptUploadProp
         <button
           onClick={handleUpload}
           disabled={loading}
-          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-black uppercase tracking-wider transition-all duration-300 hover:scale-[1.02] disabled:opacity-50"
-          style={{ backgroundColor: drink.color }}
+          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-full font-bold text-black uppercase tracking-wider transition-all duration-300 hover:scale-[1.02] disabled:opacity-50"
+          style={{ backgroundColor: color, boxShadow: `0 0 20px ${glow}` }}
         >
           {loading ? (
             <Loader2 className="w-5 h-5 animate-spin" />

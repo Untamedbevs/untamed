@@ -8,9 +8,13 @@ interface JoinFormProps {
   drink: Drink
   visitorId: string
   onJoined: (member: Record<string, unknown>) => void
+  accentColor?: string
+  accentGlow?: string
 }
 
-export function JoinForm({ drink, visitorId, onJoined }: JoinFormProps) {
+export function JoinForm({ drink, visitorId, onJoined, accentColor, accentGlow }: JoinFormProps) {
+  const color = accentColor || drink.color
+  const glow = accentGlow || drink.colorGlow
   const [email, setEmail] = useState('')
   const [firstName, setFirstName] = useState('')
   const [loading, setLoading] = useState(false)
@@ -29,7 +33,7 @@ export function JoinForm({ drink, visitorId, onJoined }: JoinFormProps) {
           visitorId,
           email,
           firstName,
-          drinkSlug: drink.slug,
+          drinkSlug: drink.slug || null,
         }),
       })
 
@@ -53,22 +57,21 @@ export function JoinForm({ drink, visitorId, onJoined }: JoinFormProps) {
       <div className="relative">
         <User
           className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5"
-          style={{ color: drink.color }}
+          style={{ color }}
         />
         <input
           type="text"
           placeholder="First name"
           value={firstName}
           onChange={(e) => setFirstName(e.target.value)}
-          className="w-full pl-12 pr-4 py-3.5 bg-[#1A1A1A] border border-[#333] rounded-xl text-white placeholder:text-[#666] focus:outline-none focus:border-current transition-colors"
-          style={{ '--tw-ring-color': drink.color } as React.CSSProperties}
+          className="w-full pl-12 pr-4 py-3.5 bg-untamed-black-light border border-card-border rounded-xl text-white placeholder:text-muted focus:outline-none transition-colors"
         />
       </div>
 
       <div className="relative">
         <Mail
           className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5"
-          style={{ color: drink.color }}
+          style={{ color }}
         />
         <input
           type="email"
@@ -76,8 +79,7 @@ export function JoinForm({ drink, visitorId, onJoined }: JoinFormProps) {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          className="w-full pl-12 pr-4 py-3.5 bg-[#1A1A1A] border border-[#333] rounded-xl text-white placeholder:text-[#666] focus:outline-none focus:border-current transition-colors"
-          style={{ '--tw-ring-color': drink.color } as React.CSSProperties}
+          className="w-full pl-12 pr-4 py-3.5 bg-untamed-black-light border border-card-border rounded-xl text-white placeholder:text-muted focus:outline-none transition-colors"
         />
       </div>
 
@@ -88,10 +90,10 @@ export function JoinForm({ drink, visitorId, onJoined }: JoinFormProps) {
       <button
         type="submit"
         disabled={loading || !email}
-        className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-black uppercase tracking-wider transition-all duration-300 hover:scale-[1.02] hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full flex items-center justify-center gap-2 py-3.5 rounded-full font-bold text-black uppercase tracking-wider transition-all duration-300 hover:scale-[1.02] hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
         style={{
-          backgroundColor: drink.color,
-          boxShadow: `0 0 20px ${drink.colorGlow}`,
+          backgroundColor: color,
+          boxShadow: `0 0 20px ${glow}`,
         }}
       >
         {loading ? (

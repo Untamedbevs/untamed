@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Menu, X } from 'lucide-react'
+import { Menu, X, Trophy } from 'lucide-react'
 import { drinks } from '@/lib/drinks'
 
 export function Navigation() {
@@ -52,6 +52,13 @@ export function Navigation() {
                   {drink.name}
                 </Link>
               ))}
+              <Link
+                href="/rewards"
+                className="flex items-center gap-1.5 text-sm font-medium tracking-wider uppercase text-[#FFD700] transition-colors duration-300 hover:text-[#FFA500]"
+              >
+                <Trophy className="w-4 h-4" />
+                Rewards
+              </Link>
               <a
                 href="https://instagram.com/untamedbevs"
                 target="_blank"
@@ -89,6 +96,15 @@ export function Navigation() {
                 {drink.name}
               </Link>
             ))}
+            <div className="w-16 h-px bg-card-border my-4" />
+            <Link
+              href="/rewards"
+              onClick={() => setMobileOpen(false)}
+              className="flex items-center gap-2 text-xl font-bold tracking-wider uppercase text-[#FFD700] transition-colors duration-300"
+            >
+              <Trophy className="w-5 h-5" />
+              Rewards
+            </Link>
             <div className="w-16 h-px bg-card-border my-4" />
             <a
               href="https://instagram.com/untamedbevs"

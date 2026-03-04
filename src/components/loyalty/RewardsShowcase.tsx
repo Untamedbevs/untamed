@@ -1,90 +1,82 @@
 'use client'
 
+import { motion } from 'framer-motion'
 import { Gift, Lock, Check } from 'lucide-react'
 import { REWARDS } from '@/lib/loyalty/constants'
-import type { Drink } from '@/lib/drinks'
 
 interface RewardsShowcaseProps {
-  drink: Drink
+  accentColor?: string
   currentPoints?: number
 }
 
-export function RewardsShowcase({ drink, currentPoints = 0 }: RewardsShowcaseProps) {
+export function RewardsShowcase({ accentColor = '#FFD700', currentPoints = 0 }: RewardsShowcaseProps) {
   return (
-    <div className="space-y-4">
-      <h3
-        className="font-[var(--font-oswald)] text-2xl font-bold uppercase tracking-wider"
-        style={{ color: drink.color }}
-      >
-        Rewards
-      </h3>
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      {REWARDS.map((reward, idx) => {
+        const canRedeem = currentPoints >= reward.pointsCost
+        return (
+          <motion.div
+            key={reward.id}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: idx * 0.1 }}
+            className="relative p-6 rounded-2xl border bg-untamed-black-card transition-all duration-300 hover:-translate-y-1"
+            style={{
+              borderColor: canRedeem ? `${accentColor}60` : 'var(--card-border)',
+            }}
+          >
+            {canRedeem && (
+              <div
+                className="absolute top-4 right-4 w-7 h-7 rounded-full flex items-center justify-center"
+                style={{ backgroundColor: accentColor }}
+              >
+                <Check className="w-4 h-4 text-black" />
+              </div>
+            )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {REWARDS.map((reward) => {
-          const canRedeem = currentPoints >= reward.pointsCost
-          return (
             <div
-              key={reward.id}
-              className="relative p-5 rounded-xl border bg-[#141414] transition-all duration-300"
-              style={{
-                borderColor: canRedeem ? `${drink.color}60` : '#2A2A2A',
-              }}
+              className="w-12 h-12 rounded-xl flex items-center justify-center mb-4"
+              style={{ backgroundColor: `${accentColor}15` }}
             >
-              {canRedeem && (
-                <div
-                  className="absolute top-3 right-3 w-6 h-6 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: drink.color }}
-                >
-                  <Check className="w-3.5 h-3.5 text-black" />
-                </div>
-              )}
-
-              <div className="flex items-start gap-3 mb-3">
-                <div
-                  className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
-                  style={{ backgroundColor: `${drink.color}15` }}
-                >
-                  {canRedeem ? (
-                    <Gift className="w-5 h-5" style={{ color: drink.color }} />
-                  ) : (
-                    <Lock className="w-5 h-5 text-[#666]" />
-                  )}
-                </div>
-                <div>
-                  <h4 className="text-white font-semibold text-sm">{reward.name}</h4>
-                  <p className="text-[#999] text-xs mt-0.5">{reward.description}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span
-                  className="text-xs font-bold uppercase tracking-wider"
-                  style={{ color: canRedeem ? drink.color : '#666' }}
-                >
-                  {reward.pointsCost} pts
-                </span>
-                {currentPoints > 0 && !canRedeem && (
-                  <span className="text-[#666] text-xs">
-                    {reward.pointsCost - currentPoints} more needed
-                  </span>
-                )}
-              </div>
-
-              {currentPoints > 0 && (
-                <div className="mt-3 h-1 rounded-full bg-[#2A2A2A] overflow-hidden">
-                  <div
-                    className="h-full rounded-full transition-all duration-500"
-                    style={{
-                      width: `${Math.min(100, (currentPoints / reward.pointsCost) * 100)}%`,
-                      backgroundColor: drink.color,
-                    }}
-                  />
-                </div>
+              {canRedeem ? (
+                <Gift className="w-6 h-6" style={{ color: accentColor }} />
+              ) : (
+                <Lock className="w-6 h-6 text-muted" />
               )}
             </div>
-          )
-        })}
-      </div>
+
+            <h4 className="text-untamed-white font-semibold text-base mb-1">{reward.name}</h4>
+            <p className="text-muted-foreground text-sm mb-4 leading-relaxed">{reward.description}</p>
+
+            <div className="flex items-center justify-between">
+              <span
+                className="text-sm font-bold uppercase tracking-wider"
+                style={{ color: canRedeem ? accentColor : 'var(--muted)' }}
+              >
+                {reward.pointsCost} pts
+              </span>
+              {currentPoints > 0 && !canRedeem && (
+                <span className="text-muted text-xs">
+                  {reward.pointsCost - currentPoints} more
+                </span>
+              )}
+            </div>
+
+            {currentPoints > 0 && (
+              <div className="mt-4 h-1.5 rounded-full bg-untamed-black-light overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{
+                    width: `${Math.min(100, (currentPoints / reward.pointsCost) * 100)}%`,
+                    backgroundColor: accentColor,
+                  }}
+                />
+              </div>
+            )}
+          </motion.div>
+        )
+      })}
     </div>
   )
 }
