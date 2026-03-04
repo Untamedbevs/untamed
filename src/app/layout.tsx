@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Inter, Oswald, Metal_Mania, Permanent_Marker, Rubik_Dirt } from 'next/font/google'
 import './globals.css'
 import { AgeGate } from '@/components/AgeGate'
+import { TrackingProvider } from '@/components/TrackingProvider'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -82,8 +83,10 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${oswald.variable} ${metalMania.variable} ${permanentMarker.variable} ${rubikDirt.variable}`}>
       <body className="bg-untamed-black text-untamed-white antialiased">
-        <AgeGate />
-        {children}
+        <TrackingProvider>
+          <AgeGate />
+          {children}
+        </TrackingProvider>
       </body>
     </html>
   )

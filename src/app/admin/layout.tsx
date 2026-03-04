@@ -10,6 +10,7 @@ import {
   Image,
   Megaphone,
   Wand2,
+  Trophy,
   Menu,
   X,
   LogOut,
@@ -25,6 +26,7 @@ const NAV_ITEMS = [
   { href: '/admin/media', label: 'Media', icon: Image },
   { href: '/admin/studio', label: 'Studio', icon: Wand2 },
   { href: '/admin/campaigns', label: 'Campaigns', icon: Megaphone },
+  { href: '/admin/loyalty', label: 'Loyalty', icon: Trophy },
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
