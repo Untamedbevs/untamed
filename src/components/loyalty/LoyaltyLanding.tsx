@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Sparkles, Mail, Loader2, Trophy, Gift, Receipt } from 'lucide-react'
+import { ArrowLeft, Sparkles, Mail, Loader2, Trophy, Gift, Receipt, ScanLine } from 'lucide-react'
 import type { Drink } from '@/lib/drinks'
 import { drinks } from '@/lib/drinks'
 import type { LoyaltyMember, LoyaltyTransaction, LoyaltyReceipt } from '@/lib/loyalty/types'
@@ -485,6 +485,52 @@ export function LoyaltyLanding({ drink }: LoyaltyLandingProps) {
             </div>
           </section>
         )}
+        {/* ============================================
+            QR CODE CALLOUT SECTION
+            ============================================ */}
+        <section className="relative py-20 md:py-28 overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-card-border to-transparent" />
+
+          <div
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full blur-[180px] opacity-10"
+            style={{ backgroundColor: theme.color }}
+          />
+
+          <div className="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="flex flex-col items-center"
+            >
+              <ScanLine className="w-10 h-10 mb-4" style={{ color: theme.color }} />
+              <h2 className="font-[var(--font-oswald)] text-3xl md:text-4xl font-bold uppercase tracking-wider text-untamed-white mb-4">
+                Scan to Join
+              </h2>
+              <p className="text-untamed-white-muted text-base md:text-lg max-w-lg mb-8">
+                Scan the QR code on any Untamed can or box to come straight here and start earning rewards!
+              </p>
+
+              <div
+                className="relative p-4 rounded-2xl border bg-white inline-block"
+                style={{ borderColor: `${theme.color}40` }}
+              >
+                <Image
+                  src={drink ? `/images/qr/qr-${drink.slug}.png` : '/images/qr/qr-rewards-generic.png'}
+                  alt="Scan to join Untamed Rewards"
+                  width={200}
+                  height={200}
+                  className="rounded-lg"
+                />
+              </div>
+
+              <p className="text-muted text-xs mt-4 uppercase tracking-wider">
+                {drink ? `${drink.name} Rewards` : 'Untamed Rewards'} &bull; Scan with your phone camera
+              </p>
+            </motion.div>
+          </div>
+        </section>
       </main>
 
       <Footer />
