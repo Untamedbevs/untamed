@@ -80,7 +80,46 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const supabase = createAdminClient()
+  const contentType = request.headers.get('content-type') || ''
 
+  if (contentType.includes('application/json')) {
+    return registerMedia(supabase, request)
+  }
+  return uploadMedia(supabase, request)
+}
+
+async function registerMedia(supabase: ReturnType<typeof createAdminClient>, request: NextRequest) {
+  const body = await request.json()
+  const { filename, s3_key, url, file_type, mime_type, file_size, alt_text, folder } = body
+
+  if (!filename || !s3_key || !url || !file_type) {
+    return NextResponse.json({ error: 'filename, s3_key, url, and file_type are required' }, { status: 400 })
+  }
+
+  const { data, error } = await supabase
+    .from('media')
+    .insert({
+      filename,
+      s3_key,
+      url,
+      file_type,
+      mime_type: mime_type || null,
+      file_size: file_size || null,
+      alt_text: alt_text || null,
+      folder: folder || '/',
+    })
+    .select()
+    .single()
+
+  if (error) {
+    console.error('DB insert failed:', error)
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  return NextResponse.json(data, { status: 201 })
+}
+
+async function uploadMedia(supabase: ReturnType<typeof createAdminClient>, request: NextRequest) {
   const formData = await request.formData()
   const file = formData.get('file') as File
   const folder = (formData.get('folder') as string) || '/'
