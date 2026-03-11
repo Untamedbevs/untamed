@@ -8,6 +8,7 @@ export interface UploadResult {
   fileType: FileType
   mimeType: string
   fileSize: number
+  isPrivate: boolean
 }
 
 export type FileStatus = 'pending' | 'uploading' | 'success' | 'error'
@@ -17,6 +18,7 @@ export interface QueuedFile {
   file: File
   displayName: string
   targetFolder: string
+  isPrivate?: boolean
 }
 
 export function deriveFileType(mimeType: string): FileType {
@@ -188,12 +190,13 @@ function uploadWithProgress(
 async function getPresignedUrl(
   filename: string,
   contentType: string,
-  folder: string
-): Promise<{ presignedUrl: string; s3Key: string; publicUrl: string }> {
+  folder: string,
+  isPrivate: boolean = false
+): Promise<{ presignedUrl: string; s3Key: string; publicUrl: string | null; isPrivate: boolean }> {
   const res = await fetch('/api/admin/media/presigned', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ filename, contentType, folder }),
+    body: JSON.stringify({ filename, contentType, folder, isPrivate }),
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
@@ -210,6 +213,7 @@ async function registerMediaRecord(record: {
   mime_type: string
   file_size: number
   folder: string
+  is_private: boolean
 }): Promise<{ id: string }> {
   const res = await fetch('/api/admin/media', {
     method: 'POST',
@@ -226,7 +230,8 @@ async function registerMediaRecord(record: {
 async function uploadFile(
   file: File,
   folder: string,
-  onProgress?: (progress: number) => void
+  onProgress?: (progress: number) => void,
+  isPrivate: boolean = false
 ): Promise<UploadResult> {
   const mimeType = file.type || 'application/octet-stream'
   const fileType = deriveFileType(mimeType)
@@ -234,7 +239,8 @@ async function uploadFile(
   const { presignedUrl, s3Key, publicUrl } = await getPresignedUrl(
     file.name,
     mimeType,
-    folder
+    folder,
+    isPrivate
   )
 
   await uploadWithProgress(presignedUrl, file, onProgress)
@@ -242,21 +248,23 @@ async function uploadFile(
   const record = await registerMediaRecord({
     filename: file.name,
     s3_key: s3Key,
-    url: publicUrl,
+    url: publicUrl || '',
     file_type: fileType,
     mime_type: mimeType,
     file_size: file.size,
     folder,
+    is_private: isPrivate,
   })
 
   return {
     id: record.id,
-    url: publicUrl,
+    url: publicUrl || '',
     s3Key,
     fileName: file.name,
     fileType,
     mimeType,
     fileSize: file.size,
+    isPrivate,
   }
 }
 
@@ -280,7 +288,8 @@ export async function uploadMediaQueue(
         item.targetFolder,
         (progress) => {
           onFileProgress?.(item.id, 'uploading', progress)
-        }
+        },
+        item.isPrivate ?? false
       )
 
       onFileProgress?.(item.id, 'success', 100)
@@ -300,6 +309,7 @@ export async function uploadMediaQueue(
         fileType: 'document',
         mimeType: item.file.type || 'application/octet-stream',
         fileSize: item.file.size,
+        isPrivate: item.isPrivate ?? false,
         error: message,
       })
     }

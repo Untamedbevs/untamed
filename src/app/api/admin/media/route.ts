@@ -90,10 +90,14 @@ export async function POST(request: NextRequest) {
 
 async function registerMedia(supabase: ReturnType<typeof createAdminClient>, request: NextRequest) {
   const body = await request.json()
-  const { filename, s3_key, url, file_type, mime_type, file_size, alt_text, folder } = body
+  const { filename, s3_key, url, file_type, mime_type, file_size, alt_text, folder, is_private } = body
 
-  if (!filename || !s3_key || !url || !file_type) {
-    return NextResponse.json({ error: 'filename, s3_key, url, and file_type are required' }, { status: 400 })
+  if (!filename || !s3_key || !file_type) {
+    return NextResponse.json({ error: 'filename, s3_key, and file_type are required' }, { status: 400 })
+  }
+
+  if (!is_private && !url) {
+    return NextResponse.json({ error: 'url is required for public files' }, { status: 400 })
   }
 
   const { data, error } = await supabase
@@ -101,12 +105,13 @@ async function registerMedia(supabase: ReturnType<typeof createAdminClient>, req
     .insert({
       filename,
       s3_key,
-      url,
+      url: is_private ? '' : url,
       file_type,
       mime_type: mime_type || null,
       file_size: file_size || null,
       alt_text: alt_text || null,
       folder: folder || '/',
+      is_private: is_private || false,
     })
     .select()
     .single()

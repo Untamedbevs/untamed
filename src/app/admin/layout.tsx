@@ -12,23 +12,42 @@ import {
   Wand2,
   Trophy,
   DollarSign,
+  Calculator,
+  ClipboardList,
   Menu,
   X,
   LogOut,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   User,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import type { LucideIcon } from 'lucide-react'
 
-const NAV_ITEMS = [
+type NavItem = {
+  href: string
+  label: string
+  icon: LucideIcon
+  children?: { href: string; label: string; icon: LucideIcon }[]
+}
+
+const NAV_ITEMS: NavItem[] = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/ideas', label: 'Ideas', icon: Lightbulb },
   { href: '/admin/media', label: 'Media', icon: Image },
   { href: '/admin/studio', label: 'Studio', icon: Wand2 },
   { href: '/admin/campaigns', label: 'Campaigns', icon: Megaphone },
   { href: '/admin/loyalty', label: 'Loyalty', icon: Trophy },
-  { href: '/admin/financial', label: 'Financial', icon: DollarSign },
+  {
+    href: '/admin/financial',
+    label: 'Financial',
+    icon: DollarSign,
+    children: [
+      { href: '/admin/financial/beverage-estimator', label: 'Cost Estimator', icon: Calculator },
+      { href: '/admin/financial/product-procurement', label: 'Procurement', icon: ClipboardList },
+    ],
+  },
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -119,10 +138,63 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon
             const active = isActive(item.href)
+            const hasChildren = item.children && item.children.length > 0
+            const childrenExpanded = active && hasChildren
+
+            if (hasChildren && !collapsed) {
+              return (
+                <div key={item.href}>
+                  <Link
+                    href={item.children![0].href}
+                    onClick={() => setMobileOpen(false)}
+                    className={cn(
+                      'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 w-full',
+                      active
+                        ? 'bg-[#9B30FF]/15 text-[#9B30FF] border border-[#9B30FF]/30'
+                        : 'text-[#A0A0A0] hover:text-white hover:bg-[#1A1A1A]'
+                    )}
+                  >
+                    <Icon className="w-5 h-5 shrink-0" />
+                    <span className="flex-1">{item.label}</span>
+                    <ChevronDown
+                      className={cn(
+                        'w-3.5 h-3.5 shrink-0 transition-transform duration-200',
+                        !childrenExpanded && '-rotate-90'
+                      )}
+                    />
+                  </Link>
+                  {childrenExpanded && (
+                    <div className="mt-1 ml-3 pl-4 border-l border-[#2A2A2A] space-y-0.5">
+                      {item.children!.map((child) => {
+                        const ChildIcon = child.icon
+                        const childActive = pathname === child.href
+                        return (
+                          <Link
+                            key={child.href}
+                            href={child.href}
+                            onClick={() => setMobileOpen(false)}
+                            className={cn(
+                              'flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200',
+                              childActive
+                                ? 'text-[#9B30FF] bg-[#9B30FF]/10'
+                                : 'text-[#A0A0A0] hover:text-white hover:bg-[#1A1A1A]'
+                            )}
+                          >
+                            <ChildIcon className="w-4 h-4 shrink-0" />
+                            {child.label}
+                          </Link>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )
+            }
+
             return (
               <Link
                 key={item.href}
-                href={item.href}
+                href={hasChildren ? item.children![0].href : item.href}
                 onClick={() => setMobileOpen(false)}
                 className={cn(
                   'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',

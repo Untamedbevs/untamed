@@ -25,6 +25,8 @@ import {
   AlertCircle,
   CheckCircle,
   File as FileIcon,
+  Lock,
+  Globe,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
@@ -51,6 +53,7 @@ interface MediaItem {
   alt_text: string | null
   tags: string[]
   folder: string
+  is_private: boolean
   uploaded_by: string | null
   created_at: string
   updated_at: string
@@ -109,6 +112,7 @@ export default function MediaPage() {
   const [showUploadForm, setShowUploadForm] = useState(false)
   const [queue, setQueue] = useState<QueuedFile[]>([])
   const [uploading, setUploading] = useState(false)
+  const [uploadPrivate, setUploadPrivate] = useState(false)
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>(
     {}
   )
@@ -203,7 +207,8 @@ export default function MediaPage() {
 
   function enqueueFiles(items: QueuedFile[]) {
     if (items.length === 0) return
-    setQueue((prev) => [...prev, ...items])
+    const tagged = items.map((item) => ({ ...item, isPrivate: uploadPrivate }))
+    setQueue((prev) => [...prev, ...tagged])
 
     const status: Record<string, FileStatus> = {}
     const progress: Record<string, number> = {}
@@ -583,6 +588,41 @@ export default function MediaPage() {
             </button>
           </div>
 
+          {/* Public / Private toggle */}
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setUploadPrivate(false)}
+              className={cn(
+                'flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
+                !uploadPrivate
+                  ? 'bg-green-500/15 text-green-400 border-green-500/30'
+                  : 'text-[#666] border-[#2A2A2A] hover:border-[#444] hover:text-[#A0A0A0]'
+              )}
+            >
+              <Globe className="w-3.5 h-3.5" />
+              Public
+            </button>
+            <button
+              type="button"
+              onClick={() => setUploadPrivate(true)}
+              className={cn(
+                'flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
+                uploadPrivate
+                  ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+                  : 'text-[#666] border-[#2A2A2A] hover:border-[#444] hover:text-[#A0A0A0]'
+              )}
+            >
+              <Lock className="w-3.5 h-3.5" />
+              Private
+            </button>
+            {uploadPrivate && (
+              <span className="text-[10px] text-amber-400/70">
+                Files stored under private/ prefix — viewable only by admins via signed URLs
+              </span>
+            )}
+          </div>
+
           {/* Drop zone */}
           <div
             className={cn(
@@ -854,12 +894,17 @@ export default function MediaPage() {
                       className="aspect-square relative"
                       onClick={() => setPreviewItem(item)}
                     >
-                      {item.file_type === 'image' ? (
+                      {item.file_type === 'image' && !item.is_private ? (
                         <img
                           src={item.url}
                           alt={item.alt_text || item.filename}
                           className="w-full h-full object-cover"
                         />
+                      ) : item.is_private ? (
+                        <div className="w-full h-full flex flex-col items-center justify-center bg-[#0A0A0A] gap-1.5">
+                          <Lock className="w-8 h-8 text-amber-400/50" />
+                          <span className="text-[10px] text-amber-400/50 font-medium">Private</span>
+                        </div>
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-[#0A0A0A]">
                           {(() => {
@@ -884,6 +929,9 @@ export default function MediaPage() {
                         <span className="text-[10px] text-[#666]">
                           {formatBytes(item.file_size)}
                         </span>
+                        {item.is_private && (
+                          <Lock className="w-3 h-3 text-amber-400" />
+                        )}
                       </div>
                     </div>
 
@@ -903,7 +951,7 @@ export default function MediaPage() {
                     </button>
 
                     <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <CopyUrlButton url={item.url} />
+                      {!item.is_private && <CopyUrlButton url={item.url} />}
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
@@ -979,7 +1027,11 @@ export default function MediaPage() {
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-3">
-                              {item.file_type === 'image' ? (
+                              {item.is_private ? (
+                                <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0">
+                                  <Lock className="w-5 h-5 text-amber-400/60" />
+                                </div>
+                              ) : item.file_type === 'image' ? (
                                 <img
                                   src={item.url}
                                   alt={item.alt_text || ''}
@@ -995,8 +1047,15 @@ export default function MediaPage() {
                               </span>
                             </div>
                           </td>
-                          <td className="px-4 py-3 text-xs text-[#A0A0A0] capitalize">
-                            {item.file_type}
+                          <td className="px-4 py-3 text-xs text-[#A0A0A0]">
+                            <div className="flex items-center gap-1.5 capitalize">
+                              {item.file_type}
+                              {item.is_private && (
+                                <span className="text-[10px] text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-full font-medium">
+                                  Private
+                                </span>
+                              )}
+                            </div>
                           </td>
                           <td className="px-4 py-3 text-xs text-[#A0A0A0]">
                             {formatBytes(item.file_size)}
@@ -1017,7 +1076,9 @@ export default function MediaPage() {
                               >
                                 <Eye className="w-4 h-4" />
                               </button>
-                              <CopyUrlButton url={item.url} variant="icon" />
+                              {!item.is_private && (
+                                <CopyUrlButton url={item.url} variant="icon" />
+                              )}
                               <button
                                 onClick={() => deleteMedia(item.id)}
                                 className="p-1.5 text-[#666] hover:text-red-400 transition-colors"
@@ -1116,6 +1177,36 @@ function MediaPreview({
   item: MediaItem
   onClose: () => void
 }) {
+  const [resolvedUrl, setResolvedUrl] = useState<string | null>(
+    item.is_private ? null : item.url
+  )
+  const [loadingUrl, setLoadingUrl] = useState(item.is_private)
+
+  useEffect(() => {
+    if (!item.is_private) {
+      setResolvedUrl(item.url)
+      setLoadingUrl(false)
+      return
+    }
+
+    let cancelled = false
+    setLoadingUrl(true)
+
+    fetch(`/api/admin/media/${item.id}/signed-url`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (!cancelled) {
+          setResolvedUrl(data.url)
+          setLoadingUrl(false)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setLoadingUrl(false)
+      })
+
+    return () => { cancelled = true }
+  }, [item.id, item.is_private, item.url])
+
   return (
     <div
       className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
@@ -1126,9 +1217,17 @@ function MediaPreview({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between p-4 border-b border-[#2A2A2A]">
-          <h3 className="text-sm font-semibold text-white truncate">
-            {item.filename}
-          </h3>
+          <div className="flex items-center gap-2 min-w-0">
+            {item.is_private && (
+              <span className="flex items-center gap-1 text-[10px] text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full font-medium shrink-0">
+                <Lock className="w-3 h-3" />
+                Private
+              </span>
+            )}
+            <h3 className="text-sm font-semibold text-white truncate">
+              {item.filename}
+            </h3>
+          </div>
           <button
             onClick={onClose}
             className="text-[#666] hover:text-white transition-colors"
@@ -1138,35 +1237,48 @@ function MediaPreview({
         </div>
 
         <div className="p-4">
-          {item.file_type === 'image' && (
-            <img
-              src={item.url}
-              alt={item.alt_text || item.filename}
-              className="max-w-full max-h-[60vh] mx-auto rounded-xl object-contain"
-            />
-          )}
-          {item.file_type === 'video' && (
-            <video
-              src={item.url}
-              controls
-              className="max-w-full max-h-[60vh] mx-auto rounded-xl"
-            />
-          )}
-          {item.file_type === 'audio' && (
-            <audio src={item.url} controls className="w-full mt-8" />
-          )}
-          {item.file_type === 'document' && (
-            <div className="text-center py-12">
-              <FileText className="w-16 h-16 text-[#666] mx-auto mb-3" />
-              <a
-                href={item.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-[#E87511] hover:underline"
-              >
-                Open document
-              </a>
+          {loadingUrl ? (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="w-6 h-6 text-[#E87511] animate-spin" />
             </div>
+          ) : !resolvedUrl ? (
+            <div className="text-center py-12">
+              <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-3" />
+              <p className="text-sm text-red-300">Failed to load file</p>
+            </div>
+          ) : (
+            <>
+              {item.file_type === 'image' && (
+                <img
+                  src={resolvedUrl}
+                  alt={item.alt_text || item.filename}
+                  className="max-w-full max-h-[60vh] mx-auto rounded-xl object-contain"
+                />
+              )}
+              {item.file_type === 'video' && (
+                <video
+                  src={resolvedUrl}
+                  controls
+                  className="max-w-full max-h-[60vh] mx-auto rounded-xl"
+                />
+              )}
+              {item.file_type === 'audio' && (
+                <audio src={resolvedUrl} controls className="w-full mt-8" />
+              )}
+              {item.file_type === 'document' && (
+                <div className="text-center py-12">
+                  <FileText className="w-16 h-16 text-[#666] mx-auto mb-3" />
+                  <a
+                    href={resolvedUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-[#E87511] hover:underline"
+                  >
+                    Open document
+                  </a>
+                </div>
+              )}
+            </>
           )}
         </div>
 
@@ -1187,8 +1299,10 @@ function MediaPreview({
             {new Date(item.created_at).toLocaleDateString()}
           </div>
           <div className="col-span-2">
-            <span className="text-[#666]">URL:</span>{' '}
-            <span className="text-white break-all">{item.url}</span>
+            <span className="text-[#666]">{item.is_private ? 'Access:' : 'URL:'}</span>{' '}
+            <span className="text-white break-all">
+              {item.is_private ? 'Signed URL (expires in 1 hour)' : item.url}
+            </span>
           </div>
         </div>
       </div>
