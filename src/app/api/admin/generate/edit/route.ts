@@ -1,14 +1,24 @@
 import { fal, saveGeneratedMedia } from '@/lib/fal'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { BRAND_KIT } from '@/lib/brand-kit'
+import { isReduxEditModel, resolveFalEditModel } from '@/lib/fal-generate-models'
 import { NextRequest, NextResponse } from 'next/server'
+
+type FalImageSize = 'square' | 'square_hd' | 'landscape_16_9' | 'portrait_16_9' | 'portrait_4_3' | 'landscape_4_3'
+
+const SIZE_MAP: Record<string, FalImageSize> = {
+  square_1_1: 'square',
+  landscape_16_9: 'landscape_16_9',
+  portrait_9_16: 'portrait_16_9',
+  story_4_5: 'portrait_4_3',
+}
 
 const BRAND_STYLE_SUFFIX = `Style: ${BRAND_KIT.aesthetic.photography}. Color palette: ${BRAND_KIT.aesthetic.palette}. ${BRAND_KIT.aesthetic.mood}.`
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { prompt, image_url, flow_post_id } = body
+    const { prompt, image_url, flow_post_id, fal_model: falModelRequested, image_size = 'square_1_1' } = body
 
     if (!prompt || !image_url) {
       return NextResponse.json({ error: 'Prompt and image_url are required' }, { status: 400 })
@@ -23,16 +33,27 @@ export async function POST(request: NextRequest) {
         .eq('id', flow_post_id)
     }
 
-    const modelId = 'fal-ai/flux/dev/image-to-image'
+    const modelId = resolveFalEditModel(falModelRequested)
+    const falSize = SIZE_MAP[image_size] || 'square'
 
     const brandedPrompt = `${prompt} ${BRAND_STYLE_SUFFIX}`
 
+    const input = isReduxEditModel(modelId)
+      ? {
+          prompt: brandedPrompt,
+          image_url,
+          image_size: falSize,
+          num_images: 1,
+        }
+      : {
+          prompt: brandedPrompt,
+          image_url,
+          strength: 0.75,
+          num_images: 1,
+        }
+
     const result = await fal.subscribe(modelId, {
-      input: {
-        prompt: brandedPrompt,
-        image_url,
-        strength: 0.75,
-      },
+      input,
       logs: false,
     })
 

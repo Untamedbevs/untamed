@@ -13,6 +13,7 @@ export async function GET(
     .select(`
       *,
       reference_media:media!flow_posts_reference_media_id_fkey(id, filename, url, file_type),
+      end_reference_media:media!flow_posts_end_reference_media_id_fkey(id, filename, url, file_type),
       generated_media:media!flow_posts_generated_media_id_fkey(id, filename, url, file_type, mime_type)
     `)
     .eq('flow_id', id)
@@ -43,6 +44,8 @@ export async function POST(
     generation_mode: post.generation_mode || 'generate',
     target_size: post.target_size || 'square_1_1',
     reference_media_id: post.reference_media_id || null,
+    end_reference_media_id: post.end_reference_media_id || null,
+    fal_model: post.fal_model ?? null,
     status: 'pending',
   }))
 
@@ -78,10 +81,13 @@ export async function PUT(
     if (post.generation_mode !== undefined) updatePayload.generation_mode = post.generation_mode
     if (post.target_size !== undefined) updatePayload.target_size = post.target_size
     if (post.reference_media_id !== undefined) updatePayload.reference_media_id = post.reference_media_id
+    if (post.end_reference_media_id !== undefined) {
+      updatePayload.end_reference_media_id = post.end_reference_media_id || null
+    }
     if (post.generated_media_id !== undefined) updatePayload.generated_media_id = post.generated_media_id
     if (post.status !== undefined) updatePayload.status = post.status
     if (post.sort_order !== undefined) updatePayload.sort_order = post.sort_order
-    if (post.fal_model !== undefined) updatePayload.fal_model = post.fal_model
+    if (post.fal_model !== undefined) updatePayload.fal_model = post.fal_model || null
     if (post.generation_metadata !== undefined) updatePayload.generation_metadata = post.generation_metadata
 
     const { data, error } = await supabase

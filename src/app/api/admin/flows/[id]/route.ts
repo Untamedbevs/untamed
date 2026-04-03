@@ -16,6 +16,7 @@ export async function GET(
       flow_posts(
         *,
         reference_media:media!flow_posts_reference_media_id_fkey(id, filename, url, file_type),
+        end_reference_media:media!flow_posts_end_reference_media_id_fkey(id, filename, url, file_type),
         generated_media:media!flow_posts_generated_media_id_fkey(id, filename, url, file_type, mime_type)
       )
     `)

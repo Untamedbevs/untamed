@@ -14,14 +14,16 @@ const outputDir = 'public/images/qr'
 mkdirSync(outputDir, { recursive: true })
 
 for (const drink of drinks) {
-  const url = `${BASE_URL}/drinks/${drink.slug}/rewards?utm_source=can&utm_medium=qr&utm_campaign=launch_2026&utm_content=${drink.slug}`
+  // Keep QR payload short for print reliability; redirect preserves tracking params.
+  const url = `${BASE_URL}/r/rewards/${drink.slug}`
 
   const png = await QRCode.toBuffer(url, {
     type: 'png',
     width: 1024,
-    margin: 2,
+    margin: 4,
     color: { dark: '#000000', light: '#FFFFFF' },
-    errorCorrectionLevel: 'H',
+    // Higher levels increase density; M prints/scans better for simple URLs.
+    errorCorrectionLevel: 'M',
   })
 
   const path = `${outputDir}/qr-${drink.slug}.png`
@@ -31,13 +33,13 @@ for (const drink of drinks) {
 }
 
 // Also generate a generic "rewards" QR code
-const genericUrl = `${BASE_URL}/rewards?utm_source=packaging&utm_medium=qr&utm_campaign=launch_2026&utm_content=generic`
+const genericUrl = `${BASE_URL}/r/rewards`
 const genericPng = await QRCode.toBuffer(genericUrl, {
   type: 'png',
   width: 1024,
-  margin: 2,
+  margin: 4,
   color: { dark: '#000000', light: '#FFFFFF' },
-  errorCorrectionLevel: 'H',
+  errorCorrectionLevel: 'M',
 })
 writeFileSync(`${outputDir}/qr-rewards-generic.png`, genericPng)
 console.log(`Generic Rewards: ${outputDir}/qr-rewards-generic.png`)

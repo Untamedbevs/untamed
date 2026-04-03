@@ -23,6 +23,16 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { PLATFORMS } from '@/lib/constants/platforms'
+import {
+  FAL_DEFAULT_EDIT_MODEL,
+  FAL_DEFAULT_IMAGE_MODEL,
+  FAL_DEFAULT_VIDEO_MODEL,
+  FAL_EDIT_MODELS,
+  FAL_IMAGE_MODELS,
+  FAL_VIDEO_MODELS,
+  videoModelIsTextToVideoOnly,
+  videoModelRequiresFirstAndLastFrame,
+} from '@/lib/fal-generate-models'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -43,11 +53,13 @@ interface FlowPost {
   generation_mode: 'generate' | 'edit' | 'video'
   target_size: string
   reference_media_id: string | null
+  end_reference_media_id?: string | null
   generated_media_id: string | null
   status: 'pending' | 'generating' | 'complete' | 'approved' | 'rejected'
   fal_model: string | null
   generation_metadata: Record<string, unknown> | null
   reference_media?: MediaItem | null
+  end_reference_media?: MediaItem | null
   generated_media?: MediaItem | null
 }
 
@@ -69,6 +81,7 @@ interface PlannedPost {
   target_size: string
   caption_suggestion: string
   hashtag_suggestions: string[]
+  fal_model?: string | null
 }
 
 type Phase = 'plan' | 'generate' | 'review'
@@ -106,6 +119,56 @@ const TIER_COLORS: Record<string, string> = {
   Fast: 'text-[#4A7C0F]',
   Quality: 'text-[#E87511]',
   Premium: 'text-[#9B30FF]',
+}
+
+function defaultFalModelForMode(mode: PlannedPost['generation_mode']): string {
+  if (mode === 'edit') return FAL_DEFAULT_EDIT_MODEL
+  if (mode === 'video') return FAL_DEFAULT_VIDEO_MODEL
+  return FAL_DEFAULT_IMAGE_MODEL
+}
+
+function falModelOptionsForMode(mode: PlannedPost['generation_mode']) {
+  if (mode === 'edit') return FAL_EDIT_MODELS
+  if (mode === 'video') return FAL_VIDEO_MODELS
+  return FAL_IMAGE_MODELS
+}
+
+function truncateLabel(s: string, max: number) {
+  if (s.length <= max) return s
+  return `${s.slice(0, max)}...`
+}
+
+/** Image media IDs usable as frame sources: prior completed image outputs, then library (deduped). */
+function buildVideoFrameMediaOptions(flow: Flow, currentPost: FlowPost, libraryMedia: MediaItem[]) {
+  const seen = new Set<string>()
+  const options: { id: string; label: string }[] = []
+
+  const prior = flow.flow_posts
+    .filter((p) => p.sort_order < currentPost.sort_order)
+    .sort((a, b) => a.sort_order - b.sort_order)
+
+  for (const p of prior) {
+    const g = p.generated_media
+    if (!g?.id || g.file_type !== 'image') continue
+    if (seen.has(g.id)) continue
+    seen.add(g.id)
+    options.push({
+      id: g.id,
+      label: `Post ${p.sort_order + 1}: ${truncateLabel(p.concept, 36)}`,
+    })
+  }
+
+  for (const m of libraryMedia) {
+    if (m.file_type !== 'image' || !m.id) continue
+    if (seen.has(m.id)) continue
+    seen.add(m.id)
+    options.push({
+      id: m.id,
+      label: `Library: ${truncateLabel(m.filename, 40)}`,
+    })
+  }
+
+  return options
 }
 
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
@@ -195,10 +258,14 @@ function StudioContent() {
       let posts: PlannedPost[] = data.posts || []
 
       if (contentMix === 'images') {
-        posts = posts.map((p) => ({
-          ...p,
-          generation_mode: p.generation_mode === 'video' ? 'generate' : p.generation_mode,
-        }))
+        posts = posts.map((p) => {
+          if (p.generation_mode !== 'video') return p
+          return {
+            ...p,
+            generation_mode: 'generate',
+            fal_model: defaultFalModelForMode('generate'),
+          }
+        })
       }
 
       setPlannedPosts(posts)
@@ -232,6 +299,7 @@ function StudioContent() {
       prompt: p.prompt,
       generation_mode: p.generation_mode,
       target_size: p.target_size,
+      fal_model: p.fal_model ?? defaultFalModelForMode(p.generation_mode),
     }))
 
     const postsRes = await fetch(`/api/admin/flows/${flowData.id}/posts`, {
@@ -275,14 +343,21 @@ function StudioContent() {
       const payload: Record<string, unknown> = {
         prompt: post.prompt,
         flow_post_id: post.id,
+        fal_model: post.fal_model ?? defaultFalModelForMode(post.generation_mode),
       }
 
       if (post.generation_mode !== 'video') {
         payload.image_size = post.target_size
+      } else {
+        payload.target_size = post.target_size
       }
 
       if ((post.generation_mode === 'edit' || post.generation_mode === 'video') && post.reference_media?.url) {
         payload.image_url = post.reference_media.url
+      }
+
+      if (post.generation_mode === 'video' && post.end_reference_media?.url) {
+        payload.end_image_url = post.end_reference_media.url
       }
 
       await fetch(endpoint, {
@@ -301,7 +376,9 @@ function StudioContent() {
 
   async function generateAll() {
     if (!flow) return
-    const pending = flow.flow_posts.filter((p) => p.status === 'pending' || p.status === 'rejected')
+    const pending = flow.flow_posts
+      .filter((p) => p.status === 'pending' || p.status === 'rejected')
+      .sort((a, b) => a.sort_order - b.sort_order)
 
     for (const post of pending) {
       await generatePost(post)
@@ -443,6 +520,7 @@ function StudioContent() {
       {phase === 'generate' && flow && (
         <GeneratePhase
           flow={flow}
+          libraryMedia={libraryMedia}
           generatingPostId={generatingPostId}
           onGeneratePost={generatePost}
           onGenerateAll={generateAll}
@@ -764,7 +842,13 @@ function PlanPhase({
                           return (
                             <button
                               key={mode.value}
-                              onClick={() => updatePlannedPost(index, { generation_mode: mode.value as PlannedPost['generation_mode'] })}
+                              onClick={() => {
+                                const next = mode.value as PlannedPost['generation_mode']
+                                updatePlannedPost(index, {
+                                  generation_mode: next,
+                                  fal_model: defaultFalModelForMode(next),
+                                })
+                              }}
                               className={cn(
                                 'flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium border transition-all',
                                 post.generation_mode === mode.value
@@ -787,6 +871,17 @@ function PlanPhase({
                       >
                         {SIZE_OPTIONS.map((s) => (
                           <option key={s.value} value={s.value}>{s.label}</option>
+                        ))}
+                      </select>
+
+                      <select
+                        value={post.fal_model ?? defaultFalModelForMode(post.generation_mode)}
+                        onChange={(e) => updatePlannedPost(index, { fal_model: e.target.value })}
+                        title="fal.ai model"
+                        className="max-w-[200px] bg-[#0A0A0A] border border-[#2A2A2A] rounded-lg px-2 py-1 text-[10px] text-[#A0A0A0] focus:outline-none focus:border-[#9B30FF]"
+                      >
+                        {falModelOptionsForMode(post.generation_mode).map((m) => (
+                          <option key={m.id} value={m.id}>{m.label}</option>
                         ))}
                       </select>
 
@@ -818,6 +913,7 @@ function PlanPhase({
 
 function GeneratePhase({
   flow,
+  libraryMedia,
   generatingPostId,
   onGeneratePost,
   onGenerateAll,
@@ -825,6 +921,7 @@ function GeneratePhase({
   onAdvance,
 }: {
   flow: Flow
+  libraryMedia: MediaItem[]
   generatingPostId: string | null
   onGeneratePost: (post: FlowPost) => void
   onGenerateAll: () => void
@@ -882,6 +979,11 @@ function GeneratePhase({
         {flow.flow_posts.map((post) => {
           const isCurrentlyGenerating = generatingPostId === post.id
           const statusStyle = STATUS_COLORS[post.status] || STATUS_COLORS.pending
+          const videoModelId = post.fal_model ?? defaultFalModelForMode('video')
+          const frameOptions =
+            post.generation_mode === 'video' && !videoModelIsTextToVideoOnly(videoModelId)
+              ? buildVideoFrameMediaOptions(flow, post, libraryMedia)
+              : []
 
           return (
             <div
@@ -920,7 +1022,14 @@ function GeneratePhase({
                       return (
                         <button
                           key={mode.value}
-                          onClick={() => onUpdatePost(post.id, { generation_mode: mode.value as FlowPost['generation_mode'] })}
+                          onClick={() => {
+                            const next = mode.value as FlowPost['generation_mode']
+                            onUpdatePost(post.id, {
+                              generation_mode: next,
+                              fal_model: defaultFalModelForMode(next),
+                              ...(next !== 'video' ? { end_reference_media_id: null } : {}),
+                            })
+                          }}
                           disabled={isCurrentlyGenerating}
                           className={cn(
                             'flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium border transition-all',
@@ -945,7 +1054,84 @@ function GeneratePhase({
                         <option key={s.value} value={s.value}>{s.label}</option>
                       ))}
                     </select>
+
+                    <select
+                      value={post.fal_model ?? defaultFalModelForMode(post.generation_mode)}
+                      onChange={(e) => {
+                        const next = e.target.value
+                        onUpdatePost(post.id, {
+                          fal_model: next,
+                          ...(!videoModelRequiresFirstAndLastFrame(next)
+                            ? { end_reference_media_id: null }
+                            : {}),
+                        })
+                      }}
+                      disabled={isCurrentlyGenerating}
+                      title="fal.ai model"
+                      className="max-w-[180px] bg-[#0A0A0A] border border-[#2A2A2A] rounded-lg px-2 py-1 text-[10px] text-[#A0A0A0] focus:outline-none focus:border-[#9B30FF]"
+                    >
+                      {falModelOptionsForMode(post.generation_mode).map((m) => (
+                        <option key={m.id} value={m.id}>{m.label}</option>
+                      ))}
+                    </select>
                   </div>
+                  {post.generation_mode === 'video' && videoModelIsTextToVideoOnly(videoModelId) && (
+                    <p className="text-[10px] text-[#666]">
+                      Text-to-video: no frame images required. Aspect ratio follows the size preset above.
+                    </p>
+                  )}
+                  {post.generation_mode === 'video' && !videoModelIsTextToVideoOnly(videoModelId) && (
+                    <div className="space-y-2 rounded-lg border border-[#2A2A2A] bg-[#0A0A0A]/50 p-3">
+                      <p className="text-[10px] font-medium text-[#A0A0A0]">
+                        Frame sources
+                      </p>
+                      <p className="text-[10px] text-[#666] leading-relaxed">
+                        Use images from earlier posts in this flow (after they finish generating) or from your library. Required fields depend on the video model.
+                      </p>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] text-[#888]">Start frame</label>
+                        <select
+                          value={post.reference_media_id ?? ''}
+                          onChange={(e) =>
+                            onUpdatePost(post.id, {
+                              reference_media_id: e.target.value || null,
+                            })
+                          }
+                          disabled={isCurrentlyGenerating}
+                          className="w-full max-w-md bg-[#0A0A0A] border border-[#2A2A2A] rounded-lg px-2 py-1.5 text-[10px] text-[#A0A0A0] focus:outline-none focus:border-[#9B30FF]"
+                        >
+                          <option value="">None selected</option>
+                          {frameOptions.map((o) => (
+                            <option key={`s-${o.id}`} value={o.id}>
+                              {o.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      {videoModelRequiresFirstAndLastFrame(videoModelId) && (
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[10px] text-[#888]">End frame</label>
+                          <select
+                            value={post.end_reference_media_id ?? ''}
+                            onChange={(e) =>
+                              onUpdatePost(post.id, {
+                                end_reference_media_id: e.target.value || null,
+                              })
+                            }
+                            disabled={isCurrentlyGenerating}
+                            className="w-full max-w-md bg-[#0A0A0A] border border-[#2A2A2A] rounded-lg px-2 py-1.5 text-[10px] text-[#A0A0A0] focus:outline-none focus:border-[#9B30FF]"
+                          >
+                            <option value="">None selected</option>
+                            {frameOptions.map((o) => (
+                              <option key={`e-${o.id}`} value={o.id}>
+                                {o.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Thumbnail / Generate Button */}

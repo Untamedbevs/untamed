@@ -134,9 +134,10 @@ const OVER_40K_BUCKETS: PricingBucket[] = [
 
 const ALL_BUCKETS = [...UNDER_40K_BUCKETS, ...OVER_40K_BUCKETS]
 
-const FACILITY_RENTAL = 12500
-const SKU_FEE = 1500
-const MIN_CANS = 1000
+const DEFAULT_FACILITY_RENTAL = 12500
+const DEFAULT_SKU_FEE = 1500
+const DEFAULT_MIN_CANS = 1000
+const DEFAULT_FACILITY_THRESHOLD = 40000
 
 const LINE_ITEM_ORDER = [
   'Tolling',
@@ -463,8 +464,13 @@ export default function FinancialPage() {
   const [skus, setSkus] = useState<number>(1)
   const [showPricingTable, setShowPricingTable] = useState(false)
 
+  const [facilityRental, setFacilityRental] = useState(DEFAULT_FACILITY_RENTAL)
+  const [skuFeeRate, setSkuFeeRate] = useState(DEFAULT_SKU_FEE)
+  const [minCans, setMinCans] = useState(DEFAULT_MIN_CANS)
+  const [facilityThreshold, setFacilityThreshold] = useState(DEFAULT_FACILITY_THRESHOLD)
+
   const estimate = useMemo<Estimate | null>(() => {
-    if (cans < MIN_CANS) return null
+    if (cans < (minCans || 1)) return null
 
     const bucket = findBucket(cans)
     if (!bucket) return null
@@ -483,8 +489,8 @@ export default function FinancialPage() {
     const variableTotal = round2(
       lineItems.reduce((sum, li) => sum + li.total, 0)
     )
-    const skuFee = round2(Math.max(0, skus - 1) * SKU_FEE)
-    const facilityFee = cans < 40000 ? FACILITY_RENTAL : 0
+    const skuFee = round2(Math.max(0, skus - 1) * (skuFeeRate || 0))
+    const facilityFee = cans < (facilityThreshold || 0) ? (facilityRental || 0) : 0
     const grandTotal = round2(variableTotal + skuFee + facilityFee)
     const effectiveCostPerCan = round2(grandTotal / cans)
 
@@ -498,11 +504,15 @@ export default function FinancialPage() {
       grandTotal,
       effectiveCostPerCan,
     }
-  }, [cans, skus])
+  }, [cans, skus, facilityRental, skuFeeRate, minCans, facilityThreshold])
 
   function handleReset() {
     setCans(0)
     setSkus(1)
+    setFacilityRental(DEFAULT_FACILITY_RENTAL)
+    setSkuFeeRate(DEFAULT_SKU_FEE)
+    setMinCans(DEFAULT_MIN_CANS)
+    setFacilityThreshold(DEFAULT_FACILITY_THRESHOLD)
   }
 
   function handleExport() {
@@ -600,14 +610,14 @@ export default function FinancialPage() {
                   placeholder="e.g. 25000"
                   className="w-full bg-[#0A0A0A] border border-[#2A2A2A] rounded-xl px-4 py-3 text-white text-sm outline-none tabular-nums placeholder:text-[#333] focus:border-[#9B30FF]/50 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
-                {cans > 0 && cans < MIN_CANS && (
+                {cans > 0 && cans < (minCans || 1) && (
                   <p className="text-xs mt-1.5 text-[#FF0040]">
-                    Minimum supported quantity is {formatNumber(MIN_CANS)} cans
+                    Minimum supported quantity is {formatNumber(minCans || 1)} cans
                   </p>
                 )}
-                {estimate && cans < 40000 && (
+                {estimate && cans < (facilityThreshold || 0) && (
                   <p className="text-xs mt-1.5 text-[#E87511]">
-                    Under 40,000 — $12,500 facility rental applies
+                    Under {formatNumber(facilityThreshold)} — {formatCurrency(facilityRental)} facility rental applies
                   </p>
                 )}
               </div>
@@ -629,7 +639,7 @@ export default function FinancialPage() {
                 />
                 {skus > 1 && (
                   <p className="text-xs mt-1.5 text-[#D4D700]">
-                    {skus - 1} extra SKU(s) — ${formatNumber((skus - 1) * SKU_FEE)} fee
+                    {skus - 1} extra SKU(s) — {formatCurrency((skus - 1) * (skuFeeRate || 0))} fee
                   </p>
                 )}
               </div>
@@ -648,40 +658,79 @@ export default function FinancialPage() {
                   {estimate.bucket.label}
                 </p>
                 <p className="text-xs text-[#666] mt-0.5">
-                  {cans < 40000
-                    ? 'Source: less than 40,000 cans workbook'
+                  {cans < (facilityThreshold || DEFAULT_FACILITY_THRESHOLD)
+                    ? `Source: less than ${formatNumber(facilityThreshold || DEFAULT_FACILITY_THRESHOLD)} cans workbook`
                     : 'Source: BevpackLA pricing workbook'}
                 </p>
               </div>
             )}
           </div>
 
-          {/* Fee reference */}
+          {/* Fee settings */}
           <div className="bg-[#141414] border border-[#2A2A2A] rounded-2xl p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-9 h-9 rounded-xl bg-[#E87511]/15 flex items-center justify-center">
                 <Warehouse className="w-[18px] h-[18px] text-[#E87511]" />
               </div>
               <h2 className="text-base font-semibold text-white uppercase tracking-wide font-[var(--font-oswald)]">
-                Fee Reference
+                Fee Settings
               </h2>
             </div>
-            <div className="space-y-0 text-sm">
-              <div className="flex justify-between py-2.5 border-b border-[#1A1A1A]">
-                <span className="text-[#A0A0A0]">Minimum order</span>
-                <span className="text-white tabular-nums">1,000 cans</span>
+            <div className="space-y-4 text-sm">
+              <div>
+                <label className="block text-xs text-[#A0A0A0] mb-1">Minimum order (cans)</label>
+                <input
+                  type="number"
+                  min={0}
+                  step={100}
+                  value={minCans || ''}
+                  onChange={(e) => setMinCans(Math.max(0, parseInt(e.target.value) || 0))}
+                  placeholder="1000"
+                  className="w-full bg-[#0A0A0A] border border-[#2A2A2A] rounded-xl px-3 py-2.5 text-white text-sm outline-none tabular-nums placeholder:text-[#333] focus:border-[#E87511]/50 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                />
               </div>
-              <div className="flex justify-between py-2.5 border-b border-[#1A1A1A]">
-                <span className="text-[#A0A0A0]">Facility rental threshold</span>
-                <span className="text-white tabular-nums">40,000 cans</span>
+              <div>
+                <label className="block text-xs text-[#A0A0A0] mb-1">Facility rental threshold (cans)</label>
+                <input
+                  type="number"
+                  min={0}
+                  step={1000}
+                  value={facilityThreshold || ''}
+                  onChange={(e) => setFacilityThreshold(Math.max(0, parseInt(e.target.value) || 0))}
+                  placeholder="40000"
+                  className="w-full bg-[#0A0A0A] border border-[#2A2A2A] rounded-xl px-3 py-2.5 text-white text-sm outline-none tabular-nums placeholder:text-[#333] focus:border-[#E87511]/50 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                />
               </div>
-              <div className="flex justify-between py-2.5 border-b border-[#1A1A1A]">
-                <span className="text-[#A0A0A0]">Facility rental fee</span>
-                <span className="text-white tabular-nums">$12,500</span>
+              <div>
+                <label className="block text-xs text-[#A0A0A0] mb-1">Facility rental fee ($)</label>
+                <div className="flex items-center gap-2 bg-[#0A0A0A] border border-[#2A2A2A] rounded-xl px-3 py-2.5 focus-within:border-[#E87511]/50 transition-colors">
+                  <span className="text-xs text-[#666]">$</span>
+                  <input
+                    type="number"
+                    min={0}
+                    step={500}
+                    value={facilityRental || ''}
+                    onChange={(e) => setFacilityRental(Math.max(0, parseFloat(e.target.value) || 0))}
+                    placeholder="12500"
+                    className="flex-1 bg-transparent text-white text-sm outline-none tabular-nums placeholder:text-[#333] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                </div>
               </div>
-              <div className="flex justify-between py-2.5">
-                <span className="text-[#A0A0A0]">Additional SKU fee</span>
-                <span className="text-white tabular-nums">$1,500 / SKU</span>
+              <div>
+                <label className="block text-xs text-[#A0A0A0] mb-1">Additional SKU fee ($ / SKU)</label>
+                <div className="flex items-center gap-2 bg-[#0A0A0A] border border-[#2A2A2A] rounded-xl px-3 py-2.5 focus-within:border-[#E87511]/50 transition-colors">
+                  <span className="text-xs text-[#666]">$</span>
+                  <input
+                    type="number"
+                    min={0}
+                    step={100}
+                    value={skuFeeRate || ''}
+                    onChange={(e) => setSkuFeeRate(Math.max(0, parseFloat(e.target.value) || 0))}
+                    placeholder="1500"
+                    className="flex-1 bg-transparent text-white text-sm outline-none tabular-nums placeholder:text-[#333] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                  <span className="text-xs text-[#666]">/ SKU</span>
+                </div>
               </div>
             </div>
           </div>
@@ -695,7 +744,7 @@ export default function FinancialPage() {
                 <Calculator className="w-8 h-8 text-[#9B30FF]/40" />
               </div>
               <p className="text-[#A0A0A0] text-sm">
-                Enter a quantity of at least {formatNumber(MIN_CANS)} cans to see your estimate
+                Enter a quantity of at least {formatNumber(minCans || 1)} cans to see your estimate
               </p>
             </div>
           ) : (
@@ -774,7 +823,7 @@ export default function FinancialPage() {
                         <span className="text-sm text-white">SKU Fee</span>
                         <p className="text-xs text-[#666] mt-0.5">
                           {skus > 1
-                            ? `(${skus} - 1) x $1,500`
+                            ? `(${skus} - 1) x ${formatCurrency(skuFeeRate || 0)}`
                             : 'No additional SKUs'}
                         </p>
                       </div>
@@ -789,8 +838,8 @@ export default function FinancialPage() {
                         </span>
                         <p className="text-xs text-[#666] mt-0.5">
                           {estimate.facilityFee > 0
-                            ? 'Required for runs under 40k'
-                            : 'Waived for 40,000+ cans'}
+                            ? `Required for runs under ${formatNumber(facilityThreshold)}`
+                            : `Waived for ${formatNumber(facilityThreshold)}+ cans`}
                         </p>
                       </div>
                       <span className="text-sm font-medium text-white tabular-nums">

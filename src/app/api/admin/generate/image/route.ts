@@ -1,6 +1,7 @@
 import { fal, saveGeneratedMedia } from '@/lib/fal'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { BRAND_KIT } from '@/lib/brand-kit'
+import { resolveFalImageModel } from '@/lib/fal-generate-models'
 import { NextRequest, NextResponse } from 'next/server'
 
 const BRAND_STYLE_SUFFIX = `Style: ${BRAND_KIT.aesthetic.photography}. Color palette: ${BRAND_KIT.aesthetic.palette}. ${BRAND_KIT.aesthetic.mood}.`
@@ -17,7 +18,7 @@ const SIZE_MAP: Record<string, FalImageSize> = {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { prompt, image_size = 'square_1_1', flow_post_id } = body
+    const { prompt, image_size = 'square_1_1', flow_post_id, fal_model: falModelRequested } = body
 
     if (!prompt) {
       return NextResponse.json({ error: 'Prompt is required' }, { status: 400 })
@@ -33,7 +34,7 @@ export async function POST(request: NextRequest) {
     }
 
     const falSize = SIZE_MAP[image_size] || 'square'
-    const modelId = 'fal-ai/flux/dev'
+    const modelId = resolveFalImageModel(falModelRequested)
 
     const brandedPrompt = `${prompt} ${BRAND_STYLE_SUFFIX}`
 

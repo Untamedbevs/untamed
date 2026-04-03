@@ -1,0 +1,97 @@
+/**
+ * Allowed fal.ai endpoints for studio generation. IDs are validated server-side.
+ */
+
+export const FAL_DEFAULT_IMAGE_MODEL = 'fal-ai/flux/dev'
+export const FAL_DEFAULT_EDIT_MODEL = 'fal-ai/flux/dev/image-to-image'
+export const FAL_DEFAULT_VIDEO_MODEL = 'fal-ai/kling-video/v2/master/image-to-video'
+
+export const FAL_IMAGE_MODELS = [
+  { id: 'fal-ai/flux/dev', label: 'Flux Dev' },
+  { id: 'fal-ai/flux/schnell', label: 'Flux Schnell' },
+  { id: 'fal-ai/flux-pro/v1.1', label: 'Flux Pro 1.1' },
+] as const
+
+export const FAL_EDIT_MODELS = [
+  { id: 'fal-ai/flux/dev/image-to-image', label: 'Flux Dev (image to image)' },
+  { id: 'fal-ai/flux-pro/v1.1/redux', label: 'Flux Pro 1.1 Redux' },
+] as const
+
+export const FAL_VIDEO_MODELS = [
+  { id: 'fal-ai/kling-video/v2/master/image-to-video', label: 'Kling 2.0 Master (image to video)' },
+  { id: 'fal-ai/kling-video/v2.1/master/image-to-video', label: 'Kling 2.1 Master (image to video)' },
+  { id: 'fal-ai/veo2/image-to-video', label: 'Google Veo 2 (image to video)' },
+  { id: 'fal-ai/veo3/image-to-video', label: 'Google Veo 3 (image to video)' },
+  { id: 'fal-ai/veo3.1/image-to-video', label: 'Google Veo 3.1 (image to video)' },
+  {
+    id: 'fal-ai/veo3.1/first-last-frame-to-video',
+    label: 'Google Veo 3.1 (first and last frame)',
+  },
+  { id: 'fal-ai/veo2', label: 'Google Veo 2 (text to video)' },
+  { id: 'fal-ai/veo3', label: 'Google Veo 3 (text to video)' },
+  { id: 'fal-ai/veo3/fast', label: 'Google Veo 3 Fast (text to video)' },
+  { id: 'fal-ai/veo3.1', label: 'Google Veo 3.1 (text to video)' },
+] as const
+
+/** Single start-image image-to-video (Kling, Veo i2v). */
+const VIDEO_SINGLE_START_I2V_MODEL_IDS = new Set<string>([
+  'fal-ai/kling-video/v2/master/image-to-video',
+  'fal-ai/kling-video/v2.1/master/image-to-video',
+  'fal-ai/veo2/image-to-video',
+  'fal-ai/veo3/image-to-video',
+  'fal-ai/veo3.1/image-to-video',
+])
+
+const VIDEO_TEXT_TO_VIDEO_ONLY_MODEL_IDS = new Set<string>([
+  'fal-ai/veo2',
+  'fal-ai/veo3',
+  'fal-ai/veo3/fast',
+  'fal-ai/veo3.1',
+])
+
+export const FAL_VIDEO_FIRST_LAST_MODEL = 'fal-ai/veo3.1/first-last-frame-to-video'
+
+/** True if the model needs a first (start) frame URL. */
+export function videoModelRequiresStartImage(modelId: string): boolean {
+  return (
+    VIDEO_SINGLE_START_I2V_MODEL_IDS.has(modelId) || modelId === FAL_VIDEO_FIRST_LAST_MODEL
+  )
+}
+
+/** True if the model needs both first and last frame URLs. */
+export function videoModelRequiresFirstAndLastFrame(modelId: string): boolean {
+  return modelId === FAL_VIDEO_FIRST_LAST_MODEL
+}
+
+/** Prompt-only video models (no frame URLs). */
+export function videoModelIsTextToVideoOnly(modelId: string): boolean {
+  return VIDEO_TEXT_TO_VIDEO_ONLY_MODEL_IDS.has(modelId)
+}
+
+/** @deprecated Use videoModelRequiresStartImage */
+export function videoModelRequiresReferenceImage(modelId: string): boolean {
+  return videoModelRequiresStartImage(modelId)
+}
+
+const ALLOWED_IMAGE = new Set<string>(FAL_IMAGE_MODELS.map((m) => m.id))
+const ALLOWED_EDIT = new Set<string>(FAL_EDIT_MODELS.map((m) => m.id))
+const ALLOWED_VIDEO = new Set<string>(FAL_VIDEO_MODELS.map((m) => m.id))
+
+export function resolveFalImageModel(requested?: string | null): string {
+  if (requested && ALLOWED_IMAGE.has(requested)) return requested
+  return FAL_DEFAULT_IMAGE_MODEL
+}
+
+export function resolveFalEditModel(requested?: string | null): string {
+  if (requested && ALLOWED_EDIT.has(requested)) return requested
+  return FAL_DEFAULT_EDIT_MODEL
+}
+
+export function resolveFalVideoModel(requested?: string | null): string {
+  if (requested && ALLOWED_VIDEO.has(requested)) return requested
+  return FAL_DEFAULT_VIDEO_MODEL
+}
+
+export function isReduxEditModel(modelId: string): boolean {
+  return modelId === 'fal-ai/flux-pro/v1.1/redux'
+}
