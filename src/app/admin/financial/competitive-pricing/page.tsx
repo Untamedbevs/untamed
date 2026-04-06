@@ -15,6 +15,7 @@ import {
   ArrowDown,
   Filter,
   Package,
+  Zap,
 } from 'lucide-react'
 
 type Brand = {
@@ -431,6 +432,69 @@ export default function CompetitivePricingPage() {
     ]
   }, [filteredBrands])
 
+  const synopses = useMemo(() => {
+    if (untamedMetrics.length === 0) return []
+    return untamedMetrics.map(product => {
+      const competitors = allBrands.filter(b => !b.isUntamed)
+      const total = allBrands.length
+
+      const rank = (arr: BrandMetrics[], name: string) => arr.findIndex(b => b.name === name) + 1
+      const r = {
+        stdDrinkPrice: rank([...allBrands].sort((a, b) => a.pricePerStdDrink - b.pricePerStdDrink), product.name),
+        pricePerOz: rank([...allBrands].sort((a, b) => a.pricePerOz - b.pricePerOz), product.name),
+        canPrice: rank([...allBrands].sort((a, b) => a.canPrice - b.canPrice), product.name),
+        abv: rank([...allBrands].sort((a, b) => b.abv - a.abv), product.name),
+        canSize: rank([...allBrands].sort((a, b) => b.canOz - a.canOz), product.name),
+        alcoholContent: rank([...allBrands].sort((a, b) => b.alcoholOz - a.alcoholOz), product.name),
+        pricePerAlcOz: rank([...allBrands].sort((a, b) => a.pricePerAlcoholOz - b.pricePerAlcoholOz), product.name),
+      }
+
+      let text = `At $${product.pricePerOz.toFixed(2)}/oz with a ${product.canOz} oz can, that's a ${formatCurrency(product.canPrice)} can price and ${formatCurrency(product.pricePerStdDrink)} per standard drink`
+      if (r.stdDrinkPrice === 1) {
+        text += ` \u2014 the lowest cost per standard drink on the entire board.`
+      } else {
+        text += ` (#${r.stdDrinkPrice} of ${total} for value per drink).`
+      }
+
+      const wins: string[] = []
+      if (r.canSize === 1) wins.push('the biggest can')
+      if (r.abv === 1) wins.push('the highest ABV')
+      if (r.alcoholContent === 1) wins.push('the most alcohol per can')
+      if (r.pricePerOz === 1) wins.push('the lowest price per ounce')
+      if (r.pricePerAlcOz === 1) wins.push('the best value per oz of alcohol')
+      if (r.canPrice === 1) wins.push('the lowest can price')
+
+      if (wins.length >= 2) {
+        text += ` You have ${wins.slice(0, -1).join(', ')} and ${wins[wins.length - 1]} in the market.`
+      } else if (wins.length === 1) {
+        text += ` You have ${wins[0]} in the market.`
+      }
+
+      const avgStdDrinkPrice = competitors.reduce((s, b) => s + b.pricePerStdDrink, 0) / competitors.length
+      const pctVsAvg = ((product.pricePerStdDrink - avgStdDrinkPrice) / avgStdDrinkPrice) * 100
+      if (pctVsAvg < -20) {
+        text += ` At ${Math.abs(Math.round(pctVsAvg))}% below the competitor average on cost per drink, you're firmly in value-leader territory.`
+      } else if (pctVsAvg < -5) {
+        text += ` You're ${Math.abs(Math.round(pctVsAvg))}% below the competitor average on cost per drink \u2014 undercutting most of the field on value.`
+      } else if (pctVsAvg <= 5) {
+        text += ` Your cost per drink is roughly in line with the market average.`
+      } else if (pctVsAvg <= 20) {
+        text += ` You're ${Math.round(pctVsAvg)}% above the competitor average on cost per drink \u2014 moderate premium positioning.`
+      } else {
+        text += ` At ${Math.round(pctVsAvg)}% above the competitor average, you're positioned as a premium product.`
+      }
+
+      const closest = [...competitors]
+        .map(b => ({ ...b, diff: Math.abs(b.pricePerStdDrink - product.pricePerStdDrink) }))
+        .sort((a, b) => a.diff - b.diff)[0]
+      if (closest) {
+        text += ` Closest competitor by value: ${closest.name} at ${formatCurrency(closest.pricePerStdDrink)}/drink (${closest.canOz} oz, ${(closest.abv * 100).toFixed(1)}% ABV).`
+      }
+
+      return { name: product.name, text }
+    })
+  }, [untamedMetrics, allBrands])
+
   return (
     <div className="space-y-8 max-w-[1600px]">
       {/* Header */}
@@ -662,6 +726,28 @@ export default function CompetitivePricingPage() {
                   <p className="text-[10px] text-[#A0A0A0] uppercase tracking-wider mb-1">{kpi.label}</p>
                   <p className="text-lg font-bold tabular-nums" style={{ color: kpi.color }}>{kpi.value}</p>
                   <p className="text-xs text-[#666] mt-0.5">{kpi.sub}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Synopsis */}
+          {synopses.length > 0 && (
+            <div className="space-y-4">
+              {synopses.map(s => (
+                <div key={s.name} className="bg-[#141414] border-2 border-[#9B30FF]/40 rounded-2xl p-6 relative overflow-hidden">
+                  <div className="absolute inset-0 opacity-5" style={{ background: 'radial-gradient(ellipse at top left, #9B30FF, transparent 70%)' }} />
+                  <div className="relative">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-9 h-9 rounded-xl bg-[#9B30FF]/15 flex items-center justify-center">
+                        <Zap className="w-[18px] h-[18px] text-[#9B30FF]" />
+                      </div>
+                      <h2 className="text-base font-semibold text-white uppercase tracking-wide font-[var(--font-oswald)]">
+                        {untamedMetrics.length > 1 ? s.name : 'Market'} Synopsis
+                      </h2>
+                    </div>
+                    <p className="text-sm text-[#C0C0C0] leading-relaxed">{s.text}</p>
+                  </div>
                 </div>
               ))}
             </div>
