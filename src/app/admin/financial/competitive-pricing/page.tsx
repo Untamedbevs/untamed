@@ -273,7 +273,7 @@ function MarketScatter({ data }: { data: BrandMetrics[] }) {
 
 export default function CompetitivePricingPage() {
   const [untamedProducts, setUntamedProducts] = useState<Brand[]>([
-    { name: 'Untamed', canOz: 6.8, pricePerOz: 0.65, abv: 0.125, isUntamed: true, color: '#9B30FF' },
+    { name: 'Untamed', canOz: 12, pricePerOz: 0.50, abv: 0.15, isUntamed: true, color: '#9B30FF' },
   ])
 
   const [sortKey, setSortKey] = useState<SortKey>('canPrice')
