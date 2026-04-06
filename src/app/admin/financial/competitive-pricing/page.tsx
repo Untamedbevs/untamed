@@ -16,6 +16,7 @@ import {
   Filter,
   Package,
   Zap,
+  Info,
 } from 'lucide-react'
 
 type Brand = {
@@ -769,17 +770,18 @@ export default function CompetitivePricingPage() {
                 <thead>
                   <tr className="border-b border-[#2A2A2A]">
                     {([
-                      { key: 'name' as SortKey, label: 'Brand', align: 'left' },
-                      { key: 'canOz' as SortKey, label: 'Size', align: 'right' },
-                      { key: 'pricePerOz' as SortKey, label: '$/oz', align: 'right' },
-                      { key: 'abv' as SortKey, label: 'ABV', align: 'right' },
-                      { key: 'canPrice' as SortKey, label: 'Can Price', align: 'right' },
-                      { key: 'pricePerAlcoholOz' as SortKey, label: '$/oz Alc', align: 'right' },
-                      { key: 'pricePerStdDrink' as SortKey, label: '$/Std Drink', align: 'right' },
-                    ] as const).map(col => (
+                      { key: 'name' as SortKey, label: 'Brand', align: 'left' as const },
+                      { key: 'canOz' as SortKey, label: 'Size', align: 'right' as const },
+                      { key: 'pricePerOz' as SortKey, label: '$/oz', align: 'right' as const },
+                      { key: 'abv' as SortKey, label: 'ABV', align: 'right' as const },
+                      { key: 'canPrice' as SortKey, label: 'Can Price', align: 'right' as const },
+                      { key: 'pricePerAlcoholOz' as SortKey, label: '$/oz Alc', align: 'right' as const, tip: '1 std drink = 0.6 oz pure alcohol (NIAAA)' },
+                      { key: 'pricePerStdDrink' as SortKey, label: '$/Std Drink', align: 'right' as const, tip: '1 std drink = 0.6 oz pure alcohol (NIAAA)' },
+                    ]).map(col => (
                       <th
                         key={col.key}
                         onClick={() => handleSort(col.key)}
+                        title={col.tip}
                         className={`text-xs uppercase tracking-wider py-2.5 px-2 cursor-pointer hover:text-white transition-colors whitespace-nowrap ${
                           col.align === 'left' ? 'text-left' : 'text-right'
                         } ${sortKey === col.key ? 'text-[#9B30FF]' : 'text-[#666]'}`}
@@ -824,6 +826,18 @@ export default function CompetitivePricingPage() {
                   ))}
                 </tbody>
               </table>
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-[#2A2A2A] flex items-start gap-2.5">
+              <Info className="w-4 h-4 text-[#666] shrink-0 mt-0.5" />
+              <div className="text-xs text-[#666] leading-relaxed">
+                <p>
+                  <span className="text-[#A0A0A0] font-medium">Standard drink</span> = 0.6 oz of pure alcohol (NIAAA definition). That&apos;s equivalent to 12 oz of beer (5% ABV), 5 oz of wine (12% ABV), or 1.5 oz of spirits (40% ABV). Calculated as: <span className="text-[#A0A0A0]">can size × ABV ÷ 0.6</span>.
+                </p>
+                <p className="mt-1">
+                  <span className="text-[#A0A0A0] font-medium">$/oz Alc</span> = can price ÷ oz of pure alcohol in the can. <span className="text-[#A0A0A0] font-medium">$/Std Drink</span> = can price ÷ standard drinks per can.
+                </p>
+              </div>
             </div>
           </div>
 
