@@ -14,6 +14,7 @@ import {
   DollarSign,
   Calculator,
   ClipboardList,
+  Target,
   Menu,
   X,
   LogOut,
@@ -21,6 +22,7 @@ import {
   ChevronRight,
   ChevronDown,
   User,
+  Users,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { LucideIcon } from 'lucide-react'
@@ -32,7 +34,7 @@ type NavItem = {
   children?: { href: string; label: string; icon: LucideIcon }[]
 }
 
-const NAV_ITEMS: NavItem[] = [
+const ALL_NAV_ITEMS: NavItem[] = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/ideas', label: 'Ideas', icon: Lightbulb },
   { href: '/admin/media', label: 'Media', icon: Image },
@@ -46,9 +48,29 @@ const NAV_ITEMS: NavItem[] = [
     children: [
       { href: '/admin/financial/beverage-estimator', label: 'Cost Estimator', icon: Calculator },
       { href: '/admin/financial/product-procurement', label: 'Procurement', icon: ClipboardList },
+      { href: '/admin/financial/competitive-pricing', label: 'Competitive Pricing', icon: Target },
     ],
   },
 ]
+
+const SUPER_ADMIN_ITEMS: NavItem[] = [
+  { href: '/admin/staff', label: 'Staff', icon: Users },
+]
+
+const RESTRICTED_PATHS = ['/admin/loyalty', '/admin/financial']
+
+function getNavItems(role: string | undefined): NavItem[] {
+  let items = ALL_NAV_ITEMS
+  if (role === 'contractor_limited') {
+    items = items.filter(
+      (item) => !RESTRICTED_PATHS.some((p) => item.href.startsWith(p))
+    )
+  }
+  if (role === 'super_admin') {
+    items = [...items, ...SUPER_ADMIN_ITEMS]
+  }
+  return items
+}
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -93,7 +115,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     super_admin: 'Super Admin',
     admin: 'Admin',
     contractor: 'Contractor',
+    contractor_full: 'Contractor',
+    contractor_limited: 'Contractor (Limited)',
   }
+
+  const NAV_ITEMS = getNavItems(staff?.role)
 
   return (
     <div className="min-h-screen bg-[#0A0A0A] flex overflow-x-hidden">
@@ -253,7 +279,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <Menu className="w-5 h-5" />
           </button>
           <h2 className="font-[var(--font-oswald)] text-lg font-semibold uppercase tracking-wider text-white">
-            {NAV_ITEMS.find((item) => isActive(item.href))?.label || 'Admin'}
+            {ALL_NAV_ITEMS.find((item) => isActive(item.href))?.label || 'Admin'}
           </h2>
         </header>
         <main className="p-4 lg:p-6">{children}</main>
