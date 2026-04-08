@@ -172,6 +172,10 @@ const HERO_LABEL: Record<HeroGender, { subject: string; pronoun: string }> = {
   male: { subject: 'a handsome man', pronoun: 'The man' },
 }
 
+/** Matches real Untamed SKU: 12 fl oz slimline can (not 16oz / pint / short wide). */
+const HERO_CAN_FORMAT =
+  'The beverage is a 12 fl oz tall slim aluminum can (slimline RTD: noticeably taller and narrower than a standard short 12oz beer can). It is not a 16 ounce can, not a pint, not a short wide stubby. Keep scale in the hand consistent with that slim tall format and with the reference can proportions.'
+
 function getDrinkHeroChainExamplePosts(drink: Drink, siteBase: string, gender: HeroGender = 'female'): PlannedPost[] {
   const canUrl = drinkAssetAbsoluteUrl(siteBase, drink.canImage)
   const animalUrl = drinkAssetAbsoluteUrl(siteBase, drink.animalImage)
@@ -181,7 +185,7 @@ function getDrinkHeroChainExamplePosts(drink: Drink, siteBase: string, gender: H
       sort_order: 0,
       concept: `${gender === 'male' ? 'Man' : 'Woman'} holding ${drink.name} can`,
       prompt:
-        `Photorealistic advertising hero for ${drink.name} (${drink.flavor}): ${hero.subject} holding this beverage can, confident natural pose, face in sharp focus and clearly visible, looking at the camera. The person's face is the primary subject. The can is held at chest level, label visible and legible. Premium studio lighting, both the face and can are in focus. Full upper body framing, not a close-up of the can.`,
+        `Photorealistic advertising hero for ${drink.name} (${drink.flavor}): ${hero.subject} holding this beverage can, confident natural pose, face in sharp focus and clearly visible, looking at the camera. The person's face is the primary subject. ${HERO_CAN_FORMAT} The can is held at chest level, label visible and legible. Premium studio lighting, both the face and can are in focus. Full upper body framing, not a close-up of the can.`,
       generation_mode: 'generate',
       target_size: 'landscape_16_9',
       caption_suggestion: '',
@@ -197,7 +201,7 @@ function getDrinkHeroChainExamplePosts(drink: Drink, siteBase: string, gender: H
       sort_order: 1,
       concept: `${drink.animal} holding the same can (exact scene duplicate)`,
       prompt:
-        `Edit this image: replace ONLY the person with a photorealistic ${drink.animal}. The ${drink.animal} must be gripping the same ${drink.name} can in the same hand position — the can, its label, and placement are identical to the original. Same composition, same lighting, same background, same camera angle, same depth of field. The ${drink.animal} looks natural and powerful, sitting confidently like a premium advertising hero shot. Every detail except the subject stays pixel-perfect. Reference spirit animal: ${animalUrl}`,
+        `Edit this image: replace ONLY the person with a photorealistic ${drink.animal}. The ${drink.animal} must be gripping the same ${drink.name} can in the same hand position — the can, its label, and placement are identical to the original. ${HERO_CAN_FORMAT} Same composition, same lighting, same background, same camera angle, same depth of field. The ${drink.animal} looks natural and powerful, sitting confidently like a premium advertising hero shot. Every detail except the subject stays pixel-perfect. Reference spirit animal: ${animalUrl}`,
       generation_mode: 'edit',
       target_size: 'landscape_16_9',
       caption_suggestion: '',
@@ -213,7 +217,7 @@ function getDrinkHeroChainExamplePosts(drink: Drink, siteBase: string, gender: H
       sort_order: 2,
       concept: `Video: ${gender === 'male' ? 'man' : 'woman'} takes a sip, transforms into ${drink.animal}`,
       prompt:
-        `Photorealistic commercial video. ${hero.pronoun} holds the ${drink.name} can, takes a slow sip, then smoothly morphs into a ${drink.animal} — the can stays gripped in hand the entire time, never disappearing. Every frame is photorealistic with consistent studio lighting, same background, same camera angle. The transformation is fluid and believable, not cartoonish. The ${drink.animal} ends in the same pose, still holding the can. Cinematic slow motion, shallow depth of field, premium ad quality. ${drink.tagline}`,
+        `Photorealistic commercial video. ${hero.pronoun} holds the ${drink.name} can, takes a slow sip, then smoothly morphs into a ${drink.animal} — the can stays gripped in hand the entire time, never disappearing. ${HERO_CAN_FORMAT} Every frame is photorealistic with consistent studio lighting, same background, same camera angle. The transformation is fluid and believable, not cartoonish. The ${drink.animal} ends in the same pose, still holding the can. Cinematic slow motion, shallow depth of field, premium ad quality. ${drink.tagline}`,
       generation_mode: 'video',
       target_size: 'landscape_16_9',
       caption_suggestion: '',

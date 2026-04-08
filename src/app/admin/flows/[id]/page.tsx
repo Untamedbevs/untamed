@@ -442,16 +442,18 @@ export default function AdminFlowDetailPage() {
     if (!flowId || queueSelectedMedia.length === 0) return
     setQueueAdding(true)
     try {
+      const posts = queueSelectedMedia.map((mediaId, i) => ({
+        flow_id: flowId,
+        media_ids: [mediaId],
+        platforms: queuePlatforms,
+        caption: queueCaption,
+        scheduled_at: new Date(queueDate).toISOString(),
+        sort_order: i,
+      }))
       const res = await fetch('/api/admin/schedule', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          flow_id: flowId,
-          media_ids: queueSelectedMedia,
-          platforms: queuePlatforms,
-          caption: queueCaption,
-          scheduled_at: new Date(queueDate).toISOString(),
-        }),
+        body: JSON.stringify(posts),
       })
       if (res.ok) {
         setQueueSuccess(true)
@@ -724,7 +726,7 @@ export default function AdminFlowDetailPage() {
                         className="inline-flex items-center gap-2 rounded-full bg-[#4A7C0F] text-white font-semibold px-5 py-2 text-sm hover:bg-[#5A9C1F] transition-colors disabled:opacity-40"
                       >
                         {queueAdding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Calendar className="w-4 h-4" />}
-                        Add {queueSelectedMedia.length} asset{queueSelectedMedia.length !== 1 ? 's' : ''} to queue
+                        Add {queueSelectedMedia.length} post{queueSelectedMedia.length !== 1 ? 's' : ''} to queue
                       </button>
                       <span className="text-[11px] text-[#666]">
                         {queueSelectedMedia.length} of {flow.flow_posts.filter((p) => p.generated_media?.id).length} selected

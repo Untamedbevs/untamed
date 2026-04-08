@@ -48,7 +48,9 @@ export async function GET(request: NextRequest) {
     }
 
     const platforms: string[] = post.platforms || []
-    const caption = post.caption || ''
+    const hashtags = (post.hashtags || []).map((h: string) => h.startsWith('#') ? h : `#${h}`).join(' ')
+    const captionParts = [post.title, post.caption, post.body, hashtags].filter(Boolean)
+    const caption = captionParts.join('\n\n')
     const results: PublishResult[] = []
 
     const primaryImage = mediaUrls.find((m) => m.file_type === 'image')

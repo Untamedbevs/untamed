@@ -34,8 +34,12 @@ interface ScheduledPost {
   flow_id: string
   media_ids: string[]
   platforms: string[]
+  title: string | null
   caption: string | null
+  body: string | null
   hashtags: string[]
+  link_url: string | null
+  call_to_action: string | null
   scheduled_at: string
   status: string
   posted_at: string | null
@@ -164,8 +168,15 @@ function ScheduleCard({
   isDragOver: boolean
 }) {
   const [expanded, setExpanded] = useState(false)
-  const [editCaption, setEditCaption] = useState(false)
-  const [captionValue, setCaptionValue] = useState(post.caption || '')
+  const [editDetails, setEditDetails] = useState(false)
+  const [detailValues, setDetailValues] = useState({
+    title: post.title || '',
+    caption: post.caption || '',
+    body: post.body || '',
+    hashtags: (post.hashtags || []).join(', '),
+    link_url: post.link_url || '',
+    call_to_action: post.call_to_action || '',
+  })
   const [editDate, setEditDate] = useState(false)
   const [dateValue, setDateValue] = useState(
     post.scheduled_at ? new Date(post.scheduled_at).toISOString().slice(0, 16) : ''
@@ -175,9 +186,30 @@ function ScheduleCard({
 
   const statusClass = STATUS_COLORS[post.status] || STATUS_COLORS.scheduled
 
-  function saveCaption() {
-    onUpdate(post.id, { caption: captionValue })
-    setEditCaption(false)
+  function saveDetails() {
+    onUpdate(post.id, {
+      title: detailValues.title || null,
+      caption: detailValues.caption || null,
+      body: detailValues.body || null,
+      hashtags: detailValues.hashtags
+        ? detailValues.hashtags.split(',').map((h) => h.trim()).filter(Boolean)
+        : [],
+      link_url: detailValues.link_url || null,
+      call_to_action: detailValues.call_to_action || null,
+    })
+    setEditDetails(false)
+  }
+
+  function openEditDetails() {
+    setDetailValues({
+      title: post.title || '',
+      caption: post.caption || '',
+      body: post.body || '',
+      hashtags: (post.hashtags || []).join(', '),
+      link_url: post.link_url || '',
+      call_to_action: post.call_to_action || '',
+    })
+    setEditDetails(true)
   }
 
   function saveDate() {
@@ -305,42 +337,110 @@ function ScheduleCard({
             )}
           </div>
 
-          {editCaption ? (
-            <div className="space-y-1.5">
-              <textarea
-                value={captionValue}
-                onChange={(e) => setCaptionValue(e.target.value)}
-                rows={3}
-                className="w-full text-[11px] text-white bg-[#0A0A0A] border border-[#9B30FF]/50 rounded-lg p-2 resize-y focus:outline-none focus:border-[#9B30FF]"
-                autoFocus
-              />
-              <div className="flex gap-1.5">
+          {editDetails ? (
+            <div className="space-y-2 bg-[#0A0A0A] border border-[#9B30FF]/30 rounded-xl p-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10px] text-[#666] uppercase tracking-wide">Title</label>
+                  <input
+                    value={detailValues.title}
+                    onChange={(e) => setDetailValues({ ...detailValues, title: e.target.value })}
+                    className="w-full text-[11px] text-white bg-[#141414] border border-[#2A2A2A] rounded-lg px-2 py-1.5 focus:outline-none focus:border-[#9B30FF]"
+                    placeholder="Post title"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-[#666] uppercase tracking-wide">Call to Action</label>
+                  <input
+                    value={detailValues.call_to_action}
+                    onChange={(e) => setDetailValues({ ...detailValues, call_to_action: e.target.value })}
+                    className="w-full text-[11px] text-white bg-[#141414] border border-[#2A2A2A] rounded-lg px-2 py-1.5 focus:outline-none focus:border-[#9B30FF]"
+                    placeholder="e.g. Shop Now, Learn More"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-[10px] text-[#666] uppercase tracking-wide">Caption</label>
+                <textarea
+                  value={detailValues.caption}
+                  onChange={(e) => setDetailValues({ ...detailValues, caption: e.target.value })}
+                  rows={2}
+                  className="w-full text-[11px] text-white bg-[#141414] border border-[#2A2A2A] rounded-lg px-2 py-1.5 resize-y focus:outline-none focus:border-[#9B30FF]"
+                  placeholder="Main caption text"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] text-[#666] uppercase tracking-wide">Body / Description</label>
+                <textarea
+                  value={detailValues.body}
+                  onChange={(e) => setDetailValues({ ...detailValues, body: e.target.value })}
+                  rows={3}
+                  className="w-full text-[11px] text-white bg-[#141414] border border-[#2A2A2A] rounded-lg px-2 py-1.5 resize-y focus:outline-none focus:border-[#9B30FF]"
+                  placeholder="Extended description or body text"
+                />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10px] text-[#666] uppercase tracking-wide">Hashtags</label>
+                  <input
+                    value={detailValues.hashtags}
+                    onChange={(e) => setDetailValues({ ...detailValues, hashtags: e.target.value })}
+                    className="w-full text-[11px] text-white bg-[#141414] border border-[#2A2A2A] rounded-lg px-2 py-1.5 focus:outline-none focus:border-[#9B30FF]"
+                    placeholder="#untamed, #energy, #wildside"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-[#666] uppercase tracking-wide">Link URL</label>
+                  <input
+                    value={detailValues.link_url}
+                    onChange={(e) => setDetailValues({ ...detailValues, link_url: e.target.value })}
+                    className="w-full text-[11px] text-white bg-[#141414] border border-[#2A2A2A] rounded-lg px-2 py-1.5 focus:outline-none focus:border-[#9B30FF]"
+                    placeholder="https://untamedbeverages.com/..."
+                  />
+                </div>
+              </div>
+              <div className="flex gap-1.5 pt-1">
                 <button
                   type="button"
-                  onClick={saveCaption}
-                  className="inline-flex items-center gap-1 rounded-lg bg-[#9B30FF] px-2 py-0.5 text-[10px] text-white font-medium hover:bg-[#BF5FFF]"
+                  onClick={saveDetails}
+                  className="inline-flex items-center gap-1 rounded-lg bg-[#9B30FF] px-2.5 py-1 text-[10px] text-white font-medium hover:bg-[#BF5FFF]"
                 >
                   <Check className="w-3 h-3" /> Save
                 </button>
                 <button
                   type="button"
-                  onClick={() => setEditCaption(false)}
-                  className="inline-flex items-center gap-1 rounded-lg border border-[#2A2A2A] px-2 py-0.5 text-[10px] text-[#888] hover:text-white"
+                  onClick={() => setEditDetails(false)}
+                  className="inline-flex items-center gap-1 rounded-lg border border-[#2A2A2A] px-2.5 py-1 text-[10px] text-[#888] hover:text-white"
                 >
                   <X className="w-3 h-3" /> Cancel
                 </button>
               </div>
             </div>
           ) : (
-            <p
-              className="text-xs text-[#A0A0A0] line-clamp-2 cursor-pointer hover:text-white transition-colors"
-              onClick={() => {
-                setCaptionValue(post.caption || '')
-                setEditCaption(true)
-              }}
+            <div
+              className="cursor-pointer hover:bg-[#1A1A1A] rounded-lg px-2 py-1 -mx-2 transition-colors"
+              onClick={openEditDetails}
             >
-              {post.caption || 'No caption'}
-            </p>
+              {post.title && (
+                <p className="text-xs text-white font-medium">{post.title}</p>
+              )}
+              <p className="text-xs text-[#A0A0A0] line-clamp-2">
+                {post.caption || 'No caption — click to edit'}
+              </p>
+              {(post.hashtags?.length > 0 || post.link_url || post.call_to_action) && (
+                <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                  {post.hashtags?.length > 0 && (
+                    <span className="text-[10px] text-[#9B30FF]">{post.hashtags.join(' ')}</span>
+                  )}
+                  {post.link_url && (
+                    <span className="text-[10px] text-blue-400 truncate max-w-[150px]">{post.link_url}</span>
+                  )}
+                  {post.call_to_action && (
+                    <span className="text-[10px] text-[#E87511]">{post.call_to_action}</span>
+                  )}
+                </div>
+              )}
+            </div>
           )}
         </div>
 

@@ -36,25 +36,31 @@ export async function POST(request: NextRequest) {
   const startDate = new Date(cadence.start)
   const intervalMs = cadence.interval_hours * 60 * 60 * 1000
 
-  const inserts = (flows || []).map((flow: { id: string; title: string; flow_posts: { generated_media_id: string | null }[] }, i: number) => {
+  const inserts: Record<string, unknown>[] = []
+  let idx = 0
+
+  for (const flow of (flows || []) as { id: string; title: string; flow_posts: { generated_media_id: string | null }[] }[]) {
     const mediaIds = flow.flow_posts
-      .map((fp: { generated_media_id: string | null }) => fp.generated_media_id)
+      .map((fp) => fp.generated_media_id)
       .filter(Boolean) as string[]
 
-    const scheduledAt = new Date(startDate.getTime() + i * intervalMs)
+    const caption = caption_template
+      ? caption_template.replace('{{title}}', flow.title || '')
+      : flow.title || ''
 
-    return {
-      flow_id: flow.id,
-      media_ids: mediaIds,
-      platforms: platforms || [],
-      caption: caption_template
-        ? caption_template.replace('{{title}}', flow.title || '')
-        : flow.title || '',
-      scheduled_at: scheduledAt.toISOString(),
-      sort_order: i,
-      status: 'scheduled',
+    for (const mediaId of mediaIds) {
+      inserts.push({
+        flow_id: flow.id,
+        media_ids: [mediaId],
+        platforms: platforms || [],
+        caption,
+        scheduled_at: new Date(startDate.getTime() + idx * intervalMs).toISOString(),
+        sort_order: idx,
+        status: 'scheduled',
+      })
+      idx++
     }
-  })
+  }
 
   const { data, error } = await supabase
     .from('scheduled_posts')

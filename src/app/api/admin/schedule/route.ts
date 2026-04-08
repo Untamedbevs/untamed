@@ -54,16 +54,23 @@ export async function POST(request: NextRequest) {
 
   const posts = Array.isArray(body) ? body : [body]
 
-  const inserts = posts.map((p, i) => ({
-    flow_id: p.flow_id,
-    media_ids: p.media_ids || [],
-    platforms: p.platforms || [],
-    caption: p.caption || null,
-    hashtags: p.hashtags || [],
-    scheduled_at: p.scheduled_at,
-    sort_order: p.sort_order ?? i,
-    status: 'scheduled',
-  }))
+  const inserts = posts.map((p, i) => {
+    const row: Record<string, unknown> = {
+      flow_id: p.flow_id,
+      media_ids: p.media_ids || [],
+      platforms: p.platforms || [],
+      caption: p.caption || null,
+      hashtags: p.hashtags || [],
+      scheduled_at: p.scheduled_at,
+      sort_order: p.sort_order ?? i,
+      status: 'scheduled',
+    }
+    if (p.title) row.title = p.title
+    if (p.body) row.body = p.body
+    if (p.link_url) row.link_url = p.link_url
+    if (p.call_to_action) row.call_to_action = p.call_to_action
+    return row
+  })
 
   const { data, error } = await supabase
     .from('scheduled_posts')
@@ -88,8 +95,12 @@ export async function PUT(request: NextRequest) {
     if (!p.id) continue
 
     const update: Record<string, unknown> = {}
+    if (p.title !== undefined) update.title = p.title
     if (p.caption !== undefined) update.caption = p.caption
+    if (p.body !== undefined) update.body = p.body
     if (p.hashtags !== undefined) update.hashtags = p.hashtags
+    if (p.link_url !== undefined) update.link_url = p.link_url
+    if (p.call_to_action !== undefined) update.call_to_action = p.call_to_action
     if (p.platforms !== undefined) update.platforms = p.platforms
     if (p.scheduled_at !== undefined) update.scheduled_at = p.scheduled_at
     if (p.sort_order !== undefined) update.sort_order = p.sort_order

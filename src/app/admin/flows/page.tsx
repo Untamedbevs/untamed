@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { Layers, Loader2, ChevronRight, Trash2, Moon } from 'lucide-react'
+import { CheckCircle2, Layers, Loader2, ChevronRight, Trash2, Moon } from 'lucide-react'
 
 interface FlowListItem {
   id: string
@@ -29,6 +29,17 @@ function computeFlowProgress(posts?: { id: string; status: string }[]): {
   if (pending > 0 && complete > 0) return { label: `${complete}/${total} done`, color: 'text-[#00BFFF]' }
   if (pending === total) return { label: 'pending', color: 'text-[#888]' }
   return { label: `${complete}/${total}`, color: 'text-[#A0A0A0]' }
+}
+
+function segmentApprovalSummary(posts?: { id: string; status: string }[]): {
+  total: number
+  approved: number
+  completeNotApproved: number
+} {
+  if (!posts?.length) return { total: 0, approved: 0, completeNotApproved: 0 }
+  const approved = posts.filter((p) => p.status === 'approved').length
+  const completeNotApproved = posts.filter((p) => p.status === 'complete').length
+  return { total: posts.length, approved, completeNotApproved }
 }
 
 function shortId(id: string) {
@@ -368,6 +379,7 @@ export default function AdminFlowsPage() {
                 </th>
                 <th className="px-2 py-3 font-medium">Title</th>
                 <th className="px-4 py-3 font-medium">Status</th>
+                <th className="px-4 py-3 font-medium">Approved</th>
                 <th className="px-4 py-3 font-medium">Segments</th>
                 <th className="px-4 py-3 font-medium">Created</th>
                 <th className="px-2 py-3 w-24 font-medium text-right">Actions</th>
@@ -378,6 +390,15 @@ export default function AdminFlowsPage() {
                 const n = f.flow_posts?.length ?? 0
                 const isSel = selected.has(f.id)
                 const progress = computeFlowProgress(f.flow_posts)
+                const approval = segmentApprovalSummary(f.flow_posts)
+                const allApproved = approval.total > 0 && approval.approved === approval.total
+                const approvalTitle =
+                  approval.total === 0
+                    ? 'No segments'
+                    : `${approval.approved} approved of ${approval.total} segments` +
+                      (approval.completeNotApproved > 0
+                        ? `; ${approval.completeNotApproved} complete, awaiting approval`
+                        : '')
                 return (
                   <tr key={f.id} className="border-t border-[#2A2A2A] hover:bg-[#141414]/80">
                     <td className="px-3 py-3">
@@ -395,6 +416,33 @@ export default function AdminFlowsPage() {
                       </Link>
                     </td>
                     <td className={`px-4 py-3 capitalize ${progress.color}`}>{progress.label}</td>
+                    <td className="px-4 py-3" title={approvalTitle}>
+                      {approval.total === 0 ? (
+                        <span className="text-[#555]">—</span>
+                      ) : (
+                        <div className="flex flex-col gap-0.5">
+                          <span
+                            className={`inline-flex items-center gap-1.5 tabular-nums ${
+                              allApproved
+                                ? 'text-[#4A7C0F] font-medium'
+                                : approval.approved > 0
+                                  ? 'text-[#7CB342]'
+                                  : 'text-[#666]'
+                            }`}
+                          >
+                            {allApproved ? (
+                              <CheckCircle2 className="w-4 h-4 shrink-0 text-[#4A7C0F]" aria-hidden />
+                            ) : null}
+                            {approval.approved}/{approval.total} approved
+                          </span>
+                          {approval.completeNotApproved > 0 && !allApproved ? (
+                            <span className="text-[10px] text-[#666] leading-tight">
+                              {approval.completeNotApproved} ready for review
+                            </span>
+                          ) : null}
+                        </div>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-[#A0A0A0]">{n}</td>
                     <td className="px-4 py-3 text-[#666]">
                       {f.created_at ? new Date(f.created_at).toLocaleString() : '—'}

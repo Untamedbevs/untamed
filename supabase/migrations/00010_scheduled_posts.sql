@@ -4,8 +4,12 @@ CREATE TABLE scheduled_posts (
   flow_id UUID NOT NULL REFERENCES flows(id) ON DELETE CASCADE,
   media_ids UUID[] NOT NULL DEFAULT '{}',
   platforms TEXT[] NOT NULL DEFAULT '{}',
+  title TEXT,
   caption TEXT,
+  body TEXT,
   hashtags TEXT[] DEFAULT '{}',
+  link_url TEXT,
+  call_to_action TEXT,
   scheduled_at TIMESTAMPTZ NOT NULL,
   status TEXT NOT NULL DEFAULT 'scheduled'
     CHECK (status IN ('scheduled','publishing','posted','failed','cancelled')),
