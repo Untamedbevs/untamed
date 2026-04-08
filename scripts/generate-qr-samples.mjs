@@ -10,37 +10,42 @@ const drinks = [
   { slug: 'lioness', name: 'Lioness' },
 ]
 
-const outputDir = 'public/images/qr'
-mkdirSync(outputDir, { recursive: true })
-
-for (const drink of drinks) {
-  // Keep QR payload short for print reliability; redirect preserves tracking params.
-  const url = `${BASE_URL}/r/rewards/${drink.slug}`
-
-  const png = await QRCode.toBuffer(url, {
-    type: 'png',
-    width: 1024,
-    margin: 4,
-    color: { dark: '#000000', light: '#FFFFFF' },
-    // Higher levels increase density; M prints/scans better for simple URLs.
-    errorCorrectionLevel: 'M',
-  })
-
-  const path = `${outputDir}/qr-${drink.slug}.png`
-  writeFileSync(path, png)
-  console.log(`${drink.name}: ${path}`)
-  console.log(`  URL: ${url}\n`)
-}
-
-// Also generate a generic "rewards" QR code
-const genericUrl = `${BASE_URL}/r/rewards`
-const genericPng = await QRCode.toBuffer(genericUrl, {
+const qrOptions = {
   type: 'png',
   width: 1024,
   margin: 4,
   color: { dark: '#000000', light: '#FFFFFF' },
   errorCorrectionLevel: 'M',
-})
-writeFileSync(`${outputDir}/qr-rewards-generic.png`, genericPng)
-console.log(`Generic Rewards: ${outputDir}/qr-rewards-generic.png`)
-console.log(`  URL: ${genericUrl}`)
+}
+
+function writeQr(path, url) {
+  return QRCode.toBuffer(url, qrOptions).then((png) => {
+    writeFileSync(path, png)
+    console.log(path)
+    console.log(`  ${url}\n`)
+  })
+}
+
+// --- Can: short URL -> redirect adds utm_source=can (see next.config.ts)
+const canDir = 'public/images/qr'
+mkdirSync(canDir, { recursive: true })
+
+for (const drink of drinks) {
+  const url = `${BASE_URL}/r/rewards/${drink.slug}`
+  await writeQr(`${canDir}/qr-${drink.slug}.png`, url)
+}
+
+await writeQr(`${canDir}/qr-rewards-generic.png`, `${BASE_URL}/r/rewards`)
+console.log('Can (website + can print):', canDir)
+
+// --- Box: short URL -> redirect adds utm_source=box
+const boxDir = 'public/images/qr/box'
+mkdirSync(boxDir, { recursive: true })
+
+for (const drink of drinks) {
+  const url = `${BASE_URL}/r/box/rewards/${drink.slug}`
+  await writeQr(`${boxDir}/qr-${drink.slug}.png`, url)
+}
+
+await writeQr(`${boxDir}/qr-rewards-generic.png`, `${BASE_URL}/r/box/rewards`)
+console.log('Box (print for boxes only):', boxDir)

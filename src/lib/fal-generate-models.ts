@@ -6,15 +6,44 @@ export const FAL_DEFAULT_IMAGE_MODEL = 'fal-ai/flux/dev'
 export const FAL_DEFAULT_EDIT_MODEL = 'fal-ai/flux/dev/image-to-image'
 export const FAL_DEFAULT_VIDEO_MODEL = 'fal-ai/kling-video/v2/master/image-to-video'
 
+export const NANO_BANANA_2_MODEL_ID = 'fal-ai/nano-banana-2' as const
+export const NANO_BANANA_EDIT_MODEL_ID = 'fal-ai/nano-banana/edit' as const
+export const NANO_BANANA_PRO_EDIT_MODEL_ID = 'fal-ai/nano-banana-pro/edit' as const
+
+/** Map studio `target_size` to Nano Banana `aspect_ratio` enum values. */
+export function targetSizeToNanoAspectRatio(imageSize: string): string {
+  const map: Record<string, string> = {
+    square_1_1: '1:1',
+    landscape_16_9: '16:9',
+    portrait_9_16: '9:16',
+    story_4_5: '4:5',
+  }
+  return map[imageSize] ?? '1:1'
+}
+
+export function isNanoBanana2ImageModel(modelId: string): boolean {
+  return modelId === NANO_BANANA_2_MODEL_ID
+}
+
+export function isNanoBananaEditModel(modelId: string): boolean {
+  return (
+    modelId === NANO_BANANA_EDIT_MODEL_ID ||
+    modelId === NANO_BANANA_PRO_EDIT_MODEL_ID
+  )
+}
+
 export const FAL_IMAGE_MODELS = [
   { id: 'fal-ai/flux/dev', label: 'Flux Dev' },
   { id: 'fal-ai/flux/schnell', label: 'Flux Schnell' },
   { id: 'fal-ai/flux-pro/v1.1', label: 'Flux Pro 1.1' },
+  { id: NANO_BANANA_2_MODEL_ID, label: 'Nano Banana 2 (fast / cheap test)' },
 ] as const
 
 export const FAL_EDIT_MODELS = [
   { id: 'fal-ai/flux/dev/image-to-image', label: 'Flux Dev (image to image)' },
   { id: 'fal-ai/flux-pro/v1.1/redux', label: 'Flux Pro 1.1 Redux' },
+  { id: NANO_BANANA_EDIT_MODEL_ID, label: 'Nano Banana edit (cheap test)' },
+  { id: NANO_BANANA_PRO_EDIT_MODEL_ID, label: 'Nano Banana Pro edit' },
 ] as const
 
 export const FAL_VIDEO_MODELS = [
@@ -90,6 +119,12 @@ export function resolveFalEditModel(requested?: string | null): string {
 export function resolveFalVideoModel(requested?: string | null): string {
   if (requested && ALLOWED_VIDEO.has(requested)) return requested
   return FAL_DEFAULT_VIDEO_MODEL
+}
+
+export function defaultFalModelForMode(mode: 'generate' | 'edit' | 'video'): string {
+  if (mode === 'edit') return FAL_DEFAULT_EDIT_MODEL
+  if (mode === 'video') return FAL_DEFAULT_VIDEO_MODEL
+  return FAL_DEFAULT_IMAGE_MODEL
 }
 
 export function isReduxEditModel(modelId: string): boolean {

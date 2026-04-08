@@ -1,7 +1,12 @@
 import { fal, saveGeneratedMedia } from '@/lib/fal'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { BRAND_KIT } from '@/lib/brand-kit'
-import { isReduxEditModel, resolveFalEditModel } from '@/lib/fal-generate-models'
+import {
+  isNanoBananaEditModel,
+  isReduxEditModel,
+  resolveFalEditModel,
+  targetSizeToNanoAspectRatio,
+} from '@/lib/fal-generate-models'
 import { NextRequest, NextResponse } from 'next/server'
 
 type FalImageSize = 'square' | 'square_hd' | 'landscape_16_9' | 'portrait_16_9' | 'portrait_4_3' | 'landscape_4_3'
@@ -38,19 +43,28 @@ export async function POST(request: NextRequest) {
 
     const brandedPrompt = `${prompt} ${BRAND_STYLE_SUFFIX}`
 
-    const input = isReduxEditModel(modelId)
+    const input = isNanoBananaEditModel(modelId)
       ? {
           prompt: brandedPrompt,
-          image_url,
-          image_size: falSize,
+          image_urls: [image_url],
           num_images: 1,
+          aspect_ratio: targetSizeToNanoAspectRatio(image_size),
+          output_format: 'png',
+          safety_tolerance: '4',
         }
-      : {
-          prompt: brandedPrompt,
-          image_url,
-          strength: 0.75,
-          num_images: 1,
-        }
+      : isReduxEditModel(modelId)
+        ? {
+            prompt: brandedPrompt,
+            image_url,
+            image_size: falSize,
+            num_images: 1,
+          }
+        : {
+            prompt: brandedPrompt,
+            image_url,
+            strength: 0.75,
+            num_images: 1,
+          }
 
     const result = await fal.subscribe(modelId, {
       input,

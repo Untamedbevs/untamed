@@ -44,7 +44,12 @@ export async function POST(
     generation_mode: post.generation_mode || 'generate',
     target_size: post.target_size || 'square_1_1',
     reference_media_id: post.reference_media_id || null,
+    reference_external_url: post.reference_external_url?.trim() || null,
     end_reference_media_id: post.end_reference_media_id || null,
+    reference_source_sort_order:
+      post.reference_source_sort_order == null ? null : Number(post.reference_source_sort_order),
+    end_frame_source_sort_order:
+      post.end_frame_source_sort_order == null ? null : Number(post.end_frame_source_sort_order),
     fal_model: post.fal_model ?? null,
     status: 'pending',
   }))
@@ -55,7 +60,21 @@ export async function POST(
     .select()
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    const msg = error.message ?? 'Insert failed'
+    const migrationHint =
+      /column|does not exist|schema cache/i.test(msg)
+        ? 'Apply Supabase migrations for flow_posts (e.g. 00006, 00008, 00009) so columns like reference_external_url exist.'
+        : undefined
+    return NextResponse.json(
+      {
+        error: msg,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+        migrationHint,
+      },
+      { status: 500 }
+    )
   }
 
   return NextResponse.json(data, { status: 201 })
@@ -81,8 +100,21 @@ export async function PUT(
     if (post.generation_mode !== undefined) updatePayload.generation_mode = post.generation_mode
     if (post.target_size !== undefined) updatePayload.target_size = post.target_size
     if (post.reference_media_id !== undefined) updatePayload.reference_media_id = post.reference_media_id
+    if (post.reference_external_url !== undefined) {
+      const u = post.reference_external_url
+      updatePayload.reference_external_url =
+        typeof u === 'string' && u.trim() ? u.trim() : null
+    }
     if (post.end_reference_media_id !== undefined) {
       updatePayload.end_reference_media_id = post.end_reference_media_id || null
+    }
+    if (post.reference_source_sort_order !== undefined) {
+      const v = post.reference_source_sort_order
+      updatePayload.reference_source_sort_order = v == null ? null : Number(v)
+    }
+    if (post.end_frame_source_sort_order !== undefined) {
+      const v = post.end_frame_source_sort_order
+      updatePayload.end_frame_source_sort_order = v == null ? null : Number(v)
     }
     if (post.generated_media_id !== undefined) updatePayload.generated_media_id = post.generated_media_id
     if (post.status !== undefined) updatePayload.status = post.status

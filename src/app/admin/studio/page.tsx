@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useEffect, useState, useCallback } from 'react'
+import { Suspense, useEffect, useState, useCallback, type Dispatch, type SetStateAction } from 'react'
 import { useSearchParams } from 'next/navigation'
 import {
   Wand2,
@@ -20,16 +20,19 @@ import {
   Trash2,
   Eye,
   GripVertical,
+  AlertCircle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { PLATFORMS } from '@/lib/constants/platforms'
+import { drinks, drinkAssetAbsoluteUrl, getDrinkBySlug, type Drink } from '@/lib/drinks'
 import {
   FAL_DEFAULT_EDIT_MODEL,
   FAL_DEFAULT_IMAGE_MODEL,
-  FAL_DEFAULT_VIDEO_MODEL,
+  defaultFalModelForMode,
   FAL_EDIT_MODELS,
   FAL_IMAGE_MODELS,
   FAL_VIDEO_MODELS,
+  FAL_VIDEO_FIRST_LAST_MODEL,
   videoModelIsTextToVideoOnly,
   videoModelRequiresFirstAndLastFrame,
 } from '@/lib/fal-generate-models'
@@ -53,7 +56,10 @@ interface FlowPost {
   generation_mode: 'generate' | 'edit' | 'video'
   target_size: string
   reference_media_id: string | null
+  reference_external_url?: string | null
   end_reference_media_id?: string | null
+  reference_source_sort_order?: number | null
+  end_frame_source_sort_order?: number | null
   generated_media_id: string | null
   status: 'pending' | 'generating' | 'complete' | 'approved' | 'rejected'
   fal_model: string | null
@@ -82,6 +88,15 @@ interface PlannedPost {
   caption_suggestion: string
   hashtag_suggestions: string[]
   fal_model?: string | null
+  /** Public URL (e.g. site can image) when not using library media */
+  reference_external_url?: string | null
+  /** Library image (e.g. product can) used as input where the model supports it */
+  reference_media_id?: string | null
+  /** Use another line’s finished image as primary input (edit / video start) — matches that post’s sort_order */
+  reference_source_sort_order?: number | null
+  /** Video end frame from another line’s finished image (first+last models) */
+  end_frame_source_sort_order?: number | null
+  end_reference_media_id?: string | null
 }
 
 type Phase = 'plan' | 'generate' | 'review'
@@ -121,12 +136,6 @@ const TIER_COLORS: Record<string, string> = {
   Premium: 'text-[#9B30FF]',
 }
 
-function defaultFalModelForMode(mode: PlannedPost['generation_mode']): string {
-  if (mode === 'edit') return FAL_DEFAULT_EDIT_MODEL
-  if (mode === 'video') return FAL_DEFAULT_VIDEO_MODEL
-  return FAL_DEFAULT_IMAGE_MODEL
-}
-
 function falModelOptionsForMode(mode: PlannedPost['generation_mode']) {
   if (mode === 'edit') return FAL_EDIT_MODELS
   if (mode === 'video') return FAL_VIDEO_MODELS
@@ -136,6 +145,79 @@ function falModelOptionsForMode(mode: PlannedPost['generation_mode']) {
 function truncateLabel(s: string, max: number) {
   if (s.length <= max) return s
   return `${s.slice(0, max)}...`
+}
+
+async function parseAdminApiError(res: Response): Promise<string> {
+  try {
+    const j = (await res.json()) as {
+      error?: string
+      hint?: string
+      migrationHint?: string
+    }
+    const parts = [j.error, j.hint, j.migrationHint].filter(
+      (x): x is string => typeof x === 'string' && x.trim().length > 0
+    )
+    if (parts.length > 0) return parts.join(' ')
+  } catch {
+    // ignore
+  }
+  return res.statusText || `Request failed (${res.status})`
+}
+
+/** 3-line flow using brand can + spirit animal from `drinks.ts` (site asset URLs). */
+function getDrinkHeroChainExamplePosts(drink: Drink, siteBase: string): PlannedPost[] {
+  const canUrl = drinkAssetAbsoluteUrl(siteBase, drink.canImage)
+  const animalUrl = drinkAssetAbsoluteUrl(siteBase, drink.animalImage)
+  return [
+    {
+      sort_order: 0,
+      concept: `Woman holding ${drink.name} can`,
+      prompt:
+        `Photorealistic advertising hero for ${drink.name} (${drink.flavor}): a beautiful woman holding this beverage can toward the camera, confident natural pose, soft premium studio lighting, shallow depth of field. Keep the can label sharp, legible, and accurate to the reference can image.`,
+      generation_mode: 'generate',
+      target_size: 'portrait_9_16',
+      caption_suggestion: '',
+      hashtag_suggestions: [],
+      fal_model: FAL_DEFAULT_IMAGE_MODEL,
+      reference_external_url: canUrl,
+      reference_media_id: null,
+      reference_source_sort_order: null,
+      end_frame_source_sort_order: null,
+      end_reference_media_id: null,
+    },
+    {
+      sort_order: 1,
+      concept: `${drink.animal} holding the same can`,
+      prompt:
+        `Edit this image: replace the person with a photorealistic ${drink.animal} (brand spirit for ${drink.name}) in a natural pose holding the same can in the same hand position. Preserve the can, label, and overall composition and lighting. Match the premium ad style. The character should feel consistent with the brand energy: ${drink.tagline} Reference spirit animal asset (for your direction): ${animalUrl}`,
+      generation_mode: 'edit',
+      target_size: 'portrait_9_16',
+      caption_suggestion: '',
+      hashtag_suggestions: [],
+      fal_model: FAL_DEFAULT_EDIT_MODEL,
+      reference_external_url: null,
+      reference_media_id: null,
+      reference_source_sort_order: 0,
+      end_frame_source_sort_order: null,
+      end_reference_media_id: null,
+    },
+    {
+      sort_order: 2,
+      concept: `Video: ${drink.name} hero to ${drink.animal} hero`,
+      prompt:
+        `Cinematic transition for ${drink.name}: smooth, believable motion between the opening and closing frame, same product hero energy, subtle camera movement, high-end commercial feel. ${drink.tagline}`,
+      generation_mode: 'video',
+      target_size: 'portrait_9_16',
+      caption_suggestion: '',
+      hashtag_suggestions: [],
+      fal_model: FAL_VIDEO_FIRST_LAST_MODEL,
+      reference_external_url: null,
+      reference_media_id: null,
+      reference_source_sort_order: 0,
+      end_frame_source_sort_order: 1,
+      end_reference_media_id: null,
+    },
+  ]
 }
 
 /** Image media IDs usable as frame sources: prior completed image outputs, then library (deduped). */
@@ -169,6 +251,31 @@ function buildVideoFrameMediaOptions(flow: Flow, currentPost: FlowPost, libraryM
   }
 
   return options
+}
+
+/** Primary image URL: prior line output wins over library attachment. */
+function resolvePrimaryReferenceUrl(flow: Flow, post: FlowPost): string | undefined {
+  if (post.reference_source_sort_order != null) {
+    const src = flow.flow_posts.find((p) => p.sort_order === post.reference_source_sort_order)
+    if (!src || !['complete', 'approved'].includes(src.status)) return undefined
+    const g = src.generated_media
+    if (g?.file_type === 'image' && g.url) return g.url
+    return undefined
+  }
+  const external = post.reference_external_url?.trim()
+  if (external) return external
+  return post.reference_media?.url ?? undefined
+}
+
+function resolveEndFrameUrl(flow: Flow, post: FlowPost): string | undefined {
+  if (post.end_frame_source_sort_order != null) {
+    const src = flow.flow_posts.find((p) => p.sort_order === post.end_frame_source_sort_order)
+    if (!src || !['complete', 'approved'].includes(src.status)) return undefined
+    const g = src.generated_media
+    if (g?.file_type === 'image' && g.url) return g.url
+    return undefined
+  }
+  return post.end_reference_media?.url ?? undefined
 }
 
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
@@ -207,6 +314,9 @@ function StudioContent() {
   const [libraryMedia, setLibraryMedia] = useState<MediaItem[]>([])
   const [selectedRefs, setSelectedRefs] = useState<string[]>([])
   const [showMediaPicker, setShowMediaPicker] = useState(false)
+  const [planDrinkSlug, setPlanDrinkSlug] = useState(() => drinks[0]?.slug ?? 'black-panther')
+  const [savePlanError, setSavePlanError] = useState<string | null>(null)
+  const [savePlanBusy, setSavePlanBusy] = useState(false)
 
   // Generate phase state
   const [generatingPostId, setGeneratingPostId] = useState<string | null>(null)
@@ -255,7 +365,14 @@ function StudioContent() {
       if (!res.ok) throw new Error('Plan generation failed')
 
       const data = await res.json()
-      let posts: PlannedPost[] = data.posts || []
+      let posts: PlannedPost[] = (data.posts || []).map((p: PlannedPost) => ({
+        ...p,
+        reference_media_id: p.reference_media_id ?? null,
+        reference_external_url: p.reference_external_url ?? null,
+        reference_source_sort_order: p.reference_source_sort_order ?? null,
+        end_frame_source_sort_order: p.end_frame_source_sort_order ?? null,
+        end_reference_media_id: p.end_reference_media_id ?? null,
+      }))
 
       if (contentMix === 'images') {
         posts = posts.map((p) => {
@@ -276,46 +393,80 @@ function StudioContent() {
     }
   }
 
+  function loadDrinkHeroChainExample() {
+    const drink = getDrinkBySlug(planDrinkSlug) ?? drinks[0]
+    if (!drink) return
+    setContentMix('mixed')
+    const origin =
+      typeof window !== 'undefined' && window.location?.origin
+        ? window.location.origin
+        : (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_SITE_URL) || ''
+    setConcept(
+      `${drink.name}: woman + can (site can image), ${drink.animal} + same can (edit from line 1, spirit animal from brand), then Veo first/last video between those two heroes. Uses canImage and animalImage from drinks config — deploy a public URL so Fal can fetch assets.`
+    )
+    setPlannedPosts(getDrinkHeroChainExamplePosts(drink, origin))
+  }
+
   async function savePlanAndAdvance() {
     if (plannedPosts.length === 0) return
+    setSavePlanError(null)
+    setSavePlanBusy(true)
 
-    const res = await fetch('/api/admin/flows', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        title: concept.slice(0, 80),
-        concept,
-        status: 'generating',
-        platform_targets: platformTargets,
-      }),
-    })
+    try {
+      const res = await fetch('/api/admin/flows', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: concept.slice(0, 80),
+          concept,
+          status: 'generating',
+          platform_targets: platformTargets,
+        }),
+      })
 
-    if (!res.ok) return
-    const flowData = await res.json()
+      if (!res.ok) {
+        const err = await parseAdminApiError(res)
+        setSavePlanError(err)
+        return
+      }
+      const flowData = await res.json()
 
-    const postsPayload = plannedPosts.map((p) => ({
-      sort_order: p.sort_order,
-      concept: p.concept,
-      prompt: p.prompt,
-      generation_mode: p.generation_mode,
-      target_size: p.target_size,
-      fal_model: p.fal_model ?? defaultFalModelForMode(p.generation_mode),
-    }))
+      const postsPayload = plannedPosts.map((p) => ({
+        sort_order: p.sort_order,
+        concept: p.concept,
+        prompt: p.prompt,
+        generation_mode: p.generation_mode,
+        target_size: p.target_size,
+        fal_model: p.fal_model ?? defaultFalModelForMode(p.generation_mode),
+        reference_media_id: p.reference_media_id ?? null,
+        reference_external_url: p.reference_external_url?.trim() || null,
+        reference_source_sort_order: p.reference_source_sort_order ?? null,
+        end_frame_source_sort_order: p.end_frame_source_sort_order ?? null,
+        end_reference_media_id: p.end_reference_media_id ?? null,
+      }))
 
-    const postsRes = await fetch(`/api/admin/flows/${flowData.id}/posts`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(postsPayload),
-    })
+      const postsRes = await fetch(`/api/admin/flows/${flowData.id}/posts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(postsPayload),
+      })
 
-    if (!postsRes.ok) return
-    const postsData = await postsRes.json()
+      if (!postsRes.ok) {
+        const err = await parseAdminApiError(postsRes)
+        setSavePlanError(err)
+        await fetch(`/api/admin/flows/${flowData.id}`, { method: 'DELETE' })
+        return
+      }
+      const postsData = await postsRes.json()
 
-    setFlow({
-      ...flowData,
-      flow_posts: postsData,
-    })
-    setPhase('generate')
+      setFlow({
+        ...flowData,
+        flow_posts: postsData,
+      })
+      setPhase('generate')
+    } finally {
+      setSavePlanBusy(false)
+    }
   }
 
   // ─── Generate Phase Handlers ─────────────────────────────────────────────
@@ -334,30 +485,34 @@ function StudioContent() {
     setGeneratingPostId(post.id)
 
     try {
-      const endpoint = post.generation_mode === 'video'
-        ? '/api/admin/generate/video'
-        : post.generation_mode === 'edit'
-          ? '/api/admin/generate/edit'
-          : '/api/admin/generate/image'
+      const primaryRef = resolvePrimaryReferenceUrl(flow, post)
+      const endRef = post.generation_mode === 'video' ? resolveEndFrameUrl(flow, post) : undefined
 
+      let endpoint: string
       const payload: Record<string, unknown> = {
         prompt: post.prompt,
         flow_post_id: post.id,
         fal_model: post.fal_model ?? defaultFalModelForMode(post.generation_mode),
       }
 
-      if (post.generation_mode !== 'video') {
+      if (post.generation_mode === 'generate') {
+        if (primaryRef) {
+          endpoint = '/api/admin/generate/edit'
+          payload.image_url = primaryRef
+          payload.image_size = post.target_size
+        } else {
+          endpoint = '/api/admin/generate/image'
+          payload.image_size = post.target_size
+        }
+      } else if (post.generation_mode === 'edit') {
+        endpoint = '/api/admin/generate/edit'
         payload.image_size = post.target_size
+        if (primaryRef) payload.image_url = primaryRef
       } else {
+        endpoint = '/api/admin/generate/video'
         payload.target_size = post.target_size
-      }
-
-      if ((post.generation_mode === 'edit' || post.generation_mode === 'video') && post.reference_media?.url) {
-        payload.image_url = post.reference_media.url
-      }
-
-      if (post.generation_mode === 'video' && post.end_reference_media?.url) {
-        payload.end_image_url = post.end_reference_media.url
+        if (primaryRef) payload.image_url = primaryRef
+        if (endRef) payload.end_image_url = endRef
       }
 
       await fetch(endpoint, {
@@ -380,8 +535,13 @@ function StudioContent() {
       .filter((p) => p.status === 'pending' || p.status === 'rejected')
       .sort((a, b) => a.sort_order - b.sort_order)
 
-    for (const post of pending) {
-      await generatePost(post)
+    const staggerMs = Number(process.env.NEXT_PUBLIC_STUDIO_GENERATE_STAGGER_MS) || 0
+
+    for (let i = 0; i < pending.length; i++) {
+      await generatePost(pending[i])
+      if (staggerMs > 0 && i < pending.length - 1) {
+        await new Promise((r) => setTimeout(r, staggerMs))
+      }
     }
   }
 
@@ -509,6 +669,11 @@ function StudioContent() {
           planLoading={planLoading}
           onGenerate={generatePlan}
           onAdvance={savePlanAndAdvance}
+          savePlanError={savePlanError}
+          savePlanBusy={savePlanBusy}
+          planDrinkSlug={planDrinkSlug}
+          setPlanDrinkSlug={setPlanDrinkSlug}
+          onLoadDrinkHeroChainExample={loadDrinkHeroChainExample}
           libraryMedia={libraryMedia}
           selectedRefs={selectedRefs}
           setSelectedRefs={setSelectedRefs}
@@ -555,7 +720,13 @@ function PlanPhase({
   aiModel, setAiModel,
   plannedPosts, setPlannedPosts,
   planLoading,
-  onGenerate, onAdvance,
+  onGenerate,
+  onAdvance,
+  savePlanError,
+  savePlanBusy,
+  planDrinkSlug,
+  setPlanDrinkSlug,
+  onLoadDrinkHeroChainExample,
   libraryMedia, selectedRefs, setSelectedRefs,
   showMediaPicker, setShowMediaPicker,
 }: {
@@ -570,10 +741,15 @@ function PlanPhase({
   aiModel: string
   setAiModel: (v: string) => void
   plannedPosts: PlannedPost[]
-  setPlannedPosts: (v: PlannedPost[]) => void
+  setPlannedPosts: Dispatch<SetStateAction<PlannedPost[]>>
   planLoading: boolean
   onGenerate: () => void
   onAdvance: () => void
+  savePlanError: string | null
+  savePlanBusy: boolean
+  planDrinkSlug: string
+  setPlanDrinkSlug: (slug: string) => void
+  onLoadDrinkHeroChainExample: () => void
   libraryMedia: MediaItem[]
   selectedRefs: string[]
   setSelectedRefs: (v: string[]) => void
@@ -602,9 +778,51 @@ function PlanPhase({
     setPlannedPosts(updated)
   }
 
+  function addPlannedLine() {
+    setPlannedPosts((prev) => [
+      ...prev,
+      {
+        sort_order: prev.length,
+        concept: 'New line item',
+        prompt: '',
+        generation_mode: 'generate',
+        target_size: 'square_1_1',
+        caption_suggestion: '',
+        hashtag_suggestions: [],
+        fal_model: null,
+        reference_external_url: null,
+        reference_media_id: null,
+        reference_source_sort_order: null,
+        end_frame_source_sort_order: null,
+        end_reference_media_id: null,
+      },
+    ])
+  }
+
   function removePlannedPost(index: number) {
-    const updated = plannedPosts.filter((_, i) => i !== index)
-    setPlannedPosts(updated.map((p, i) => ({ ...p, sort_order: i })))
+    const removedSort = plannedPosts[index].sort_order
+    setPlannedPosts(
+      plannedPosts
+        .filter((_, i) => i !== index)
+        .map((p, i) => {
+          let rs = p.reference_source_sort_order ?? null
+          let es = p.end_frame_source_sort_order ?? null
+          if (rs != null) {
+            if (rs === removedSort) rs = null
+            else if (rs > removedSort) rs -= 1
+          }
+          if (es != null) {
+            if (es === removedSort) es = null
+            else if (es > removedSort) es -= 1
+          }
+          return {
+            ...p,
+            sort_order: i,
+            reference_source_sort_order: rs,
+            end_frame_source_sort_order: es,
+          }
+        })
+    )
   }
 
   return (
@@ -794,24 +1012,87 @@ function PlanPhase({
         </button>
       </div>
 
-      {/* Planned Posts */}
-      {plannedPosts.length > 0 && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-base font-semibold text-white">{plannedPosts.length} Posts Planned</h3>
-            <button
-              onClick={onAdvance}
-              className="bg-white text-black font-semibold rounded-full px-5 py-2 text-sm flex items-center gap-2 hover:bg-[#9B30FF] hover:text-white transition-all duration-300"
-            >
-              Save & Generate
-              <ChevronRight className="w-4 h-4" />
-            </button>
+      {/* Planned line items */}
+      <div className="space-y-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="text-base font-semibold text-white">
+                {plannedPosts.length === 0 ? 'Plan line items' : `${plannedPosts.length} line items`}
+              </h3>
+              <p className="text-[11px] text-[#666] mt-1 max-w-xl leading-relaxed">
+                Each drink in Untamed has <span className="text-[#A0A0A0]">canImage</span> and{' '}
+                <span className="text-[#A0A0A0]">animalImage</span> in code. Load the hero chain to wire line 1 to the public can URL and line 2&apos;s prompt to that drink&apos;s spirit animal. You can still mix library picks and prior-line outputs on any row.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-col gap-1 w-full sm:w-auto sm:min-w-[200px]">
+                <label className="text-[10px] text-[#666]">Drink</label>
+                <select
+                  value={planDrinkSlug}
+                  onChange={(e) => setPlanDrinkSlug(e.target.value)}
+                  className="bg-[#0A0A0A] border border-[#2A2A2A] rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-[#9B30FF]"
+                >
+                  {drinks.map((d) => (
+                    <option key={d.slug} value={d.slug}>
+                      {d.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <button
+                type="button"
+                onClick={onLoadDrinkHeroChainExample}
+                className="rounded-full border border-[#9B30FF]/40 bg-[#9B30FF]/10 px-4 py-2 text-xs font-medium text-[#BF5FFF] hover:bg-[#9B30FF]/20 transition-colors self-end sm:self-auto"
+              >
+                Load drink hero chain
+              </button>
+              <button
+                type="button"
+                onClick={addPlannedLine}
+                className="rounded-full border border-[#2A2A2A] px-4 py-2 text-xs font-medium text-[#A0A0A0] hover:border-[#9B30FF] hover:text-[#9B30FF] transition-colors"
+              >
+                Add line item
+              </button>
+              <button
+                type="button"
+                onClick={onAdvance}
+                disabled={plannedPosts.length === 0 || savePlanBusy}
+                className="bg-white text-black font-semibold rounded-full px-5 py-2 text-sm flex items-center gap-2 hover:bg-[#9B30FF] hover:text-white transition-all duration-300 disabled:opacity-40"
+              >
+                {savePlanBusy ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Saving…
+                  </>
+                ) : (
+                  <>
+                    Save & Generate
+                    <ChevronRight className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+            </div>
           </div>
 
+          {savePlanError && (
+            <div
+              role="alert"
+              className="flex gap-3 rounded-2xl border border-[#FF0040]/35 bg-[#FF0040]/10 px-4 py-3 text-sm text-[#FFB3C0]"
+            >
+              <AlertCircle className="w-5 h-5 shrink-0 text-[#FF0040] mt-0.5" />
+              <p className="leading-relaxed">{savePlanError}</p>
+            </div>
+          )}
+
           <div className="space-y-3">
-            {plannedPosts.map((post, index) => (
+            {plannedPosts.length === 0 ? (
+              <p className="text-sm text-[#666] text-center py-10 px-4 border border-dashed border-[#2A2A2A] rounded-2xl">
+                No lines yet. Use &quot;Add line item&quot; to build your sequence, or run &quot;Generate plan&quot; from your concept.
+              </p>
+            ) : (
+              plannedPosts.map((post, index) => (
               <div
-                key={index}
+                key={`plan-line-${index}-${post.sort_order}`}
                 className="bg-[#141414] border border-[#2A2A2A] rounded-2xl p-5 hover:border-[#444] transition-all group"
               >
                 <div className="flex items-start gap-4">
@@ -823,7 +1104,13 @@ function PlanPhase({
                   </div>
 
                   <div className="flex-1 min-w-0 space-y-3">
-                    <p className="text-sm text-white font-medium">{post.concept}</p>
+                    <input
+                      type="text"
+                      value={post.concept}
+                      onChange={(e) => updatePlannedPost(index, { concept: e.target.value })}
+                      className="w-full bg-[#0A0A0A] border border-[#2A2A2A] rounded-lg px-3 py-2 text-sm text-white font-medium focus:outline-none focus:border-[#9B30FF]"
+                      placeholder="Line title / concept"
+                    />
 
                     <textarea
                       value={post.prompt}
@@ -847,6 +1134,9 @@ function PlanPhase({
                                 updatePlannedPost(index, {
                                   generation_mode: next,
                                   fal_model: defaultFalModelForMode(next),
+                                  ...(next !== 'video'
+                                    ? { end_frame_source_sort_order: null, end_reference_media_id: null }
+                                    : {}),
                                 })
                               }}
                               className={cn(
@@ -876,7 +1166,15 @@ function PlanPhase({
 
                       <select
                         value={post.fal_model ?? defaultFalModelForMode(post.generation_mode)}
-                        onChange={(e) => updatePlannedPost(index, { fal_model: e.target.value })}
+                        onChange={(e) => {
+                          const next = e.target.value
+                          updatePlannedPost(index, {
+                            fal_model: next,
+                            ...(!videoModelRequiresFirstAndLastFrame(next)
+                              ? { end_frame_source_sort_order: null, end_reference_media_id: null }
+                              : {}),
+                          })
+                        }}
                         title="fal.ai model"
                         className="max-w-[200px] bg-[#0A0A0A] border border-[#2A2A2A] rounded-lg px-2 py-1 text-[10px] text-[#A0A0A0] focus:outline-none focus:border-[#9B30FF]"
                       >
@@ -891,6 +1189,98 @@ function PlanPhase({
                         </span>
                       )}
                     </div>
+
+                    <div className="rounded-lg border border-[#2A2A2A] bg-[#0A0A0A]/50 p-3 space-y-3">
+                      <p className="text-[10px] font-medium text-[#888] uppercase tracking-wide">Inputs for this line</p>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[10px] text-[#666]">Library image (e.g. product, can)</label>
+                          <select
+                            value={post.reference_media_id ?? ''}
+                            onChange={(e) =>
+                              updatePlannedPost(index, {
+                                reference_media_id: e.target.value || null,
+                              })
+                            }
+                            className="bg-[#0A0A0A] border border-[#2A2A2A] rounded-lg px-2 py-1.5 text-[10px] text-[#A0A0A0] focus:outline-none focus:border-[#9B30FF]"
+                          >
+                            <option value="">None</option>
+                            {libraryMedia
+                              .filter((m) => m.file_type === 'image')
+                              .slice(0, 80)
+                              .map((m) => (
+                                <option key={m.id} value={m.id}>
+                                  {truncateLabel(m.filename, 48)}
+                                </option>
+                              ))}
+                          </select>
+                        </div>
+                        <div className="flex flex-col gap-1 sm:col-span-2">
+                          <label className="text-[10px] text-[#666]">
+                            Public image URL (skips library; Fal must reach this host)
+                          </label>
+                          <input
+                            type="url"
+                            value={post.reference_external_url ?? ''}
+                            onChange={(e) =>
+                              updatePlannedPost(index, {
+                                reference_external_url: e.target.value.trim() || null,
+                              })
+                            }
+                            placeholder="https://yoursite.com/images/can-....png"
+                            className="w-full bg-[#0A0A0A] border border-[#2A2A2A] rounded-lg px-2 py-1.5 text-[10px] text-[#A0A0A0] placeholder-[#555] focus:outline-none focus:border-[#9B30FF]"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[10px] text-[#666]">Use prior line output as main image</label>
+                          <select
+                            value={post.reference_source_sort_order ?? ''}
+                            onChange={(e) => {
+                              const v = e.target.value
+                              updatePlannedPost(index, {
+                                reference_source_sort_order: v === '' ? null : Number(v),
+                              })
+                            }}
+                            className="bg-[#0A0A0A] border border-[#2A2A2A] rounded-lg px-2 py-1.5 text-[10px] text-[#A0A0A0] focus:outline-none focus:border-[#9B30FF]"
+                          >
+                            <option value="">None</option>
+                            {plannedPosts.slice(0, index).map((prior, i) => (
+                              <option key={i} value={i}>
+                                Line {i + 1}: {truncateLabel(prior.concept, 34)}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                      {post.generation_mode === 'video' &&
+                        videoModelRequiresFirstAndLastFrame(
+                          post.fal_model ?? defaultFalModelForMode('video')
+                        ) && (
+                          <div className="flex flex-col gap-1">
+                            <label className="text-[10px] text-[#666]">Prior line for end frame (spirit animal hero)</label>
+                            <select
+                              value={post.end_frame_source_sort_order ?? ''}
+                              onChange={(e) => {
+                                const v = e.target.value
+                                updatePlannedPost(index, {
+                                  end_frame_source_sort_order: v === '' ? null : Number(v),
+                                })
+                              }}
+                              className="max-w-md bg-[#0A0A0A] border border-[#2A2A2A] rounded-lg px-2 py-1.5 text-[10px] text-[#A0A0A0] focus:outline-none focus:border-[#9B30FF]"
+                            >
+                              <option value="">None</option>
+                              {plannedPosts.slice(0, index).map((prior, i) => (
+                                <option key={`end-${i}`} value={i}>
+                                  Line {i + 1}: {truncateLabel(prior.concept, 34)}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+                      <p className="text-[10px] text-[#555] leading-relaxed">
+                        Generate + library image uses image-to-image. If you pick a prior line, that line must finish first (use Execute All in order).
+                      </p>
+                    </div>
                   </div>
 
                   <button
@@ -901,10 +1291,10 @@ function PlanPhase({
                   </button>
                 </div>
               </div>
-            ))}
+            ))
+            )}
           </div>
         </div>
-      )}
     </div>
   )
 }
@@ -1027,7 +1417,12 @@ function GeneratePhase({
                             onUpdatePost(post.id, {
                               generation_mode: next,
                               fal_model: defaultFalModelForMode(next),
-                              ...(next !== 'video' ? { end_reference_media_id: null } : {}),
+                              ...(next !== 'video'
+                                ? {
+                                    end_reference_media_id: null,
+                                    end_frame_source_sort_order: null,
+                                  }
+                                : {}),
                             })
                           }}
                           disabled={isCurrentlyGenerating}
@@ -1062,7 +1457,10 @@ function GeneratePhase({
                         onUpdatePost(post.id, {
                           fal_model: next,
                           ...(!videoModelRequiresFirstAndLastFrame(next)
-                            ? { end_reference_media_id: null }
+                            ? {
+                                end_reference_media_id: null,
+                                end_frame_source_sort_order: null,
+                              }
                             : {}),
                         })
                       }}
@@ -1075,6 +1473,62 @@ function GeneratePhase({
                       ))}
                     </select>
                   </div>
+                  {(post.generation_mode === 'edit' || post.generation_mode === 'generate') && (
+                    <div className="space-y-2 rounded-lg border border-[#2A2A2A] bg-[#0A0A0A]/50 p-3">
+                      <p className="text-[10px] font-medium text-[#A0A0A0]">Still image inputs</p>
+                      {post.reference_source_sort_order != null && (
+                        <p className="text-[10px] text-[#9B30FF]/90">
+                          Plan chain: using finished output from post {post.reference_source_sort_order + 1} when ready (overrides library pick below).
+                        </p>
+                      )}
+                      {post.reference_external_url?.trim() && (
+                        <p className="text-[10px] text-[#888] break-all">
+                          Public can/asset URL: {truncateLabel(post.reference_external_url.trim(), 72)}
+                        </p>
+                      )}
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] text-[#888]">Base image from prior post</label>
+                        <select
+                          value={post.reference_source_sort_order ?? ''}
+                          onChange={(e) => {
+                            const v = e.target.value
+                            onUpdatePost(post.id, {
+                              reference_source_sort_order: v === '' ? null : Number(v),
+                            })
+                          }}
+                          disabled={isCurrentlyGenerating}
+                          className="w-full max-w-md bg-[#0A0A0A] border border-[#2A2A2A] rounded-lg px-2 py-1.5 text-[10px] text-[#A0A0A0] focus:outline-none focus:border-[#9B30FF]"
+                        >
+                          <option value="">None</option>
+                          {flow.flow_posts
+                            .filter((p) => p.sort_order < post.sort_order)
+                            .map((prior) => (
+                              <option key={prior.sort_order} value={prior.sort_order}>
+                                Post {prior.sort_order + 1}: {truncateLabel(prior.concept, 32)}
+                              </option>
+                            ))}
+                        </select>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] text-[#888]">Library or finished queue image</label>
+                        <select
+                          value={post.reference_media_id ?? ''}
+                          onChange={(e) =>
+                            onUpdatePost(post.id, { reference_media_id: e.target.value || null })
+                          }
+                          disabled={isCurrentlyGenerating}
+                          className="w-full max-w-md bg-[#0A0A0A] border border-[#2A2A2A] rounded-lg px-2 py-1.5 text-[10px] text-[#A0A0A0] focus:outline-none focus:border-[#9B30FF]"
+                        >
+                          <option value="">None</option>
+                          {buildVideoFrameMediaOptions(flow, post, libraryMedia).map((o) => (
+                            <option key={`img-${o.id}`} value={o.id}>
+                              {o.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  )}
                   {post.generation_mode === 'video' && videoModelIsTextToVideoOnly(videoModelId) && (
                     <p className="text-[10px] text-[#666]">
                       Text-to-video: no frame images required. Aspect ratio follows the size preset above.
@@ -1088,8 +1542,66 @@ function GeneratePhase({
                       <p className="text-[10px] text-[#666] leading-relaxed">
                         Use images from earlier posts in this flow (after they finish generating) or from your library. Required fields depend on the video model.
                       </p>
+                      {(post.reference_source_sort_order != null || post.end_frame_source_sort_order != null) && (
+                        <p className="text-[10px] text-[#9B30FF]/90 leading-relaxed">
+                          Plan chain: prior-line output takes priority over the start/end picks below when that output is ready.
+                        </p>
+                      )}
+                      {post.reference_external_url?.trim() && (
+                        <p className="text-[10px] text-[#888] break-all">
+                          Public start URL (if no prior-line start): {truncateLabel(post.reference_external_url.trim(), 64)}
+                        </p>
+                      )}
                       <div className="flex flex-col gap-1">
-                        <label className="text-[10px] text-[#888]">Start frame</label>
+                        <label className="text-[10px] text-[#888]">Start frame from prior post (by plan order)</label>
+                        <select
+                          value={post.reference_source_sort_order ?? ''}
+                          onChange={(e) => {
+                            const v = e.target.value
+                            onUpdatePost(post.id, {
+                              reference_source_sort_order: v === '' ? null : Number(v),
+                            })
+                          }}
+                          disabled={isCurrentlyGenerating}
+                          className="w-full max-w-md bg-[#0A0A0A] border border-[#2A2A2A] rounded-lg px-2 py-1.5 text-[10px] text-[#A0A0A0] focus:outline-none focus:border-[#9B30FF]"
+                        >
+                          <option value="">None</option>
+                          {flow.flow_posts
+                            .filter((p) => p.sort_order < post.sort_order)
+                            .map((prior) => (
+                              <option key={prior.sort_order} value={prior.sort_order}>
+                                Post {prior.sort_order + 1}: {truncateLabel(prior.concept, 32)}
+                              </option>
+                            ))}
+                        </select>
+                      </div>
+                      {videoModelRequiresFirstAndLastFrame(videoModelId) && (
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[10px] text-[#888]">End frame from prior post</label>
+                          <select
+                            value={post.end_frame_source_sort_order ?? ''}
+                            onChange={(e) => {
+                              const v = e.target.value
+                              onUpdatePost(post.id, {
+                                end_frame_source_sort_order: v === '' ? null : Number(v),
+                              })
+                            }}
+                            disabled={isCurrentlyGenerating}
+                            className="w-full max-w-md bg-[#0A0A0A] border border-[#2A2A2A] rounded-lg px-2 py-1.5 text-[10px] text-[#A0A0A0] focus:outline-none focus:border-[#9B30FF]"
+                          >
+                            <option value="">None</option>
+                            {flow.flow_posts
+                              .filter((p) => p.sort_order < post.sort_order)
+                              .map((prior) => (
+                                <option key={`ev-${prior.sort_order}`} value={prior.sort_order}>
+                                  Post {prior.sort_order + 1}: {truncateLabel(prior.concept, 32)}
+                                </option>
+                              ))}
+                          </select>
+                        </div>
+                      )}
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] text-[#888]">Start frame (library or finished queue)</label>
                         <select
                           value={post.reference_media_id ?? ''}
                           onChange={(e) =>

@@ -132,3 +132,12 @@ export const drinks: Drink[] = [
 export function getDrinkBySlug(slug: string): Drink | undefined {
   return drinks.find((d) => d.slug === slug)
 }
+
+/** Build an absolute URL for site assets (can / animal images). Fal and other APIs need a public URL. */
+export function drinkAssetAbsoluteUrl(siteBase: string, assetPath: string): string {
+  const trimmed = assetPath.trim()
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed
+  const path = trimmed.startsWith('/') ? trimmed : `/${trimmed}`
+  const base = siteBase.replace(/\/$/, '')
+  return `${base}${path}`
+}

@@ -1,7 +1,11 @@
 import { fal, saveGeneratedMedia } from '@/lib/fal'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { BRAND_KIT } from '@/lib/brand-kit'
-import { resolveFalImageModel } from '@/lib/fal-generate-models'
+import {
+  isNanoBanana2ImageModel,
+  resolveFalImageModel,
+  targetSizeToNanoAspectRatio,
+} from '@/lib/fal-generate-models'
 import { NextRequest, NextResponse } from 'next/server'
 
 const BRAND_STYLE_SUFFIX = `Style: ${BRAND_KIT.aesthetic.photography}. Color palette: ${BRAND_KIT.aesthetic.palette}. ${BRAND_KIT.aesthetic.mood}.`
@@ -38,14 +42,26 @@ export async function POST(request: NextRequest) {
 
     const brandedPrompt = `${prompt} ${BRAND_STYLE_SUFFIX}`
 
-    const result = await fal.subscribe(modelId, {
-      input: {
-        prompt: brandedPrompt,
-        image_size: falSize,
-        num_images: 1,
-      },
-      logs: false,
-    })
+    const result = isNanoBanana2ImageModel(modelId)
+      ? await fal.subscribe(modelId, {
+          input: {
+            prompt: brandedPrompt,
+            num_images: 1,
+            aspect_ratio: targetSizeToNanoAspectRatio(image_size),
+            output_format: 'png',
+            safety_tolerance: '4',
+            resolution: '0.5K',
+          },
+          logs: false,
+        })
+      : await fal.subscribe(modelId, {
+          input: {
+            prompt: brandedPrompt,
+            image_size: falSize,
+            num_images: 1,
+          },
+          logs: false,
+        })
 
     const images = (result.data as { images?: { url: string }[] }).images
     if (!images?.length) {
