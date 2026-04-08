@@ -356,8 +356,8 @@ export default function AdminFlowDetailPage() {
               </div>
             )}
             <p className="text-[11px] text-[#666] max-w-2xl">
-              The queue skips segments that are already complete. Independent lines run in parallel (up to 8 at a time);
-              lines that need a prior segment&apos;s S3 image wait for that segment to finish, then run in the next wave.
+              Segments always run in order (by line number): each job finishes (Fal + S3) before the next starts, so chained
+              references always see the previous output.
             </p>
             {queueLog && (
               <p className="text-xs text-[#A0A0A0] bg-[#141414] border border-[#2A2A2A] rounded-xl px-3 py-2">

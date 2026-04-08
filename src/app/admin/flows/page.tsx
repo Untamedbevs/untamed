@@ -207,7 +207,7 @@ export default function AdminFlowsPage() {
             Run queue on selected
           </button>
           <span className="text-[11px] text-[#666] max-w-xs">
-            Each request runs up to 40 segment jobs with parallel waves where dependencies allow. Flows run one after another.
+            Segments run one after another inside each flow. Selected flows run one after another.
           </span>
           <button
             type="button"

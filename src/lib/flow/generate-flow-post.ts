@@ -109,7 +109,7 @@ export function segmentDependenciesReady(post: FlowPostJoined, all: FlowPostJoin
   return false
 }
 
-/** All pending/rejected segments whose dependencies are satisfied (can run in parallel). */
+/** All pending/rejected segments whose dependencies are satisfied (sorted). Queue uses only the first for strict order. */
 export function pickAllRunnablePosts(all: FlowPostJoined[]): FlowPostJoined[] {
   const sorted = sortFlowPosts(all)
   return sorted.filter(

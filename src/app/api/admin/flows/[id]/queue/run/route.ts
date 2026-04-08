@@ -4,7 +4,7 @@ import {
   flowGenerationComplete,
   generateFlowPostJoined,
   loadFlowPostsJoined,
-  pickAllRunnablePosts,
+  pickNextRunnablePost,
 } from '@/lib/flow/generate-flow-post'
 import { NextRequest, NextResponse } from 'next/server'
 
@@ -14,19 +14,15 @@ type StepResult =
   | { kind: 'idle'; message: string }
 
 const DEFAULT_MAX_STEPS = 40
-const DEFAULT_MAX_CONCURRENT = 8
 const ABS_MAX_STEPS = 80
-const ABS_MAX_CONCURRENT = 24
 
 /**
- * Runs segments in dependency-aware parallel waves:
- * - Skips segments that are already complete/approved (not pending/rejected).
- * - Any segment whose deps are ready runs together in one wave (up to maxConcurrent).
- * - Chained lines (prior output required) wait until that output exists with an image URL, then run in a later wave.
+ * Runs segments strictly in sort_order, one at a time.
+ * Each segment starts only after the previous runnable one has finished (Fal + S3 + DB),
+ * so chained references always see the prior segment's output.
  *
- * Body: { maxSteps?: number, maxConcurrent?: number }
- * - maxSteps: max segment completions this request (default 40, max 80)
- * - maxConcurrent: max parallel Fal jobs per wave (default 8, max 24)
+ * Body: { maxSteps?: number } — max segment jobs this request (default 40, max 80).
+ * Ignores legacy maxConcurrent if sent.
  */
 export async function POST(
   request: NextRequest,
@@ -45,7 +41,7 @@ export async function POST(
     return NextResponse.json({ error: 'Flow not found' }, { status: 404 })
   }
 
-  let body: { maxSteps?: number; maxConcurrent?: number } = {}
+  let body: { maxSteps?: number } = {}
   try {
     body = await request.json()
   } catch {
@@ -56,20 +52,13 @@ export async function POST(
     Math.max(Number(body.maxSteps) || DEFAULT_MAX_STEPS, 1),
     ABS_MAX_STEPS
   )
-  const maxConcurrent = Math.min(
-    Math.max(Number(body.maxConcurrent) || DEFAULT_MAX_CONCURRENT, 1),
-    ABS_MAX_CONCURRENT
-  )
 
   await supabase.from('flows').update({ status: 'generating' }).eq('id', flowId)
 
   const steps: StepResult[] = []
   let completedThisRequest = 0
-  let waveIndex = 0
-  const maxWaves = 60
 
-  while (completedThisRequest < maxSteps && waveIndex < maxWaves) {
-    waveIndex += 1
+  for (let i = 0; i < maxSteps; i++) {
     const posts = await loadFlowPostsJoined(supabase, flowId)
 
     if (flowGenerationComplete(posts)) {
@@ -78,8 +67,8 @@ export async function POST(
       break
     }
 
-    const runnable = pickAllRunnablePosts(posts)
-    if (runnable.length === 0) {
+    const next = pickNextRunnablePost(posts)
+    if (!next) {
       const pendingLeft = countPendingOrRejected(posts)
       steps.push({
         kind: 'blocked',
@@ -92,52 +81,25 @@ export async function POST(
       break
     }
 
-    const remainingBudget = maxSteps - completedThisRequest
-    const batchSize = Math.min(runnable.length, maxConcurrent, remainingBudget)
-    const batch = runnable.slice(0, batchSize)
+    const result = await generateFlowPostJoined(supabase, next, posts)
+    completedThisRequest += 1
 
-    const settled = await Promise.allSettled(
-      batch.map((p) => generateFlowPostJoined(supabase, p, posts))
-    )
-
-    let waveError = false
-    for (let idx = 0; idx < batch.length; idx++) {
-      const p = batch[idx]
-      const s = settled[idx]
-      if (s.status === 'fulfilled') {
-        const r = s.value
-        if (r.ok) {
-          steps.push({
-            kind: 'ran',
-            postId: p.id,
-            sortOrder: p.sort_order,
-            mediaUrl: r.media.url,
-          })
-        } else {
-          steps.push({
-            kind: 'ran',
-            postId: p.id,
-            sortOrder: p.sort_order,
-            error: r.error,
-          })
-          waveError = true
-        }
-      } else {
-        const msg = s.reason instanceof Error ? s.reason.message : 'Unknown error'
-        steps.push({
-          kind: 'ran',
-          postId: p.id,
-          sortOrder: p.sort_order,
-          error: msg,
-        })
-        waveError = true
-      }
-      completedThisRequest += 1
-    }
-
-    if (waveError) {
+    if (!result.ok) {
+      steps.push({
+        kind: 'ran',
+        postId: next.id,
+        sortOrder: next.sort_order,
+        error: result.error,
+      })
       break
     }
+
+    steps.push({
+      kind: 'ran',
+      postId: next.id,
+      sortOrder: next.sort_order,
+      mediaUrl: result.media.url,
+    })
   }
 
   const finalPosts = await loadFlowPostsJoined(supabase, flowId)
@@ -150,7 +112,7 @@ export async function POST(
   } else if (
     pendingLeft === 0 &&
     generatingLeft === 0 &&
-    pickAllRunnablePosts(finalPosts).length === 0
+    !pickNextRunnablePost(finalPosts)
   ) {
     await supabase.from('flows').update({ status: 'reviewing' }).eq('id', flowId)
   }
@@ -162,8 +124,6 @@ export async function POST(
     pendingLeft,
     generatingLeft,
     completedThisRequest,
-    wavesRun: waveIndex,
-    maxConcurrent,
     maxSteps,
   })
 }
