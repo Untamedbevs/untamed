@@ -12,6 +12,25 @@ interface FlowListItem {
   flow_posts?: { id: string; status: string }[]
 }
 
+function computeFlowProgress(posts?: { id: string; status: string }[]): {
+  label: string
+  color: string
+} {
+  if (!posts || posts.length === 0) return { label: 'empty', color: 'text-[#555]' }
+  const total = posts.length
+  const complete = posts.filter((p) => p.status === 'complete' || p.status === 'approved').length
+  const generating = posts.filter((p) => p.status === 'generating').length
+  const failed = posts.filter((p) => p.status === 'rejected').length
+  const pending = posts.filter((p) => p.status === 'pending').length
+
+  if (complete === total) return { label: 'complete', color: 'text-[#4A7C0F]' }
+  if (generating > 0) return { label: `generating (${complete}/${total})`, color: 'text-[#E87511]' }
+  if (failed > 0) return { label: `${failed} failed (${complete}/${total} done)`, color: 'text-[#FF0040]' }
+  if (pending > 0 && complete > 0) return { label: `${complete}/${total} done`, color: 'text-[#00BFFF]' }
+  if (pending === total) return { label: 'pending', color: 'text-[#888]' }
+  return { label: `${complete}/${total}`, color: 'text-[#A0A0A0]' }
+}
+
 function shortId(id: string) {
   return `${id.slice(0, 8)}…${id.slice(-4)}`
 }
@@ -358,6 +377,7 @@ export default function AdminFlowsPage() {
               {flows.map((f) => {
                 const n = f.flow_posts?.length ?? 0
                 const isSel = selected.has(f.id)
+                const progress = computeFlowProgress(f.flow_posts)
                 return (
                   <tr key={f.id} className="border-t border-[#2A2A2A] hover:bg-[#141414]/80">
                     <td className="px-3 py-3">
@@ -374,7 +394,7 @@ export default function AdminFlowsPage() {
                         {f.title}
                       </Link>
                     </td>
-                    <td className="px-4 py-3 text-[#A0A0A0] capitalize">{f.status}</td>
+                    <td className={`px-4 py-3 capitalize ${progress.color}`}>{progress.label}</td>
                     <td className="px-4 py-3 text-[#A0A0A0]">{n}</td>
                     <td className="px-4 py-3 text-[#666]">
                       {f.created_at ? new Date(f.created_at).toLocaleString() : '—'}

@@ -2,8 +2,8 @@
  * Allowed fal.ai endpoints for studio generation. IDs are validated server-side.
  */
 
-export const FAL_DEFAULT_IMAGE_MODEL = 'fal-ai/flux/dev'
-export const FAL_DEFAULT_EDIT_MODEL = 'fal-ai/flux/dev/image-to-image'
+export const FAL_DEFAULT_IMAGE_MODEL = 'fal-ai/nano-banana-2'
+export const FAL_DEFAULT_EDIT_MODEL = 'fal-ai/nano-banana-pro/edit'
 export const FAL_DEFAULT_VIDEO_MODEL = 'fal-ai/kling-video/v2/master/image-to-video'
 
 export const NANO_BANANA_2_MODEL_ID = 'fal-ai/nano-banana-2' as const
@@ -33,15 +33,17 @@ export function isNanoBananaEditModel(modelId: string): boolean {
 }
 
 export const FAL_IMAGE_MODELS = [
-  { id: 'fal-ai/flux/dev', label: 'Flux Dev' },
-  { id: 'fal-ai/flux/schnell', label: 'Flux Schnell' },
-  { id: 'fal-ai/flux-pro/v1.1', label: 'Flux Pro 1.1' },
+  { id: 'fal-ai/flux-2-pro', label: 'Flux 2 Pro' },
+  { id: 'fal-ai/flux-2', label: 'Flux 2 Dev' },
+  { id: 'fal-ai/flux/dev', label: 'Flux 1 Dev (legacy)' },
+  { id: 'fal-ai/flux-pro/v1.1', label: 'Flux Pro 1.1 (legacy)' },
   { id: NANO_BANANA_2_MODEL_ID, label: 'Nano Banana 2 (fast / cheap test)' },
 ] as const
 
 export const FAL_EDIT_MODELS = [
-  { id: 'fal-ai/flux/dev/image-to-image', label: 'Flux Dev (image to image)' },
-  { id: 'fal-ai/flux-pro/v1.1/redux', label: 'Flux Pro 1.1 Redux' },
+  { id: 'fal-ai/flux-2-pro/edit', label: 'Flux 2 Pro Edit' },
+  { id: 'fal-ai/flux/dev/image-to-image', label: 'Flux 1 Dev (image to image, legacy)' },
+  { id: 'fal-ai/flux-pro/v1.1/redux', label: 'Flux Pro 1.1 Redux (legacy)' },
   { id: NANO_BANANA_EDIT_MODEL_ID, label: 'Nano Banana edit (cheap test)' },
   { id: NANO_BANANA_PRO_EDIT_MODEL_ID, label: 'Nano Banana Pro edit' },
 ] as const
@@ -129,4 +131,12 @@ export function defaultFalModelForMode(mode: 'generate' | 'edit' | 'video'): str
 
 export function isReduxEditModel(modelId: string): boolean {
   return modelId === 'fal-ai/flux-pro/v1.1/redux'
+}
+
+export function isFlux2Model(modelId: string): boolean {
+  return modelId.startsWith('fal-ai/flux-2')
+}
+
+export function isFlux2EditModel(modelId: string): boolean {
+  return modelId === 'fal-ai/flux-2-pro/edit'
 }

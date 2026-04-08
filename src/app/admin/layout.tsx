@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import {
+  CalendarClock,
   LayoutDashboard,
   Lightbulb,
   Image,
@@ -41,6 +42,7 @@ const ALL_NAV_ITEMS: NavItem[] = [
   { href: '/admin/media', label: 'Media', icon: Image },
   { href: '/admin/flows', label: 'Flows', icon: Layers },
   { href: '/admin/studio', label: 'Studio', icon: Wand2 },
+  { href: '/admin/schedule', label: 'Schedule', icon: CalendarClock },
   { href: '/admin/campaigns', label: 'Campaigns', icon: Megaphone },
   { href: '/admin/loyalty', label: 'Loyalty', icon: Trophy },
   {

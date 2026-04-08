@@ -1,4 +1,5 @@
 import { fal, saveGeneratedMedia } from '@/lib/fal'
+import { mirrorReferenceImageForFal } from '@/lib/fal-reference-mirror'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { assertVideoInputsValid, buildVideoFalInput } from '@/lib/flow/fal-video-input'
 import { resolveFalVideoModel } from '@/lib/fal-generate-models'
@@ -60,7 +61,10 @@ export async function POST(request: NextRequest) {
         .eq('id', flowPostId)
     }
 
-    const input = buildVideoFalInput(modelId, prompt, imageUrl, endImageUrl, targetSize)
+    const mirroredStart = imageUrl ? await mirrorReferenceImageForFal(imageUrl) : undefined
+    const mirroredEnd = endImageUrl ? await mirrorReferenceImageForFal(endImageUrl) : undefined
+
+    const input = buildVideoFalInput(modelId, prompt, mirroredStart, mirroredEnd, targetSize)
 
     const result = await fal.subscribe(modelId, {
       input,

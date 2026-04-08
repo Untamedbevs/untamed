@@ -1,3 +1,4 @@
+import { formatFalClientError } from '@/lib/fal-error'
 import { fal, saveGeneratedMedia } from '@/lib/fal'
 import { BRAND_KIT } from '@/lib/brand-kit'
 import {
@@ -14,7 +15,14 @@ import {
 } from '@/lib/fal-generate-models'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { assertVideoInputsValid, buildVideoFalInput } from '@/lib/flow/fal-video-input'
-import { resolveEndFrameUrl, resolvePrimaryReferenceUrl } from '@/lib/flow/resolve-references'
+import {
+  resolveEndFrameSource,
+  resolveEndFrameUrl,
+  resolvePrimaryReferenceSource,
+  resolvePrimaryReferenceUrl,
+} from '@/lib/flow/resolve-references'
+import { mirrorReferenceImageForFal } from '@/lib/fal-reference-mirror'
+import { patchFlowPostMediaRefs } from '@/lib/media-cdn-url'
 
 type AdminClient = ReturnType<typeof createAdminClient>
 
@@ -45,9 +53,15 @@ export type FlowPostJoined = {
   generated_media_id: string | null
   status: string
   fal_model: string | null
-  reference_media?: { id: string; url: string; file_type: string } | null
-  end_reference_media?: { id: string; url: string; file_type: string } | null
-  generated_media?: { id: string; url: string; file_type: string; mime_type?: string | null } | null
+  reference_media?: { id: string; url: string; file_type: string; s3_key?: string | null } | null
+  end_reference_media?: { id: string; url: string; file_type: string; s3_key?: string | null } | null
+  generated_media?: {
+    id: string
+    url: string
+    file_type: string
+    mime_type?: string | null
+    s3_key?: string | null
+  } | null
 }
 
 export type GenerateFlowPostOk = {
@@ -140,12 +154,21 @@ export async function generateFlowPostJoined(
   allPosts: FlowPostJoined[]
 ): Promise<GenerateFlowPostOk | GenerateFlowPostErr> {
   const ctx = { flow_posts: allPosts }
-  const primaryRef = resolvePrimaryReferenceUrl(ctx, post)
-  const endRef = post.generation_mode === 'video' ? resolveEndFrameUrl(ctx, post) : undefined
 
   await supabase.from('flow_posts').update({ status: 'generating' }).eq('id', post.id)
 
   try {
+    const primarySource = resolvePrimaryReferenceSource(ctx, post)
+    const endSource = post.generation_mode === 'video' ? resolveEndFrameSource(ctx, post) : undefined
+
+    const primaryRef = primarySource
+      ? await mirrorReferenceImageForFal(primarySource.url, { s3Key: primarySource.s3_key })
+      : undefined
+    const endRef =
+      endSource != null
+        ? await mirrorReferenceImageForFal(endSource.url, { s3Key: endSource.s3_key })
+        : undefined
+
     if (post.generation_mode === 'generate') {
       if (primaryRef) {
         return await runEditPipeline(supabase, post, primaryRef)
@@ -163,7 +186,7 @@ export async function generateFlowPostJoined(
     }
     throw new Error(`Unknown generation_mode: ${post.generation_mode}`)
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
+    const message = formatFalClientError(e)
     await supabase.from('flow_posts').update({ status: 'pending' }).eq('id', post.id)
     return { ok: false, error: message }
   }
@@ -327,14 +350,15 @@ export async function loadFlowPostsJoined(
     .select(
       `
       *,
-      reference_media:media!flow_posts_reference_media_id_fkey(id, filename, url, file_type),
-      end_reference_media:media!flow_posts_end_reference_media_id_fkey(id, filename, url, file_type),
-      generated_media:media!flow_posts_generated_media_id_fkey(id, filename, url, file_type, mime_type)
+      reference_media:media!flow_posts_reference_media_id_fkey(id, filename, url, file_type, s3_key, is_private),
+      end_reference_media:media!flow_posts_end_reference_media_id_fkey(id, filename, url, file_type, s3_key, is_private),
+      generated_media:media!flow_posts_generated_media_id_fkey(id, filename, url, file_type, mime_type, s3_key, is_private)
     `
     )
     .eq('flow_id', flowId)
     .order('sort_order', { ascending: true })
 
   if (error) throw new Error(error.message)
-  return (data ?? []) as FlowPostJoined[]
+  const rows = (data ?? []) as FlowPostJoined[]
+  return rows.map((p) => patchFlowPostMediaRefs(p as Record<string, unknown>) as FlowPostJoined)
 }

@@ -5,16 +5,22 @@ import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import {
   ArrowLeft,
+  Calendar,
   Check,
   Copy,
   Layers,
   Loader2,
+  Pencil,
   Play,
   RefreshCw,
-  Link2,
+  RotateCcw,
+  ThumbsDown,
+  ThumbsUp,
   Trash2,
+  X,
 } from 'lucide-react'
 import { collectFlowAssets, type FlowAssetEntry } from '@/lib/flow/collect-assets'
+import { PLATFORMS } from '@/lib/constants/platforms'
 
 interface MediaRef {
   id: string
@@ -78,6 +84,184 @@ function CopyUrlButton({ url }: { url: string }) {
   )
 }
 
+function EditablePrompt({
+  postId,
+  flowId,
+  prompt,
+  onSaved,
+}: {
+  postId: string
+  flowId: string
+  prompt: string
+  onSaved: () => void
+}) {
+  const [editing, setEditing] = useState(false)
+  const [value, setValue] = useState(prompt)
+  const [saving, setSaving] = useState(false)
+
+  function open() {
+    setValue(prompt)
+    setEditing(true)
+  }
+
+  async function save() {
+    setSaving(true)
+    try {
+      const res = await fetch(`/api/admin/flows/${flowId}/posts`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: postId, prompt: value }),
+      })
+      if (res.ok) {
+        setEditing(false)
+        onSaved()
+      }
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (!editing) {
+    return (
+      <div className="group/prompt flex items-start gap-1">
+        <details className="flex-1">
+          <summary className="text-[#A0A0A0] text-xs truncate max-w-[300px] cursor-pointer hover:text-white transition-colors">
+            {prompt ? prompt.slice(0, 60) + (prompt.length > 60 ? '\u2026' : '') : '\u2014'}
+          </summary>
+          <p className="mt-1 text-[11px] text-[#CCC] leading-relaxed whitespace-pre-wrap break-words bg-[#0A0A0A] border border-[#2A2A2A] rounded-lg p-2">
+            {prompt}
+          </p>
+        </details>
+        <button
+          type="button"
+          onClick={open}
+          className="shrink-0 opacity-0 group-hover/prompt:opacity-100 p-1 text-[#666] hover:text-[#9B30FF] transition-all"
+          title="Edit prompt"
+        >
+          <Pencil className="w-3 h-3" />
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-1.5">
+      <textarea
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        rows={4}
+        className="w-full text-[11px] text-white bg-[#0A0A0A] border border-[#9B30FF]/50 rounded-lg p-2 resize-y focus:outline-none focus:border-[#9B30FF]"
+        autoFocus
+      />
+      <div className="flex items-center gap-1.5">
+        <button
+          type="button"
+          onClick={save}
+          disabled={saving}
+          className="inline-flex items-center gap-1 rounded-lg bg-[#9B30FF] px-2 py-0.5 text-[10px] text-white font-medium hover:bg-[#BF5FFF] disabled:opacity-40"
+        >
+          {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+          Save
+        </button>
+        <button
+          type="button"
+          onClick={() => setEditing(false)}
+          className="inline-flex items-center gap-1 rounded-lg border border-[#2A2A2A] px-2 py-0.5 text-[10px] text-[#888] hover:text-white"
+        >
+          <X className="w-3 h-3" />
+          Cancel
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function SegmentActions({
+  post,
+  flowId,
+  busy,
+  onUpdate,
+  onRegenerate,
+}: {
+  post: FlowPostRow
+  flowId: string
+  busy: boolean
+  onUpdate: () => void
+  onRegenerate: () => void
+}) {
+  const [updating, setUpdating] = useState(false)
+
+  async function setStatus(status: string) {
+    setUpdating(true)
+    try {
+      const payload: Record<string, unknown> = { id: post.id, status }
+      if (status === 'pending') {
+        payload.generated_media_id = null
+        payload.generation_metadata = null
+      }
+      await fetch(`/api/admin/flows/${flowId}/posts`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      onUpdate()
+    } finally {
+      setUpdating(false)
+    }
+  }
+
+  const isComplete = post.status === 'complete'
+  const isApproved = post.status === 'approved'
+  const isRejected = post.status === 'rejected'
+  const isPending = post.status === 'pending'
+  const canApprove = isComplete && !!post.generated_media?.url
+  const canReject = isComplete || isApproved
+
+  return (
+    <div className="flex items-center gap-1">
+      {isApproved && (
+        <span className="text-[10px] text-[#4A7C0F] font-medium bg-[#4A7C0F]/10 border border-[#4A7C0F]/30 rounded-full px-2 py-0.5">
+          Approved
+        </span>
+      )}
+      {canApprove && (
+        <button
+          type="button"
+          disabled={updating || busy}
+          onClick={() => setStatus('approved')}
+          className="p-1.5 rounded-lg text-[#4A7C0F] hover:bg-[#4A7C0F]/10 transition-colors disabled:opacity-40"
+          title="Approve"
+        >
+          <ThumbsUp className="w-4 h-4" />
+        </button>
+      )}
+      {canReject && (
+        <button
+          type="button"
+          disabled={updating || busy}
+          onClick={() => setStatus('pending')}
+          className="p-1.5 rounded-lg text-[#FF0040] hover:bg-[#FF0040]/10 transition-colors disabled:opacity-40"
+          title="Reject (reset to pending)"
+        >
+          <ThumbsDown className="w-4 h-4" />
+        </button>
+      )}
+      {(isPending || isRejected) && (
+        <button
+          type="button"
+          disabled={updating || busy}
+          onClick={onRegenerate}
+          className="p-1.5 rounded-lg text-[#E87511] hover:bg-[#E87511]/10 transition-colors disabled:opacity-40"
+          title="Regenerate this segment"
+        >
+          <RotateCcw className="w-4 h-4" />
+        </button>
+      )}
+      {updating && <Loader2 className="w-3.5 h-3.5 animate-spin text-[#888]" />}
+    </div>
+  )
+}
+
 function CopyIdButton({ id, label = 'Copy id' }: { id: string; label?: string }) {
   const [done, setDone] = useState(false)
   async function copy() {
@@ -115,6 +299,15 @@ export default function AdminFlowDetailPage() {
   const [idCopied, setIdCopied] = useState(false)
   const [confirmDeleteFlow, setConfirmDeleteFlow] = useState(false)
   const [deleteBusy, setDeleteBusy] = useState(false)
+  const [showQueuePanel, setShowQueuePanel] = useState(false)
+  const [queuePlatforms, setQueuePlatforms] = useState<string[]>(['instagram', 'facebook'])
+  const [queueDate, setQueueDate] = useState(
+    new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 16)
+  )
+  const [queueCaption, setQueueCaption] = useState('')
+  const [queueSelectedMedia, setQueueSelectedMedia] = useState<string[]>([])
+  const [queueAdding, setQueueAdding] = useState(false)
+  const [queueSuccess, setQueueSuccess] = useState(false)
 
   const refresh = useCallback(async () => {
     if (!flowId) return
@@ -201,6 +394,76 @@ export default function AdminFlowDetailPage() {
   const assets: FlowAssetEntry[] = flow
     ? collectFlowAssets(flow.flow_posts as Parameters<typeof collectFlowAssets>[0])
     : []
+
+  const hasApproved =
+    flow &&
+    flow.flow_posts.length > 0 &&
+    flow.flow_posts.some((p) => p.status === 'approved')
+
+  async function regenerateSegment(postId: string) {
+    if (!flowId) return
+    setQueueBusy(true)
+    setQueueLog(null)
+    try {
+      await fetch(`/api/admin/flows/${flowId}/posts`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: postId, status: 'pending', generated_media_id: null, generation_metadata: null }),
+      })
+      const res = await fetch(`/api/admin/flows/${flowId}/queue/run`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ maxSteps: 1 }),
+      })
+      const j = await res.json()
+      if (!res.ok) {
+        setQueueLog(j.error || 'Regeneration failed')
+      } else {
+        setQueueLog('Regenerated segment.')
+      }
+      await refresh()
+    } finally {
+      setQueueBusy(false)
+    }
+  }
+
+  function openQueuePanel() {
+    if (!flow) return
+    const approvedMediaIds = flow.flow_posts
+      .filter((p) => p.status === 'approved' && p.generated_media?.id)
+      .map((p) => p.generated_media!.id)
+    setQueueSelectedMedia(approvedMediaIds)
+    setQueueCaption(flow.title || '')
+    setQueueSuccess(false)
+    setShowQueuePanel(true)
+  }
+
+  async function addToQueue() {
+    if (!flowId || queueSelectedMedia.length === 0) return
+    setQueueAdding(true)
+    try {
+      const res = await fetch('/api/admin/schedule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          flow_id: flowId,
+          media_ids: queueSelectedMedia,
+          platforms: queuePlatforms,
+          caption: queueCaption,
+          scheduled_at: new Date(queueDate).toISOString(),
+        }),
+      })
+      if (res.ok) {
+        setQueueSuccess(true)
+        setTimeout(() => {
+          setShowQueuePanel(false)
+          setQueueSuccess(false)
+        }, 2000)
+      }
+    } finally {
+      setQueueAdding(false)
+    }
+  }
 
   async function copyFlowId() {
     if (!flow?.id) return
@@ -318,6 +581,20 @@ export default function AdminFlowDetailPage() {
               >
                 Studio
               </Link>
+              {hasApproved && (
+                <button
+                  type="button"
+                  onClick={() => showQueuePanel ? setShowQueuePanel(false) : openQueuePanel()}
+                  className={`inline-flex items-center gap-2 rounded-full font-semibold px-4 py-2 text-sm transition-colors ${
+                    showQueuePanel
+                      ? 'bg-[#4A7C0F]/20 text-[#4A7C0F] border border-[#4A7C0F]/40'
+                      : 'bg-[#4A7C0F] text-white hover:bg-[#5A9C1F]'
+                  }`}
+                >
+                  <Calendar className="w-4 h-4" />
+                  {showQueuePanel ? 'Close Queue Panel' : 'Add to Posting Queue'}
+                </button>
+              )}
               <button
                 type="button"
                 disabled={queueBusy || deleteBusy}
@@ -328,6 +605,135 @@ export default function AdminFlowDetailPage() {
                 Delete flow
               </button>
             </div>
+            {showQueuePanel && flow && (
+              <div className="rounded-2xl border border-[#4A7C0F]/30 bg-[#0F1A0A] px-5 py-4 space-y-4 max-w-2xl">
+                {queueSuccess ? (
+                  <div className="flex items-center gap-2 text-[#4A7C0F] text-sm font-medium py-2">
+                    <Check className="w-5 h-5" />
+                    Added to posting queue!
+                    <Link href="/admin/schedule" className="text-[#9B30FF] hover:text-[#BF5FFF] ml-2 underline">
+                      View queue
+                    </Link>
+                  </div>
+                ) : (
+                  <>
+                    <h3 className="text-sm font-semibold text-white">Add approved assets to posting queue</h3>
+
+                    <div>
+                      <label className="text-xs text-[#888] block mb-1.5">Select media</label>
+                      <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                        {flow.flow_posts
+                          .filter((p) => p.generated_media?.id)
+                          .map((p) => {
+                            const m = p.generated_media!
+                            const selected = queueSelectedMedia.includes(m.id)
+                            const isApproved = p.status === 'approved'
+                            const isVideo = m.file_type === 'video'
+                            return (
+                              <button
+                                key={m.id}
+                                type="button"
+                                onClick={() =>
+                                  setQueueSelectedMedia(
+                                    selected
+                                      ? queueSelectedMedia.filter((id) => id !== m.id)
+                                      : [...queueSelectedMedia, m.id]
+                                  )
+                                }
+                                className={`relative rounded-xl overflow-hidden border-2 transition-all ${
+                                  selected
+                                    ? 'border-[#4A7C0F] ring-2 ring-[#4A7C0F]/30'
+                                    : 'border-[#2A2A2A] hover:border-[#444]'
+                                } ${!isApproved ? 'opacity-40' : ''}`}
+                                title={`Segment ${p.sort_order + 1} — ${p.status}`}
+                              >
+                                {isVideo ? (
+                                  <video src={m.url} preload="metadata" className="w-full aspect-square object-cover" />
+                                ) : (
+                                  <img src={m.url} alt="" className="w-full aspect-square object-cover" />
+                                )}
+                                {selected && (
+                                  <div className="absolute top-1 right-1 bg-[#4A7C0F] rounded-full p-0.5">
+                                    <Check className="w-3 h-3 text-white" />
+                                  </div>
+                                )}
+                                <span className="absolute bottom-0 left-0 right-0 bg-black/70 text-[8px] text-white px-1 py-0.5 text-center truncate">
+                                  #{p.sort_order + 1} {p.status}
+                                </span>
+                              </button>
+                            )
+                          })}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-xs text-[#888] block mb-1.5">Platforms</label>
+                        <div className="flex gap-1.5 flex-wrap">
+                          {PLATFORMS.map((p) => {
+                            const active = queuePlatforms.includes(p.id)
+                            return (
+                              <button
+                                key={p.id}
+                                type="button"
+                                onClick={() =>
+                                  setQueuePlatforms(
+                                    active
+                                      ? queuePlatforms.filter((id) => id !== p.id)
+                                      : [...queuePlatforms, p.id]
+                                  )
+                                }
+                                className={`text-xs font-medium rounded-full px-3 py-1.5 border transition-colors ${
+                                  active
+                                    ? 'border-[#4A7C0F] text-[#4A7C0F] bg-[#4A7C0F]/10'
+                                    : 'border-[#2A2A2A] text-[#888] hover:border-[#444]'
+                                }`}
+                              >
+                                {p.name}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-xs text-[#888] block mb-1.5">Schedule for</label>
+                        <input
+                          type="datetime-local"
+                          value={queueDate}
+                          onChange={(e) => setQueueDate(e.target.value)}
+                          className="w-full bg-[#0A0A0A] border border-[#2A2A2A] rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-[#4A7C0F]"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-[#888] block mb-1.5">Caption</label>
+                      <textarea
+                        value={queueCaption}
+                        onChange={(e) => setQueueCaption(e.target.value)}
+                        rows={2}
+                        className="w-full text-sm text-white bg-[#0A0A0A] border border-[#2A2A2A] rounded-xl px-3 py-2 resize-y focus:outline-none focus:border-[#4A7C0F]"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        disabled={queueAdding || queueSelectedMedia.length === 0}
+                        onClick={addToQueue}
+                        className="inline-flex items-center gap-2 rounded-full bg-[#4A7C0F] text-white font-semibold px-5 py-2 text-sm hover:bg-[#5A9C1F] transition-colors disabled:opacity-40"
+                      >
+                        {queueAdding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Calendar className="w-4 h-4" />}
+                        Add {queueSelectedMedia.length} asset{queueSelectedMedia.length !== 1 ? 's' : ''} to queue
+                      </button>
+                      <span className="text-[11px] text-[#666]">
+                        {queueSelectedMedia.length} of {flow.flow_posts.filter((p) => p.generated_media?.id).length} selected
+                      </span>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
             {confirmDeleteFlow && (
               <div
                 role="dialog"
@@ -383,8 +789,11 @@ export default function AdminFlowDetailPage() {
                     <th className="px-3 py-2 font-medium">#</th>
                     <th className="px-3 py-2 font-medium">Segment id</th>
                     <th className="px-3 py-2 font-medium">Concept</th>
+                    <th className="px-3 py-2 font-medium">Prompt</th>
                     <th className="px-3 py-2 font-medium">Mode</th>
+                    <th className="px-3 py-2 font-medium">Model</th>
                     <th className="px-3 py-2 font-medium">Status</th>
+                    <th className="px-3 py-2 font-medium">Actions</th>
                     <th className="px-3 py-2 font-medium min-w-[140px]">Fal request</th>
                     <th className="px-3 py-2 font-medium">Output</th>
                   </tr>
@@ -410,8 +819,28 @@ export default function AdminFlowDetailPage() {
                       <td className="px-3 py-2 text-white max-w-[200px] truncate" title={p.concept}>
                         {p.concept}
                       </td>
+                      <td className="px-3 py-2 max-w-[320px]">
+                        <EditablePrompt
+                          postId={p.id}
+                          flowId={flowId}
+                          prompt={p.prompt}
+                          onSaved={refresh}
+                        />
+                      </td>
                       <td className="px-3 py-2 text-[#A0A0A0] capitalize">{p.generation_mode}</td>
+                      <td className="px-3 py-2 text-[11px] text-[#888]" title={p.fal_model || ''}>
+                        {p.fal_model ? p.fal_model.replace('fal-ai/', '') : '—'}
+                      </td>
                       <td className="px-3 py-2 text-[#A0A0A0] capitalize">{p.status}</td>
+                      <td className="px-3 py-2">
+                        <SegmentActions
+                          post={p}
+                          flowId={flowId}
+                          busy={queueBusy}
+                          onUpdate={refresh}
+                          onRegenerate={() => regenerateSegment(p.id)}
+                        />
+                      </td>
                       <td className="px-3 py-2">
                         {falRid ? (
                           <div className="flex flex-col gap-1">
@@ -426,15 +855,25 @@ export default function AdminFlowDetailPage() {
                       </td>
                       <td className="px-3 py-2">
                         {p.generated_media?.url ? (
-                          <a
-                            href={p.generated_media.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-[#00BFFF] hover:underline text-xs inline-flex items-center gap-1"
-                          >
-                            <Link2 className="w-3 h-3" />
-                            Open
-                          </a>
+                          <div className="flex flex-col gap-1.5">
+                            {p.generated_media.file_type === 'video' ? (
+                              <video
+                                src={p.generated_media.url}
+                                controls
+                                preload="metadata"
+                                className="rounded-lg border border-[#2A2A2A] w-[180px] max-h-[120px] bg-black"
+                              />
+                            ) : (
+                              <a href={p.generated_media.url} target="_blank" rel="noopener noreferrer">
+                                <img
+                                  src={p.generated_media.url}
+                                  alt={p.concept}
+                                  className="rounded-lg border border-[#2A2A2A] w-[180px] max-h-[120px] object-cover hover:border-[#9B30FF]/50 transition-colors"
+                                />
+                              </a>
+                            )}
+                            <CopyUrlButton url={p.generated_media.url} />
+                          </div>
                         ) : (
                           <span className="text-[#555]">—</span>
                         )}
@@ -450,30 +889,53 @@ export default function AdminFlowDetailPage() {
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-lg font-semibold text-white">All assets (URLs)</h2>
+            <h2 className="text-lg font-semibold text-white">All assets</h2>
             <p className="text-sm text-[#888] max-w-2xl">
-              Every reference and generated file tied to this flow. URLs point at your S3/CDN after generation.
+              Every reference and generated file tied to this flow.
             </p>
             {assets.length === 0 ? (
               <p className="text-sm text-[#666] py-8 text-center border border-dashed border-[#2A2A2A] rounded-2xl">
                 No asset URLs yet. Run the queue or add references in Studio.
               </p>
             ) : (
-              <ul className="space-y-2">
-                {assets.map((a) => (
-                  <li
-                    key={`${a.url}-${a.kind}`}
-                    className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 p-3 rounded-xl bg-[#141414] border border-[#2A2A2A]"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="text-xs text-[#9B30FF] font-medium capitalize">{a.kind.replace(/_/g, ' ')}</div>
-                      <div className="text-xs text-[#888] mt-0.5">{a.label}</div>
-                      <div className="text-[11px] text-[#666] mt-1 break-all font-mono">{a.url}</div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {assets.map((a) => {
+                  const isVideo = /\.(mp4|mov|webm)$/i.test(a.url)
+                  return (
+                    <div
+                      key={`${a.url}-${a.kind}`}
+                      className="rounded-2xl bg-[#141414] border border-[#2A2A2A] overflow-hidden"
+                    >
+                      <div className="relative bg-black">
+                        {isVideo ? (
+                          <video
+                            src={a.url}
+                            controls
+                            preload="metadata"
+                            className="w-full aspect-video object-contain"
+                          />
+                        ) : (
+                          <a href={a.url} target="_blank" rel="noopener noreferrer">
+                            <img
+                              src={a.url}
+                              alt={a.label}
+                              className="w-full aspect-video object-contain hover:opacity-90 transition-opacity"
+                            />
+                          </a>
+                        )}
+                      </div>
+                      <div className="p-3 space-y-1.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs text-[#9B30FF] font-medium capitalize">{a.kind.replace(/_/g, ' ')}</span>
+                          <CopyUrlButton url={a.url} />
+                        </div>
+                        <p className="text-xs text-[#888] leading-snug">{a.label}</p>
+                        <p className="text-[10px] text-[#555] break-all font-mono">{a.url}</p>
+                      </div>
                     </div>
-                    <CopyUrlButton url={a.url} />
-                  </li>
-                ))}
-              </ul>
+                  )
+                })}
+              </div>
             )}
           </section>
         </>

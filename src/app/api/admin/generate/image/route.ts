@@ -2,6 +2,7 @@ import { fal, saveGeneratedMedia } from '@/lib/fal'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { BRAND_KIT } from '@/lib/brand-kit'
 import {
+  isFlux2Model,
   isNanoBanana2ImageModel,
   resolveFalImageModel,
   targetSizeToNanoAspectRatio,
@@ -42,26 +43,32 @@ export async function POST(request: NextRequest) {
 
     const brandedPrompt = `${prompt} ${BRAND_STYLE_SUFFIX}`
 
-    const result = isNanoBanana2ImageModel(modelId)
-      ? await fal.subscribe(modelId, {
-          input: {
-            prompt: brandedPrompt,
-            num_images: 1,
-            aspect_ratio: targetSizeToNanoAspectRatio(image_size),
-            output_format: 'png',
-            safety_tolerance: '4',
-            resolution: '0.5K',
-          },
-          logs: false,
-        })
-      : await fal.subscribe(modelId, {
-          input: {
-            prompt: brandedPrompt,
-            image_size: falSize,
-            num_images: 1,
-          },
-          logs: false,
-        })
+    let input: Record<string, unknown>
+    if (isNanoBanana2ImageModel(modelId)) {
+      input = {
+        prompt: brandedPrompt,
+        num_images: 1,
+        aspect_ratio: targetSizeToNanoAspectRatio(image_size),
+        output_format: 'png',
+        safety_tolerance: '4',
+        resolution: '0.5K',
+      }
+    } else if (isFlux2Model(modelId)) {
+      input = {
+        prompt: brandedPrompt,
+        image_size: falSize,
+        output_format: 'png',
+        safety_tolerance: '5',
+      }
+    } else {
+      input = {
+        prompt: brandedPrompt,
+        image_size: falSize,
+        num_images: 1,
+      }
+    }
+
+    const result = await fal.subscribe(modelId, { input, logs: false })
 
     const images = (result.data as { images?: { url: string }[] }).images
     if (!images?.length) {

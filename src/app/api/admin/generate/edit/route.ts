@@ -1,7 +1,9 @@
 import { fal, saveGeneratedMedia } from '@/lib/fal'
+import { mirrorReferenceImageForFal } from '@/lib/fal-reference-mirror'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { BRAND_KIT } from '@/lib/brand-kit'
 import {
+  isFlux2EditModel,
   isNanoBananaEditModel,
   isReduxEditModel,
   resolveFalEditModel,
@@ -42,29 +44,41 @@ export async function POST(request: NextRequest) {
     const falSize = SIZE_MAP[image_size] || 'square'
 
     const brandedPrompt = `${prompt} ${BRAND_STYLE_SUFFIX}`
+    const mirroredImageUrl = await mirrorReferenceImageForFal(image_url)
 
-    const input = isNanoBananaEditModel(modelId)
-      ? {
-          prompt: brandedPrompt,
-          image_urls: [image_url],
-          num_images: 1,
-          aspect_ratio: targetSizeToNanoAspectRatio(image_size),
-          output_format: 'png',
-          safety_tolerance: '4',
-        }
-      : isReduxEditModel(modelId)
-        ? {
-            prompt: brandedPrompt,
-            image_url,
-            image_size: falSize,
-            num_images: 1,
-          }
-        : {
-            prompt: brandedPrompt,
-            image_url,
-            strength: 0.75,
-            num_images: 1,
-          }
+    let input: Record<string, unknown>
+    if (isNanoBananaEditModel(modelId)) {
+      input = {
+        prompt: brandedPrompt,
+        image_urls: [mirroredImageUrl],
+        num_images: 1,
+        aspect_ratio: targetSizeToNanoAspectRatio(image_size),
+        output_format: 'png',
+        safety_tolerance: '4',
+      }
+    } else if (isFlux2EditModel(modelId)) {
+      input = {
+        prompt: brandedPrompt,
+        image_urls: [mirroredImageUrl],
+        image_size: falSize,
+        output_format: 'png',
+        safety_tolerance: '5',
+      }
+    } else if (isReduxEditModel(modelId)) {
+      input = {
+        prompt: brandedPrompt,
+        image_url: mirroredImageUrl,
+        image_size: falSize,
+        num_images: 1,
+      }
+    } else {
+      input = {
+        prompt: brandedPrompt,
+        image_url: mirroredImageUrl,
+        strength: 0.75,
+        num_images: 1,
+      }
+    }
 
     const result = await fal.subscribe(modelId, {
       input,

@@ -165,17 +165,25 @@ async function parseAdminApiError(res: Response): Promise<string> {
 }
 
 /** 3-line flow using brand can + spirit animal from `drinks.ts` (site asset URLs). */
-function getDrinkHeroChainExamplePosts(drink: Drink, siteBase: string): PlannedPost[] {
+type HeroGender = 'female' | 'male'
+
+const HERO_LABEL: Record<HeroGender, { subject: string; pronoun: string }> = {
+  female: { subject: 'a beautiful woman', pronoun: 'The woman' },
+  male: { subject: 'a handsome man', pronoun: 'The man' },
+}
+
+function getDrinkHeroChainExamplePosts(drink: Drink, siteBase: string, gender: HeroGender = 'female'): PlannedPost[] {
   const canUrl = drinkAssetAbsoluteUrl(siteBase, drink.canImage)
   const animalUrl = drinkAssetAbsoluteUrl(siteBase, drink.animalImage)
+  const hero = HERO_LABEL[gender]
   return [
     {
       sort_order: 0,
-      concept: `Woman holding ${drink.name} can`,
+      concept: `${gender === 'male' ? 'Man' : 'Woman'} holding ${drink.name} can`,
       prompt:
-        `Photorealistic advertising hero for ${drink.name} (${drink.flavor}): a beautiful woman holding this beverage can toward the camera, confident natural pose, soft premium studio lighting, shallow depth of field. Keep the can label sharp, legible, and accurate to the reference can image.`,
+        `Photorealistic advertising hero for ${drink.name} (${drink.flavor}): ${hero.subject} holding this beverage can, confident natural pose, face in sharp focus and clearly visible, looking at the camera. The person's face is the primary subject. The can is held at chest level, label visible and legible. Premium studio lighting, both the face and can are in focus. Full upper body framing, not a close-up of the can.`,
       generation_mode: 'generate',
-      target_size: 'portrait_9_16',
+      target_size: 'landscape_16_9',
       caption_suggestion: '',
       hashtag_suggestions: [],
       fal_model: FAL_DEFAULT_IMAGE_MODEL,
@@ -187,11 +195,11 @@ function getDrinkHeroChainExamplePosts(drink: Drink, siteBase: string): PlannedP
     },
     {
       sort_order: 1,
-      concept: `${drink.animal} holding the same can`,
+      concept: `${drink.animal} holding the same can (exact scene duplicate)`,
       prompt:
-        `Edit this image: replace the person with a photorealistic ${drink.animal} (brand spirit for ${drink.name}) in a natural pose holding the same can in the same hand position. Preserve the can, label, and overall composition and lighting. Match the premium ad style. The character should feel consistent with the brand energy: ${drink.tagline} Reference spirit animal asset (for your direction): ${animalUrl}`,
+        `Edit this image: replace ONLY the person with a photorealistic ${drink.animal}. The ${drink.animal} must be gripping the same ${drink.name} can in the same hand position — the can, its label, and placement are identical to the original. Same composition, same lighting, same background, same camera angle, same depth of field. The ${drink.animal} looks natural and powerful, sitting confidently like a premium advertising hero shot. Every detail except the subject stays pixel-perfect. Reference spirit animal: ${animalUrl}`,
       generation_mode: 'edit',
-      target_size: 'portrait_9_16',
+      target_size: 'landscape_16_9',
       caption_suggestion: '',
       hashtag_suggestions: [],
       fal_model: FAL_DEFAULT_EDIT_MODEL,
@@ -203,11 +211,11 @@ function getDrinkHeroChainExamplePosts(drink: Drink, siteBase: string): PlannedP
     },
     {
       sort_order: 2,
-      concept: `Video: ${drink.name} hero to ${drink.animal} hero`,
+      concept: `Video: ${gender === 'male' ? 'man' : 'woman'} takes a sip, transforms into ${drink.animal}`,
       prompt:
-        `Cinematic transition for ${drink.name}: smooth, believable motion between the opening and closing frame, same product hero energy, subtle camera movement, high-end commercial feel. ${drink.tagline}`,
+        `Photorealistic commercial video. ${hero.pronoun} holds the ${drink.name} can, takes a slow sip, then smoothly morphs into a ${drink.animal} — the can stays gripped in hand the entire time, never disappearing. Every frame is photorealistic with consistent studio lighting, same background, same camera angle. The transformation is fluid and believable, not cartoonish. The ${drink.animal} ends in the same pose, still holding the can. Cinematic slow motion, shallow depth of field, premium ad quality. ${drink.tagline}`,
       generation_mode: 'video',
-      target_size: 'portrait_9_16',
+      target_size: 'landscape_16_9',
       caption_suggestion: '',
       hashtag_suggestions: [],
       fal_model: FAL_VIDEO_FIRST_LAST_MODEL,
@@ -315,6 +323,7 @@ function StudioContent() {
   const [selectedRefs, setSelectedRefs] = useState<string[]>([])
   const [showMediaPicker, setShowMediaPicker] = useState(false)
   const [planDrinkSlug, setPlanDrinkSlug] = useState(() => drinks[0]?.slug ?? 'black-panther')
+  const [heroGender, setHeroGender] = useState<HeroGender>('female')
   const [savePlanError, setSavePlanError] = useState<string | null>(null)
   const [savePlanBusy, setSavePlanBusy] = useState(false)
 
@@ -404,7 +413,7 @@ function StudioContent() {
     setConcept(
       `${drink.name}: woman + can (site can image), ${drink.animal} + same can (edit from line 1, spirit animal from brand), then Veo first/last video between those two heroes. Uses canImage and animalImage from drinks config — deploy a public URL so Fal can fetch assets.`
     )
-    setPlannedPosts(getDrinkHeroChainExamplePosts(drink, origin))
+    setPlannedPosts(getDrinkHeroChainExamplePosts(drink, origin, heroGender))
   }
 
   async function savePlanAndAdvance() {
@@ -673,7 +682,23 @@ function StudioContent() {
           savePlanBusy={savePlanBusy}
           planDrinkSlug={planDrinkSlug}
           setPlanDrinkSlug={setPlanDrinkSlug}
+          heroGender={heroGender}
+          setHeroGender={setHeroGender}
           onLoadDrinkHeroChainExample={loadDrinkHeroChainExample}
+          onDrinkChange={(slug, gender) => {
+            const drink = getDrinkBySlug(slug) ?? drinks[0]
+            if (!drink) return
+            const origin =
+              typeof window !== 'undefined' && window.location?.origin
+                ? window.location.origin
+                : (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_SITE_URL) || ''
+            const g = gender ?? heroGender
+            const label = g === 'male' ? 'man' : 'woman'
+            setConcept(
+              `${drink.name}: ${label} + can (site can image), ${drink.animal} + same can (edit from line 1, spirit animal from brand), then Veo first/last video between those two heroes.`
+            )
+            setPlannedPosts(getDrinkHeroChainExamplePosts(drink, origin, g))
+          }}
           libraryMedia={libraryMedia}
           selectedRefs={selectedRefs}
           setSelectedRefs={setSelectedRefs}
@@ -726,7 +751,10 @@ function PlanPhase({
   savePlanBusy,
   planDrinkSlug,
   setPlanDrinkSlug,
+  heroGender,
+  setHeroGender,
   onLoadDrinkHeroChainExample,
+  onDrinkChange,
   libraryMedia, selectedRefs, setSelectedRefs,
   showMediaPicker, setShowMediaPicker,
 }: {
@@ -749,7 +777,10 @@ function PlanPhase({
   savePlanBusy: boolean
   planDrinkSlug: string
   setPlanDrinkSlug: (slug: string) => void
+  heroGender: HeroGender
+  setHeroGender: (g: HeroGender) => void
   onLoadDrinkHeroChainExample: () => void
+  onDrinkChange?: (slug: string, gender?: HeroGender) => void
   libraryMedia: MediaItem[]
   selectedRefs: string[]
   setSelectedRefs: (v: string[]) => void
@@ -1029,7 +1060,7 @@ function PlanPhase({
                 <label className="text-[10px] text-[#666]">Drink</label>
                 <select
                   value={planDrinkSlug}
-                  onChange={(e) => setPlanDrinkSlug(e.target.value)}
+                  onChange={(e) => { setPlanDrinkSlug(e.target.value); onDrinkChange?.(e.target.value) }}
                   className="bg-[#0A0A0A] border border-[#2A2A2A] rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-[#9B30FF]"
                 >
                   {drinks.map((d) => (
@@ -1037,6 +1068,17 @@ function PlanPhase({
                       {d.name}
                     </option>
                   ))}
+                </select>
+              </div>
+              <div className="flex flex-col gap-1 w-full sm:w-auto">
+                <label className="text-[10px] text-[#666]">Hero</label>
+                <select
+                  value={heroGender}
+                  onChange={(e) => { const g = e.target.value as HeroGender; setHeroGender(g); onDrinkChange?.(planDrinkSlug, g) }}
+                  className="bg-[#0A0A0A] border border-[#2A2A2A] rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-[#9B30FF]"
+                >
+                  <option value="female">Female</option>
+                  <option value="male">Male</option>
                 </select>
               </div>
               <button
