@@ -1,3 +1,4 @@
+import { patchFlowPostMediaRefs } from '@/lib/media-cdn-url'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { NextRequest, NextResponse } from 'next/server'
 
@@ -15,9 +16,9 @@ export async function GET(
       created_by_staff:staff!flows_created_by_fkey(full_name),
       flow_posts(
         *,
-        reference_media:media!flow_posts_reference_media_id_fkey(id, filename, url, file_type),
-        end_reference_media:media!flow_posts_end_reference_media_id_fkey(id, filename, url, file_type),
-        generated_media:media!flow_posts_generated_media_id_fkey(id, filename, url, file_type, mime_type)
+        reference_media:media!flow_posts_reference_media_id_fkey(id, filename, url, file_type, s3_key, is_private),
+        end_reference_media:media!flow_posts_end_reference_media_id_fkey(id, filename, url, file_type, s3_key, is_private),
+        generated_media:media!flow_posts_generated_media_id_fkey(id, filename, url, file_type, mime_type, s3_key, is_private)
       )
     `)
     .eq('id', id)
@@ -29,6 +30,7 @@ export async function GET(
 
   if (data?.flow_posts) {
     data.flow_posts.sort((a: { sort_order: number }, b: { sort_order: number }) => a.sort_order - b.sort_order)
+    data.flow_posts = data.flow_posts.map((p: Record<string, unknown>) => patchFlowPostMediaRefs(p))
   }
 
   return NextResponse.json(data)

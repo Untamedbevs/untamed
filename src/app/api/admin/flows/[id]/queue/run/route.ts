@@ -9,7 +9,16 @@ import {
 import { NextRequest, NextResponse } from 'next/server'
 
 type StepResult =
-  | { kind: 'ran'; postId: string; sortOrder: number; mediaUrl?: string; error?: string }
+  | {
+      kind: 'ran'
+      postId: string
+      sortOrder: number
+      mediaUrl?: string
+      error?: string
+      /** Fal queue / inference request id (for dashboard & support) */
+      falRequestId?: string
+      falModel?: string
+    }
   | { kind: 'blocked'; pendingLeft: number; message: string }
   | { kind: 'idle'; message: string }
 
@@ -99,6 +108,8 @@ export async function POST(
       postId: next.id,
       sortOrder: next.sort_order,
       mediaUrl: result.media.url,
+      falRequestId: result.request_id,
+      falModel: result.fal_model,
     })
   }
 

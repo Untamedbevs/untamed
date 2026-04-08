@@ -1,3 +1,4 @@
+import { withResolvedPublicMediaUrl } from '@/lib/media-cdn-url'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { S3Client, DeleteObjectCommand } from '@aws-sdk/client-s3'
 import { NextRequest, NextResponse } from 'next/server'
@@ -29,7 +30,7 @@ export async function GET(
     return NextResponse.json({ error: error.message }, { status: 404 })
   }
 
-  return NextResponse.json(data)
+  return NextResponse.json(withResolvedPublicMediaUrl(data))
 }
 
 export async function PUT(
@@ -56,7 +57,7 @@ export async function PUT(
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  return NextResponse.json(data)
+  return NextResponse.json(withResolvedPublicMediaUrl(data))
 }
 
 export async function DELETE(

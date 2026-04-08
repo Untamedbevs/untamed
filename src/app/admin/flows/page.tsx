@@ -16,6 +16,30 @@ function shortId(id: string) {
   return `${id.slice(0, 8)}…${id.slice(-4)}`
 }
 
+const DEFAULT_PARALLEL_FLOWS = 8
+const MAX_SEGMENTS_PER_FLOW = 2000
+
+function parallelFlowLimit(): number {
+  const n = Number(process.env.NEXT_PUBLIC_FLOWS_PARALLEL_FLOWS)
+  if (Number.isFinite(n) && n >= 1) return Math.min(Math.floor(n), 32)
+  return DEFAULT_PARALLEL_FLOWS
+}
+
+/** Run async tasks over `items` with at most `concurrency` in flight at once. */
+async function runPool<T>(items: T[], concurrency: number, fn: (item: T) => Promise<void>): Promise<void> {
+  if (items.length === 0) return
+  const c = Math.max(1, Math.min(concurrency, items.length))
+  let cursor = 0
+  async function worker() {
+    while (true) {
+      const idx = cursor++
+      if (idx >= items.length) break
+      await fn(items[idx])
+    }
+  }
+  await Promise.all(Array.from({ length: c }, () => worker()))
+}
+
 export default function AdminFlowsPage() {
   const [flows, setFlows] = useState<FlowListItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -105,70 +129,95 @@ export default function AdminFlowsPage() {
   }
 
   /**
-   * For each selected flow, run queue in chunks until complete, blocked, or error.
-   * One flow at a time so Fal stays predictable overnight.
+   * Many flows in parallel; each flow runs segments strictly in order.
+   * Uses maxSteps: 1 per request so all flows can run "segment 1" together, then "segment 2", etc.,
+   * once each flow's prior asset exists in the DB.
    */
   async function runQueueOnSelected() {
     const ids = [...selected]
     if (ids.length === 0) return
+    const flowLimit = parallelFlowLimit()
     setActionBusy(true)
-    setActionLog('Starting…')
+    const flowLines = new Map<string, string[]>()
+    for (const fid of ids) {
+      flowLines.set(fid, [])
+    }
+    const renderLog = () => {
+      const text = ids
+        .map((id) => `${shortId(id)}\n  ${(flowLines.get(id) ?? []).join('\n  ')}`)
+        .join('\n---\n')
+      setActionLog(text)
+    }
+    renderLog()
+
     try {
-      const lines: string[] = []
-      for (let i = 0; i < ids.length; i++) {
-        const fid = ids[i]
-        lines.push(`Flow ${i + 1}/${ids.length} ${shortId(fid)}`)
-        setActionLog(lines.join('\n'))
+      await runPool(ids, flowLimit, async (fid) => {
+        const lines = flowLines.get(fid)
+        if (!lines) return
 
         let iterations = 0
-        while (iterations < 500) {
+        while (iterations < MAX_SEGMENTS_PER_FLOW) {
           iterations += 1
           const res = await fetch(`/api/admin/flows/${fid}/queue/run`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ maxSteps: 40 }),
+            body: JSON.stringify({ maxSteps: 1 }),
           })
           const j = await res.json()
           if (!res.ok) {
-            lines.push(`  error: ${j.error || res.statusText}`)
-            break
+            lines.push(`HTTP ${res.status}: ${j.error || res.statusText}`)
+            renderLog()
+            return
           }
           if (j.flowComplete) {
-            lines.push('  done (complete).')
-            break
+            lines.push('done (complete)')
+            renderLog()
+            return
           }
           const steps = j.steps || []
           const blocked = steps.find((s: { kind: string }) => s.kind === 'blocked') as
             | { kind: 'blocked'; message?: string }
             | undefined
           if (blocked) {
-            lines.push(`  paused: ${blocked.message || 'blocked'}`)
-            break
+            lines.push(`paused: ${blocked.message || 'blocked'}`)
+            renderLog()
+            return
           }
           const failed = steps.find(
             (s: { kind: string; error?: string }) => s.kind === 'ran' && s.error
-          ) as { error?: string } | undefined
+          ) as { kind: string; sortOrder?: number; error?: string } | undefined
           if (failed?.error) {
-            lines.push(`  error: ${failed.error}`)
-            break
+            lines.push(`segment ${(failed.sortOrder ?? 0) + 1} error: ${failed.error}`)
+            renderLog()
+            return
           }
-          const last = steps[steps.length - 1]
-          if (last?.kind === 'idle') {
-            lines.push('  done.')
-            break
+          const idle = steps.find((s: { kind: string }) => s.kind === 'idle')
+          if (idle) {
+            lines.push('done.')
+            renderLog()
+            return
           }
           if (steps.length === 0) {
-            lines.push('  no steps returned; stopping.')
-            break
+            lines.push('no steps returned; stopping')
+            renderLog()
+            return
           }
+          const ran = steps.find((s: { kind: string }) => s.kind === 'ran') as
+            | { kind: string; sortOrder?: number; falRequestId?: string }
+            | undefined
+          if (ran) {
+            const fr = ran.falRequestId ? ` fal_request=${ran.falRequestId}` : ''
+            lines.push(`segment ${(ran.sortOrder ?? 0) + 1} ok${fr}`)
+          }
+          renderLog()
         }
-        if (iterations >= 500) {
-          lines.push('  stopped: max iterations (safety).')
-        }
-        setActionLog(lines.join('\n'))
-      }
-      lines.push('Finished run.')
-      setActionLog(lines.join('\n'))
+        lines.push(`stopped: max segments (${MAX_SEGMENTS_PER_FLOW})`)
+        renderLog()
+      })
+
+      setActionLog(
+        `${ids.map((id) => `${shortId(id)}\n  ${(flowLines.get(id) ?? []).join('\n  ')}`).join('\n---\n')}\n---\nFinished run.`
+      )
     } finally {
       setActionBusy(false)
     }
@@ -183,8 +232,8 @@ export default function AdminFlowsPage() {
             Flows
           </h1>
           <p className="text-sm text-[#888] mt-2 max-w-xl">
-            Select flows, delete in bulk (segments cascade), or run queues sequentially for overnight runs. Open a flow for
-            single-flow controls and asset URLs.
+            Select flows, delete in bulk, or run queues on many flows at once (each flow still runs segments in order when
+            the next input asset exists). Open a flow for single-flow controls and asset URLs.
           </p>
         </div>
         <Link
@@ -206,8 +255,9 @@ export default function AdminFlowsPage() {
             {actionBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Moon className="w-4 h-4" />}
             Run queue on selected
           </button>
-          <span className="text-[11px] text-[#666] max-w-xs">
-            Segments run one after another inside each flow. Selected flows run one after another.
+          <span className="text-[11px] text-[#666] max-w-md">
+            Segments stay in order inside each flow. Up to {parallelFlowLimit()} flows run at once (set{' '}
+            <code className="text-[#888]">NEXT_PUBLIC_FLOWS_PARALLEL_FLOWS</code>).
           </span>
           <button
             type="button"
@@ -253,9 +303,15 @@ export default function AdminFlowsPage() {
       )}
 
       {actionLog && (
-        <pre className="text-[11px] text-[#A0A0A0] bg-[#141414] border border-[#2A2A2A] rounded-xl px-3 py-2 whitespace-pre-wrap max-h-48 overflow-y-auto font-mono">
+        <pre className="text-[11px] text-[#A0A0A0] bg-[#141414] border border-[#2A2A2A] rounded-xl px-3 py-2 whitespace-pre-wrap max-h-64 overflow-y-auto font-mono">
           {actionLog}
         </pre>
+      )}
+      {actionLog && (
+        <p className="text-[11px] text-[#555]">
+          Lines ending with <code className="text-[#888]">fal_request=…</code> are Fal inference ids (also saved on each
+          segment in the flow detail table).
+        </p>
       )}
 
       {loading && (

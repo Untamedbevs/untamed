@@ -33,6 +33,7 @@ interface FlowPostRow {
   target_size: string
   status: string
   fal_model: string | null
+  generation_metadata?: { request_id?: string; fal_result?: unknown } | null
   reference_external_url?: string | null
   reference_media?: MediaRef | null
   end_reference_media?: MediaRef | null
@@ -77,7 +78,7 @@ function CopyUrlButton({ url }: { url: string }) {
   )
 }
 
-function CopyIdButton({ id }: { id: string }) {
+function CopyIdButton({ id, label = 'Copy id' }: { id: string; label?: string }) {
   const [done, setDone] = useState(false)
   async function copy() {
     try {
@@ -93,10 +94,10 @@ function CopyIdButton({ id }: { id: string }) {
       type="button"
       onClick={copy}
       className="inline-flex items-center gap-1 rounded-lg border border-[#2A2A2A] px-2 py-0.5 text-[11px] text-[#A0A0A0] hover:border-[#9B30FF]/50 hover:text-white transition-colors"
-      title="Copy segment id"
+      title={label}
     >
       {done ? <Check className="w-3 h-3 text-[#4A7C0F]" /> : <Copy className="w-3 h-3" />}
-      {done ? 'Copied' : 'Copy id'}
+      {done ? 'Copied' : label}
     </button>
   )
 }
@@ -162,7 +163,9 @@ export default function AdminFlowDetailPage() {
         if (s.kind === 'ran' && s.error) {
           parts.push(`Segment ${s.sortOrder + 1}: error — ${s.error}`)
         } else if (s.kind === 'ran') {
-          parts.push(`Segment ${s.sortOrder + 1}: ok`)
+          const rid = s.falRequestId ? ` fal_request=${s.falRequestId}` : ''
+          const mod = s.falModel ? ` model=${s.falModel}` : ''
+          parts.push(`Segment ${s.sortOrder + 1}: ok${rid}${mod}`)
         } else if (s.kind === 'blocked') {
           parts.push(`Blocked: ${s.message}`)
         } else if (s.kind === 'idle') {
@@ -357,13 +360,18 @@ export default function AdminFlowDetailPage() {
             )}
             <p className="text-[11px] text-[#666] max-w-2xl">
               Segments always run in order (by line number): each job finishes (Fal + S3) before the next starts, so chained
-              references always see the previous output.
+              references always see the previous output. On the Flows list, many flows can run at once; each flow still
+              respects this order.
             </p>
             {queueLog && (
-              <p className="text-xs text-[#A0A0A0] bg-[#141414] border border-[#2A2A2A] rounded-xl px-3 py-2">
+              <p className="text-xs text-[#A0A0A0] bg-[#141414] border border-[#2A2A2A] rounded-xl px-3 py-2 whitespace-pre-wrap">
                 {queueLog}
               </p>
             )}
+            <p className="text-[11px] text-[#555] max-w-2xl">
+              Each successful segment logs <span className="text-[#888]">fal_request=…</span> from Fal&apos;s API. The same
+              id is stored on the segment as generation metadata; use it in the Fal dashboard request history if needed.
+            </p>
           </header>
 
           <section className="space-y-3">
@@ -377,11 +385,20 @@ export default function AdminFlowDetailPage() {
                     <th className="px-3 py-2 font-medium">Concept</th>
                     <th className="px-3 py-2 font-medium">Mode</th>
                     <th className="px-3 py-2 font-medium">Status</th>
+                    <th className="px-3 py-2 font-medium min-w-[140px]">Fal request</th>
                     <th className="px-3 py-2 font-medium">Output</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {flow.flow_posts.map((p) => (
+                  {flow.flow_posts.map((p) => {
+                    const falRid =
+                      p.generation_metadata &&
+                      typeof p.generation_metadata === 'object' &&
+                      'request_id' in p.generation_metadata &&
+                      typeof (p.generation_metadata as { request_id?: unknown }).request_id === 'string'
+                        ? (p.generation_metadata as { request_id: string }).request_id
+                        : null
+                    return (
                     <tr key={p.id} className="border-t border-[#2A2A2A]">
                       <td className="px-3 py-2 text-[#A0A0A0]">{p.sort_order + 1}</td>
                       <td className="px-3 py-2">
@@ -395,6 +412,18 @@ export default function AdminFlowDetailPage() {
                       </td>
                       <td className="px-3 py-2 text-[#A0A0A0] capitalize">{p.generation_mode}</td>
                       <td className="px-3 py-2 text-[#A0A0A0] capitalize">{p.status}</td>
+                      <td className="px-3 py-2">
+                        {falRid ? (
+                          <div className="flex flex-col gap-1">
+                            <code className="text-[10px] text-[#666] break-all max-w-[200px]" title={falRid}>
+                              {shortId(falRid)}
+                            </code>
+                            <CopyIdButton id={falRid} label="Fal req" />
+                          </div>
+                        ) : (
+                          <span className="text-[#555] text-[11px]">—</span>
+                        )}
+                      </td>
                       <td className="px-3 py-2">
                         {p.generated_media?.url ? (
                           <a
@@ -411,7 +440,7 @@ export default function AdminFlowDetailPage() {
                         )}
                       </td>
                     </tr>
-                  ))}
+                  )})}
                 </tbody>
               </table>
             </div>

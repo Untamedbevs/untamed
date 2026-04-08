@@ -1,4 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin'
+import { withResolvedPublicMediaUrl } from '@/lib/media-cdn-url'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import { NextRequest, NextResponse } from 'next/server'
 
@@ -75,7 +76,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  return NextResponse.json(data)
+  const rows = (data || []).map((row) => withResolvedPublicMediaUrl(row))
+  return NextResponse.json(rows)
 }
 
 export async function POST(request: NextRequest) {
@@ -121,7 +123,7 @@ async function registerMedia(supabase: ReturnType<typeof createAdminClient>, req
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  return NextResponse.json(data, { status: 201 })
+  return NextResponse.json(withResolvedPublicMediaUrl(data), { status: 201 })
 }
 
 async function uploadMedia(supabase: ReturnType<typeof createAdminClient>, request: NextRequest) {
@@ -194,5 +196,5 @@ async function uploadMedia(supabase: ReturnType<typeof createAdminClient>, reque
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  return NextResponse.json(data, { status: 201 })
+  return NextResponse.json(withResolvedPublicMediaUrl(data), { status: 201 })
 }

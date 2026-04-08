@@ -1,3 +1,5 @@
+import { siteAssetAbsoluteUrl } from '@/lib/site-assets'
+
 export interface Drink {
   slug: string
   name: string
@@ -135,9 +137,5 @@ export function getDrinkBySlug(slug: string): Drink | undefined {
 
 /** Build an absolute URL for site assets (can / animal images). Fal and other APIs need a public URL. */
 export function drinkAssetAbsoluteUrl(siteBase: string, assetPath: string): string {
-  const trimmed = assetPath.trim()
-  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed
-  const path = trimmed.startsWith('/') ? trimmed : `/${trimmed}`
-  const base = siteBase.replace(/\/$/, '')
-  return `${base}${path}`
+  return siteAssetAbsoluteUrl(assetPath, siteBase)
 }
