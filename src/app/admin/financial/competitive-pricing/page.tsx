@@ -17,19 +17,27 @@ import {
   Package,
   Zap,
   Info,
+  Store,
+  Globe,
 } from 'lucide-react'
+
+type Channel = 'retail' | 'dtc'
 
 type Brand = {
   name: string
   canOz: number
-  pricePerOz: number
+  retailPricePerOz: number
+  dtcPricePerOz: number
+  packQty: number
   abv: number
   isUntamed?: boolean
   color: string
 }
 
 type BrandMetrics = Brand & {
+  activePricePerOz: number
   canPrice: number
+  packPrice: number
   alcoholOz: number
   pricePerAlcoholOz: number
   standardDrinks: number
@@ -38,14 +46,14 @@ type BrandMetrics = Brand & {
 }
 
 const COMPETITORS: Brand[] = [
-  { name: 'Social Hour', canOz: 8.45, pricePerOz: 0.592, abv: 0.11, color: '#6366F1' },
-  { name: 'Night Owl', canOz: 6.8, pricePerOz: 0.74, abv: 0.125, color: '#8B5CF6' },
-  { name: 'Post Meridiem', canOz: 3.4, pricePerOz: 1.32, abv: 0.22, color: '#EC4899' },
-  { name: 'Top Dog', canOz: 6.8, pricePerOz: 0.53, abv: 0.125, color: '#14B8A6' },
-  { name: 'Tip Top', canOz: 3.4, pricePerOz: 1.77, abv: 0.22, color: '#F97316' },
-  { name: 'Gold Rush', canOz: 8.45, pricePerOz: 0.80, abv: 0.131, color: '#EAB308' },
-  { name: 'Loverboy', canOz: 8.45, pricePerOz: 0.59, abv: 0.12, color: '#F472B6' },
-  { name: 'Straightaway', canOz: 3.45, pricePerOz: 1.76, abv: 0.23, color: '#22D3EE' },
+  { name: 'Social Hour', canOz: 8.45, retailPricePerOz: 0.592, dtcPricePerOz: 0, packQty: 4, abv: 0.11, color: '#6366F1' },
+  { name: 'Night Owl', canOz: 6.8, retailPricePerOz: 0.74, dtcPricePerOz: 0, packQty: 4, abv: 0.125, color: '#8B5CF6' },
+  { name: 'Post Meridiem', canOz: 3.4, retailPricePerOz: 1.32, dtcPricePerOz: 0, packQty: 8, abv: 0.22, color: '#EC4899' },
+  { name: 'Top Dog', canOz: 6.8, retailPricePerOz: 0.53, dtcPricePerOz: 0, packQty: 4, abv: 0.125, color: '#14B8A6' },
+  { name: 'Tip Top', canOz: 3.4, retailPricePerOz: 1.77, dtcPricePerOz: 0, packQty: 4, abv: 0.22, color: '#F97316' },
+  { name: 'Gold Rush', canOz: 8.45, retailPricePerOz: 0.80, dtcPricePerOz: 0, packQty: 4, abv: 0.131, color: '#EAB308' },
+  { name: 'Loverboy', canOz: 8.45, retailPricePerOz: 0.59, dtcPricePerOz: 0, packQty: 4, abv: 0.12, color: '#F472B6' },
+  { name: 'Straightaway', canOz: 3.45, retailPricePerOz: 1.76, dtcPricePerOz: 0, packQty: 4, abv: 0.23, color: '#22D3EE' },
 ]
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -60,20 +68,34 @@ function getCategory(canOz: number): 'full' | 'mid' | 'cocktail' {
   return 'cocktail'
 }
 
-function computeMetrics(brand: Brand): BrandMetrics {
-  const canPrice = brand.canOz * brand.pricePerOz
+function computeMetrics(brand: Brand, channel: Channel): BrandMetrics {
+  const activePricePerOz = channel === 'dtc' && brand.dtcPricePerOz > 0
+    ? brand.dtcPricePerOz
+    : brand.retailPricePerOz
+  const canPrice = brand.canOz * activePricePerOz
+  const packPrice = canPrice * brand.packQty
   const alcoholOz = brand.canOz * brand.abv
   const pricePerAlcoholOz = alcoholOz > 0 ? canPrice / alcoholOz : 0
   const standardDrinks = alcoholOz / 0.6
   const pricePerStdDrink = standardDrinks > 0 ? canPrice / standardDrinks : 0
-  return { ...brand, canPrice, alcoholOz, pricePerAlcoholOz, standardDrinks, pricePerStdDrink, category: getCategory(brand.canOz) }
+  return {
+    ...brand,
+    activePricePerOz,
+    canPrice,
+    packPrice,
+    alcoholOz,
+    pricePerAlcoholOz,
+    standardDrinks,
+    pricePerStdDrink,
+    category: getCategory(brand.canOz),
+  }
 }
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)
 }
 
-type SortKey = 'name' | 'canOz' | 'pricePerOz' | 'abv' | 'canPrice' | 'pricePerAlcoholOz' | 'pricePerStdDrink'
+type SortKey = 'name' | 'canOz' | 'activePricePerOz' | 'abv' | 'canPrice' | 'packPrice' | 'pricePerAlcoholOz' | 'pricePerStdDrink'
 type SortDir = 'asc' | 'desc'
 
 function HorizontalBarChart({
@@ -274,8 +296,10 @@ function MarketScatter({ data }: { data: BrandMetrics[] }) {
 }
 
 export default function CompetitivePricingPage() {
+  const [channel, setChannel] = useState<Channel>('retail')
+
   const [untamedProducts, setUntamedProducts] = useState<Brand[]>([
-    { name: 'Untamed', canOz: 12, pricePerOz: 0.50, abv: 0.15, isUntamed: true, color: '#9B30FF' },
+    { name: 'Untamed', canOz: 12, retailPricePerOz: 0.50, dtcPricePerOz: 0, packQty: 4, abv: 0.15, isUntamed: true, color: '#9B30FF' },
   ])
 
   const [sortKey, setSortKey] = useState<SortKey>('canPrice')
@@ -283,9 +307,12 @@ export default function CompetitivePricingPage() {
   const [categoryFilter, setCategoryFilter] = useState<'all' | 'full' | 'mid' | 'cocktail'>('all')
 
   const allBrands = useMemo(() => {
-    const validUntamed = untamedProducts.filter(p => p.canOz > 0 && p.pricePerOz > 0 && p.abv > 0)
-    return [...COMPETITORS, ...validUntamed].map(computeMetrics)
-  }, [untamedProducts])
+    const validUntamed = untamedProducts.filter(p => {
+      const price = channel === 'dtc' ? (p.dtcPricePerOz || p.retailPricePerOz) : p.retailPricePerOz
+      return p.canOz > 0 && price > 0 && p.abv > 0
+    })
+    return [...COMPETITORS, ...validUntamed].map(b => computeMetrics(b, channel))
+  }, [untamedProducts, channel])
 
   const filteredBrands = useMemo(() => {
     if (categoryFilter === 'all') return allBrands
@@ -312,10 +339,10 @@ export default function CompetitivePricingPage() {
     }
   }
 
-  function updateUntamed(index: number, field: keyof Brand, value: string | number | boolean) {
+  function updateUntamed(index: number, updates: Partial<Brand>) {
     setUntamedProducts(prev => {
       const next = [...prev]
-      next[index] = { ...next[index], [field]: value }
+      next[index] = { ...next[index], ...updates }
       return next
     })
   }
@@ -323,7 +350,7 @@ export default function CompetitivePricingPage() {
   function addUntamedProduct() {
     setUntamedProducts(prev => [
       ...prev,
-      { name: `Untamed ${prev.length + 1}`, canOz: 0, pricePerOz: 0, abv: 0, isUntamed: true, color: '#9B30FF' },
+      { name: `Untamed ${prev.length + 1}`, canOz: 0, retailPricePerOz: 0, dtcPricePerOz: 0, packQty: 4, abv: 0, isUntamed: true, color: '#9B30FF' },
     ])
   }
 
@@ -350,7 +377,7 @@ export default function CompetitivePricingPage() {
       const sameCategory = allBrands.filter(b => b.category === product.category && !b.isUntamed)
       if (sameCategory.length === 0) continue
 
-      const pricesPerOz = sameCategory.map(b => b.pricePerOz)
+      const pricesPerOz = sameCategory.map(b => b.activePricePerOz)
       const lowest = Math.min(...pricesPerOz)
       const highest = Math.max(...pricesPerOz)
       const average = pricesPerOz.reduce((s, p) => s + p, 0) / pricesPerOz.length
@@ -375,13 +402,15 @@ export default function CompetitivePricingPage() {
   }, [untamedMetrics, allBrands])
 
   function handleExport() {
-    const headers = ['Brand', 'Can Size (oz)', '$/oz', 'ABV', 'Can Price', 'Alcohol (oz)', '$/oz Alcohol', 'Std Drinks', '$/Std Drink', 'Category']
+    const headers = ['Brand', 'Can Size (oz)', 'Pack Qty', `$/oz (${channel})`, 'ABV', 'Can Price', 'Pack Price', 'Alcohol (oz)', '$/oz Alcohol', 'Std Drinks', '$/Std Drink', 'Category']
     const rows = sortedBrands.map(b => [
       b.name,
       b.canOz.toFixed(2),
-      b.pricePerOz.toFixed(3),
+      b.packQty,
+      b.activePricePerOz.toFixed(3),
       (b.abv * 100).toFixed(1) + '%',
       b.canPrice.toFixed(2),
+      b.packPrice.toFixed(2),
       b.alcoholOz.toFixed(3),
       b.pricePerAlcoholOz.toFixed(2),
       b.standardDrinks.toFixed(2),
@@ -393,7 +422,7 @@ export default function CompetitivePricingPage() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `competitive-pricing-${new Date().toISOString().split('T')[0]}.csv`
+    a.download = `competitive-pricing-${channel}-${new Date().toISOString().split('T')[0]}.csv`
     a.click()
     URL.revokeObjectURL(url)
   }
@@ -401,14 +430,14 @@ export default function CompetitivePricingPage() {
   const kpis = useMemo(() => {
     if (filteredBrands.length === 0) return []
     const sorted = {
-      byPricePerOz: [...filteredBrands].sort((a, b) => a.pricePerOz - b.pricePerOz),
+      byPricePerOz: [...filteredBrands].sort((a, b) => a.activePricePerOz - b.activePricePerOz),
       byValue: [...filteredBrands].sort((a, b) => a.pricePerAlcoholOz - b.pricePerAlcoholOz),
       byAbv: [...filteredBrands].sort((a, b) => b.abv - a.abv),
     }
     return [
       {
         label: 'Lowest $/oz',
-        value: `$${sorted.byPricePerOz[0].pricePerOz.toFixed(3)}`,
+        value: `$${sorted.byPricePerOz[0].activePricePerOz.toFixed(3)}`,
         sub: sorted.byPricePerOz[0].name,
         color: '#4A7C0F',
       },
@@ -439,18 +468,19 @@ export default function CompetitivePricingPage() {
       const competitors = allBrands.filter(b => !b.isUntamed)
       const total = allBrands.length
 
-      const rank = (arr: BrandMetrics[], name: string) => arr.findIndex(b => b.name === name) + 1
+      const rankIn = (arr: BrandMetrics[], name: string) => arr.findIndex(b => b.name === name) + 1
       const r = {
-        stdDrinkPrice: rank([...allBrands].sort((a, b) => a.pricePerStdDrink - b.pricePerStdDrink), product.name),
-        pricePerOz: rank([...allBrands].sort((a, b) => a.pricePerOz - b.pricePerOz), product.name),
-        canPrice: rank([...allBrands].sort((a, b) => a.canPrice - b.canPrice), product.name),
-        abv: rank([...allBrands].sort((a, b) => b.abv - a.abv), product.name),
-        canSize: rank([...allBrands].sort((a, b) => b.canOz - a.canOz), product.name),
-        alcoholContent: rank([...allBrands].sort((a, b) => b.alcoholOz - a.alcoholOz), product.name),
-        pricePerAlcOz: rank([...allBrands].sort((a, b) => a.pricePerAlcoholOz - b.pricePerAlcoholOz), product.name),
+        stdDrinkPrice: rankIn([...allBrands].sort((a, b) => a.pricePerStdDrink - b.pricePerStdDrink), product.name),
+        pricePerOz: rankIn([...allBrands].sort((a, b) => a.activePricePerOz - b.activePricePerOz), product.name),
+        canPrice: rankIn([...allBrands].sort((a, b) => a.canPrice - b.canPrice), product.name),
+        abv: rankIn([...allBrands].sort((a, b) => b.abv - a.abv), product.name),
+        canSize: rankIn([...allBrands].sort((a, b) => b.canOz - a.canOz), product.name),
+        alcoholContent: rankIn([...allBrands].sort((a, b) => b.alcoholOz - a.alcoholOz), product.name),
+        pricePerAlcOz: rankIn([...allBrands].sort((a, b) => a.pricePerAlcoholOz - b.pricePerAlcoholOz), product.name),
       }
 
-      let text = `At $${product.pricePerOz.toFixed(2)}/oz with a ${product.canOz} oz can, that's a ${formatCurrency(product.canPrice)} can price and ${formatCurrency(product.pricePerStdDrink)} per standard drink`
+      const channelLabel = channel === 'dtc' ? 'DTC' : 'retail'
+      let text = `At $${product.activePricePerOz.toFixed(2)}/oz ${channelLabel} with a ${product.canOz} oz can, that's a ${formatCurrency(product.canPrice)} can / ${formatCurrency(product.packPrice)} ${product.packQty}-pack and ${formatCurrency(product.pricePerStdDrink)} per standard drink`
       if (r.stdDrinkPrice === 1) {
         text += ` \u2014 the lowest cost per standard drink on the entire board.`
       } else {
@@ -494,7 +524,9 @@ export default function CompetitivePricingPage() {
 
       return { name: product.name, text }
     })
-  }, [untamedMetrics, allBrands])
+  }, [untamedMetrics, allBrands, channel])
+
+  const inputCls = "w-full bg-[#0A0A0A] border border-[#2A2A2A] rounded-xl px-3 py-2.5 text-white text-sm outline-none tabular-nums placeholder:text-[#333] focus:border-[#9B30FF]/50 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
 
   return (
     <div className="space-y-8 max-w-[1600px]">
@@ -505,21 +537,50 @@ export default function CompetitivePricingPage() {
             Competitive Pricing Analysis
           </h1>
           <p className="text-sm text-[#A0A0A0] mt-1">
-            Compare retail pricing and value metrics across the canned cocktail market
+            {channel === 'retail'
+              ? 'Comparing retail pricing across the canned cocktail market'
+              : 'Comparing DTC pricing — competitor data shown at retail where DTC is unavailable'}
           </p>
         </div>
-        <button
-          onClick={handleExport}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm text-white bg-[#9B30FF] hover:bg-[#8526DB] transition-all duration-200"
-        >
-          <Download className="w-4 h-4" />
-          Export CSV
-        </button>
+        <div className="flex items-center gap-3">
+          {/* Channel Toggle */}
+          <div className="flex bg-[#0A0A0A] border border-[#2A2A2A] rounded-xl overflow-hidden">
+            <button
+              onClick={() => setChannel('retail')}
+              className={`flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium transition-all duration-200 ${
+                channel === 'retail'
+                  ? 'bg-[#9B30FF] text-white'
+                  : 'text-[#A0A0A0] hover:text-white'
+              }`}
+            >
+              <Store className="w-3.5 h-3.5" />
+              Retail
+            </button>
+            <button
+              onClick={() => setChannel('dtc')}
+              className={`flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium transition-all duration-200 ${
+                channel === 'dtc'
+                  ? 'bg-[#9B30FF] text-white'
+                  : 'text-[#A0A0A0] hover:text-white'
+              }`}
+            >
+              <Globe className="w-3.5 h-3.5" />
+              DTC
+            </button>
+          </div>
+          <button
+            onClick={handleExport}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm text-white bg-[#9B30FF] hover:bg-[#8526DB] transition-all duration-200"
+          >
+            <Download className="w-4 h-4" />
+            Export
+          </button>
+        </div>
       </div>
 
       {/* Main grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left column: inputs + recommendations */}
+        {/* Left column */}
         <div className="space-y-6">
           {/* Untamed Product Inputs */}
           <div className="bg-[#141414] border border-[#2A2A2A] rounded-2xl p-6">
@@ -549,7 +610,7 @@ export default function CompetitivePricingPage() {
                     <input
                       type="text"
                       value={product.name}
-                      onChange={(e) => updateUntamed(idx, 'name', e.target.value)}
+                      onChange={(e) => updateUntamed(idx, { name: e.target.value })}
                       className="bg-transparent text-sm text-white font-medium outline-none border-b border-transparent focus:border-[#9B30FF]/50 transition-colors"
                     />
                     {untamedProducts.length > 1 && (
@@ -558,41 +619,70 @@ export default function CompetitivePricingPage() {
                       </button>
                     )}
                   </div>
-                  <div>
-                    <label className="block text-xs text-[#A0A0A0] mb-1">Can Size (oz)</label>
-                    <input
-                      type="number"
-                      min={0}
-                      step={0.1}
-                      value={product.canOz || ''}
-                      onChange={(e) => updateUntamed(idx, 'canOz', parseFloat(e.target.value) || 0)}
-                      placeholder="e.g. 6.8"
-                      className="w-full bg-[#0A0A0A] border border-[#2A2A2A] rounded-xl px-3 py-2.5 text-white text-sm outline-none tabular-nums placeholder:text-[#333] focus:border-[#9B30FF]/50 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                    />
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-[#A0A0A0] mb-1">Can Size (oz)</label>
+                      <input
+                        type="number" min={0} step={0.1}
+                        value={product.canOz || ''}
+                        onChange={(e) => updateUntamed(idx, { canOz: parseFloat(e.target.value) || 0 })}
+                        placeholder="12"
+                        className={inputCls}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-[#A0A0A0] mb-1">Pack Qty</label>
+                      <input
+                        type="number" min={1} step={1}
+                        value={product.packQty || ''}
+                        onChange={(e) => updateUntamed(idx, { packQty: Math.max(1, parseInt(e.target.value) || 1) })}
+                        placeholder="4"
+                        className={inputCls}
+                      />
+                    </div>
                   </div>
+
                   <div>
-                    <label className="block text-xs text-[#A0A0A0] mb-1">Retail Price per oz ($)</label>
+                    <label className="block text-xs text-[#A0A0A0] mb-1">Retail $/oz</label>
                     <input
-                      type="number"
-                      min={0}
-                      step={0.01}
-                      value={product.pricePerOz || ''}
-                      onChange={(e) => updateUntamed(idx, 'pricePerOz', parseFloat(e.target.value) || 0)}
-                      placeholder="e.g. 0.65"
-                      className="w-full bg-[#0A0A0A] border border-[#2A2A2A] rounded-xl px-3 py-2.5 text-white text-sm outline-none tabular-nums placeholder:text-[#333] focus:border-[#9B30FF]/50 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      type="number" min={0} step={0.01}
+                      value={product.retailPricePerOz || ''}
+                      onChange={(e) => updateUntamed(idx, { retailPricePerOz: parseFloat(e.target.value) || 0 })}
+                      placeholder="0.50"
+                      className={inputCls}
                     />
+                    {product.retailPricePerOz > 0 && product.canOz > 0 && (
+                      <p className="text-[10px] text-[#666] mt-1 tabular-nums">
+                        = {formatCurrency(product.canOz * product.retailPricePerOz)}/can &middot; {formatCurrency(product.canOz * product.retailPricePerOz * product.packQty)}/{product.packQty}-pack
+                      </p>
+                    )}
                   </div>
+
+                  <div>
+                    <label className="block text-xs text-[#A0A0A0] mb-1">DTC $/oz</label>
+                    <input
+                      type="number" min={0} step={0.01}
+                      value={product.dtcPricePerOz || ''}
+                      onChange={(e) => updateUntamed(idx, { dtcPricePerOz: parseFloat(e.target.value) || 0 })}
+                      placeholder="0.65"
+                      className={inputCls}
+                    />
+                    {product.dtcPricePerOz > 0 && product.canOz > 0 && (
+                      <p className="text-[10px] text-[#666] mt-1 tabular-nums">
+                        = {formatCurrency(product.canOz * product.dtcPricePerOz)}/can &middot; {formatCurrency(product.canOz * product.dtcPricePerOz * product.packQty)}/{product.packQty}-pack
+                      </p>
+                    )}
+                  </div>
+
                   <div>
                     <label className="block text-xs text-[#A0A0A0] mb-1">ABV (%)</label>
                     <input
-                      type="number"
-                      min={0}
-                      max={100}
-                      step={0.1}
+                      type="number" min={0} max={100} step={0.1}
                       value={product.abv ? product.abv * 100 : ''}
-                      onChange={(e) => updateUntamed(idx, 'abv', (parseFloat(e.target.value) || 0) / 100)}
-                      placeholder="e.g. 12.5"
-                      className="w-full bg-[#0A0A0A] border border-[#2A2A2A] rounded-xl px-3 py-2.5 text-white text-sm outline-none tabular-nums placeholder:text-[#333] focus:border-[#9B30FF]/50 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      onChange={(e) => updateUntamed(idx, { abv: (parseFloat(e.target.value) || 0) / 100 })}
+                      placeholder="15"
+                      className={inputCls}
                     />
                   </div>
                 </div>
@@ -600,7 +690,7 @@ export default function CompetitivePricingPage() {
             </div>
           </div>
 
-          {/* Pricing Insights per Untamed product */}
+          {/* Pricing Insights */}
           {recommendations.map((rec, idx) => (
             <div key={idx} className="bg-[#141414] border-2 border-[#9B30FF]/40 rounded-2xl p-6 relative overflow-hidden">
               <div className="absolute inset-0 opacity-5" style={{ background: 'radial-gradient(ellipse at top right, #9B30FF, transparent 70%)' }} />
@@ -613,14 +703,18 @@ export default function CompetitivePricingPage() {
                     <h2 className="text-base font-semibold text-white uppercase tracking-wide font-[var(--font-oswald)]">
                       {rec.product.name}
                     </h2>
-                    <p className="text-xs text-[#666]">{rec.categoryName}</p>
+                    <p className="text-xs text-[#666]">{rec.categoryName} &middot; {channel === 'dtc' ? 'DTC' : 'Retail'}</p>
                   </div>
                 </div>
 
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-xs text-[#A0A0A0]">Your Can Price</span>
+                    <span className="text-xs text-[#A0A0A0]">Can Price</span>
                     <span className="text-sm font-semibold text-white tabular-nums">{formatCurrency(rec.product.canPrice)}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-[#A0A0A0]">{rec.product.packQty}-Pack Price</span>
+                    <span className="text-sm font-semibold text-white tabular-nums">{formatCurrency(rec.product.packPrice)}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-xs text-[#A0A0A0]">Price Rank (low to high)</span>
@@ -639,19 +733,19 @@ export default function CompetitivePricingPage() {
                         .filter(b => b.category === rec.product.category && !b.isUntamed)
                         .map(b => {
                           const range = rec.highestPricePerOz - rec.lowestPricePerOz
-                          const pos = range > 0 ? ((b.pricePerOz - rec.lowestPricePerOz) / range) * 90 + 5 : 50
+                          const pos = range > 0 ? ((b.activePricePerOz - rec.lowestPricePerOz) / range) * 90 + 5 : 50
                           return (
                             <div
                               key={b.name}
                               className="absolute top-1/2 -translate-y-1/2 w-2 h-4 rounded-sm"
                               style={{ left: `${pos}%`, backgroundColor: b.color, opacity: 0.6 }}
-                              title={`${b.name}: $${b.pricePerOz.toFixed(3)}/oz`}
+                              title={`${b.name}: $${b.activePricePerOz.toFixed(3)}/oz`}
                             />
                           )
                         })}
                       {(() => {
                         const range = rec.highestPricePerOz - rec.lowestPricePerOz
-                        const raw = range > 0 ? ((rec.product.pricePerOz - rec.lowestPricePerOz) / range) * 90 + 5 : 50
+                        const raw = range > 0 ? ((rec.product.activePricePerOz - rec.lowestPricePerOz) / range) * 90 + 5 : 50
                         const pos = Math.min(95, Math.max(5, raw))
                         return (
                           <div
@@ -717,7 +811,7 @@ export default function CompetitivePricingPage() {
           </div>
         </div>
 
-        {/* Right column: KPIs + table + charts */}
+        {/* Right column */}
         <div className="lg:col-span-2 space-y-6">
           {/* KPI cards */}
           {kpis.length > 0 && (
@@ -772,9 +866,10 @@ export default function CompetitivePricingPage() {
                     {([
                       { key: 'name' as SortKey, label: 'Brand', align: 'left' as const },
                       { key: 'canOz' as SortKey, label: 'Size', align: 'right' as const },
-                      { key: 'pricePerOz' as SortKey, label: '$/oz', align: 'right' as const },
+                      { key: 'activePricePerOz' as SortKey, label: '$/oz', align: 'right' as const },
                       { key: 'abv' as SortKey, label: 'ABV', align: 'right' as const },
-                      { key: 'canPrice' as SortKey, label: 'Can Price', align: 'right' as const },
+                      { key: 'canPrice' as SortKey, label: 'Can', align: 'right' as const },
+                      { key: 'packPrice' as SortKey, label: 'Pack', align: 'right' as const },
                       { key: 'pricePerAlcoholOz' as SortKey, label: '$/oz Alc', align: 'right' as const, tip: '1 std drink = 0.6 oz pure alcohol (NIAAA)' },
                       { key: 'pricePerStdDrink' as SortKey, label: '$/Std Drink', align: 'right' as const, tip: '1 std drink = 0.6 oz pure alcohol (NIAAA)' },
                     ]).map(col => (
@@ -814,11 +909,15 @@ export default function CompetitivePricingPage() {
                       </td>
                       <td className="text-right py-2.5 px-2 text-[#A0A0A0] tabular-nums">{brand.canOz} oz</td>
                       <td className={`text-right py-2.5 px-2 tabular-nums ${brand.isUntamed ? 'text-[#9B30FF] font-medium' : 'text-white'}`}>
-                        ${brand.pricePerOz.toFixed(3)}
+                        ${brand.activePricePerOz.toFixed(3)}
                       </td>
                       <td className="text-right py-2.5 px-2 text-[#A0A0A0] tabular-nums">{(brand.abv * 100).toFixed(1)}%</td>
                       <td className={`text-right py-2.5 px-2 tabular-nums font-medium ${brand.isUntamed ? 'text-[#9B30FF]' : 'text-white'}`}>
                         {formatCurrency(brand.canPrice)}
+                      </td>
+                      <td className="text-right py-2.5 px-2 text-[#A0A0A0] tabular-nums">
+                        {formatCurrency(brand.packPrice)}
+                        <span className="text-[10px] text-[#666] ml-1">/{brand.packQty}pk</span>
                       </td>
                       <td className="text-right py-2.5 px-2 text-[#A0A0A0] tabular-nums">{formatCurrency(brand.pricePerAlcoholOz)}</td>
                       <td className="text-right py-2.5 px-2 text-[#A0A0A0] tabular-nums">{formatCurrency(brand.pricePerStdDrink)}</td>
@@ -832,11 +931,16 @@ export default function CompetitivePricingPage() {
               <Info className="w-4 h-4 text-[#666] shrink-0 mt-0.5" />
               <div className="text-xs text-[#666] leading-relaxed">
                 <p>
-                  <span className="text-[#A0A0A0] font-medium">Standard drink</span> = 0.6 oz of pure alcohol (NIAAA definition). That&apos;s equivalent to 12 oz of beer (5% ABV), 5 oz of wine (12% ABV), or 1.5 oz of spirits (40% ABV). Calculated as: <span className="text-[#A0A0A0]">can size × ABV ÷ 0.6</span>.
+                  <span className="text-[#A0A0A0] font-medium">Standard drink</span> = 0.6 oz of pure alcohol (NIAAA definition). That&apos;s equivalent to 12 oz of beer (5% ABV), 5 oz of wine (12% ABV), or 1.5 oz of spirits (40% ABV). Calculated as: <span className="text-[#A0A0A0]">can size &times; ABV &divide; 0.6</span>.
                 </p>
                 <p className="mt-1">
-                  <span className="text-[#A0A0A0] font-medium">$/oz Alc</span> = can price ÷ oz of pure alcohol in the can. <span className="text-[#A0A0A0] font-medium">$/Std Drink</span> = can price ÷ standard drinks per can.
+                  <span className="text-[#A0A0A0] font-medium">$/oz Alc</span> = can price &divide; oz of pure alcohol in the can. <span className="text-[#A0A0A0] font-medium">$/Std Drink</span> = can price &divide; standard drinks per can. <span className="text-[#A0A0A0] font-medium">Pack</span> = can price &times; pack quantity.
                 </p>
+                {channel === 'dtc' && (
+                  <p className="mt-1 text-[#E87511]">
+                    Competitor prices shown at retail — DTC data not available. Your products use DTC pricing (falls back to retail if DTC is blank).
+                  </p>
+                )}
               </div>
             </div>
           </div>

@@ -14,6 +14,7 @@ import {
   Play,
   RefreshCw,
   RotateCcw,
+  HelpCircle,
   ThumbsDown,
   ThumbsUp,
   Trash2,
@@ -214,14 +215,22 @@ function SegmentActions({
   const isApproved = post.status === 'approved'
   const isRejected = post.status === 'rejected'
   const isPending = post.status === 'pending'
-  const canApprove = isComplete && !!post.generated_media?.url
-  const canReject = isComplete || isApproved
+  const isMaybe = post.status === 'maybe'
+  const hasOutput = !!post.generated_media?.url
+  const canApprove = (isComplete || isMaybe) && hasOutput && !isApproved
+  const canMarkMaybe = (isComplete || isApproved) && hasOutput && !isMaybe
+  const canRejectReset = isComplete || isApproved || isMaybe
 
   return (
     <div className="flex items-center gap-1">
       {isApproved && (
         <span className="text-[10px] text-[#4A7C0F] font-medium bg-[#4A7C0F]/10 border border-[#4A7C0F]/30 rounded-full px-2 py-0.5">
           Approved
+        </span>
+      )}
+      {isMaybe && (
+        <span className="text-[10px] text-[#E8C547] font-medium bg-[#C9A227]/10 border border-[#C9A227]/30 rounded-full px-2 py-0.5">
+          Maybe
         </span>
       )}
       {canApprove && (
@@ -235,7 +244,18 @@ function SegmentActions({
           <ThumbsUp className="w-4 h-4" />
         </button>
       )}
-      {canReject && (
+      {canMarkMaybe && (
+        <button
+          type="button"
+          disabled={updating || busy}
+          onClick={() => setStatus('maybe')}
+          className="p-1.5 rounded-lg text-[#E8C547] hover:bg-[#C9A227]/20 transition-colors disabled:opacity-40"
+          title="Maybe (tentative, keep asset)"
+        >
+          <HelpCircle className="w-4 h-4" />
+        </button>
+      )}
+      {canRejectReset && (
         <button
           type="button"
           disabled={updating || busy}
@@ -246,7 +266,7 @@ function SegmentActions({
           <ThumbsDown className="w-4 h-4" />
         </button>
       )}
-      {(isPending || isRejected) && (
+      {(isPending || isRejected || isMaybe) && (
         <button
           type="button"
           disabled={updating || busy}

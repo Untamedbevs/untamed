@@ -21,6 +21,9 @@ export type FlowPostForRefs = {
 
 export type FlowPostsContext = { flow_posts: FlowPostForRefs[] }
 
+/** Prior segment may supply a reference once generation is done (including tentative review). */
+const PRIOR_SEGMENT_READY = ['complete', 'approved', 'maybe'] as const
+
 export type ReferenceImageSource = { url: string; s3_key?: string | null }
 
 export function resolvePrimaryReferenceSource(
@@ -29,7 +32,7 @@ export function resolvePrimaryReferenceSource(
 ): ReferenceImageSource | undefined {
   if (post.reference_source_sort_order != null) {
     const src = flow.flow_posts.find((p) => p.sort_order === post.reference_source_sort_order)
-    if (!src || !['complete', 'approved'].includes(src.status)) return undefined
+    if (!src || !(PRIOR_SEGMENT_READY as readonly string[]).includes(src.status)) return undefined
     const g = src.generated_media
     if (g?.file_type === 'image' && g.url) return { url: g.url, s3_key: g.s3_key }
     return undefined
@@ -47,7 +50,7 @@ export function resolveEndFrameSource(
 ): ReferenceImageSource | undefined {
   if (post.end_frame_source_sort_order != null) {
     const src = flow.flow_posts.find((p) => p.sort_order === post.end_frame_source_sort_order)
-    if (!src || !['complete', 'approved'].includes(src.status)) return undefined
+    if (!src || !(PRIOR_SEGMENT_READY as readonly string[]).includes(src.status)) return undefined
     const g = src.generated_media
     if (g?.file_type === 'image' && g.url) return { url: g.url, s3_key: g.s3_key }
     return undefined

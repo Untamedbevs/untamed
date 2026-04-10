@@ -18,28 +18,32 @@ function computeFlowProgress(posts?: { id: string; status: string }[]): {
 } {
   if (!posts || posts.length === 0) return { label: 'empty', color: 'text-[#555]' }
   const total = posts.length
-  const complete = posts.filter((p) => p.status === 'complete' || p.status === 'approved').length
+  const withOutput = posts.filter((p) =>
+    ['complete', 'approved', 'maybe'].includes(p.status)
+  ).length
   const generating = posts.filter((p) => p.status === 'generating').length
   const failed = posts.filter((p) => p.status === 'rejected').length
   const pending = posts.filter((p) => p.status === 'pending').length
 
-  if (complete === total) return { label: 'complete', color: 'text-[#4A7C0F]' }
-  if (generating > 0) return { label: `generating (${complete}/${total})`, color: 'text-[#E87511]' }
-  if (failed > 0) return { label: `${failed} failed (${complete}/${total} done)`, color: 'text-[#FF0040]' }
-  if (pending > 0 && complete > 0) return { label: `${complete}/${total} done`, color: 'text-[#00BFFF]' }
+  if (withOutput === total) return { label: 'complete', color: 'text-[#4A7C0F]' }
+  if (generating > 0) return { label: `generating (${withOutput}/${total})`, color: 'text-[#E87511]' }
+  if (failed > 0) return { label: `${failed} failed (${withOutput}/${total} done)`, color: 'text-[#FF0040]' }
+  if (pending > 0 && withOutput > 0) return { label: `${withOutput}/${total} done`, color: 'text-[#00BFFF]' }
   if (pending === total) return { label: 'pending', color: 'text-[#888]' }
-  return { label: `${complete}/${total}`, color: 'text-[#A0A0A0]' }
+  return { label: `${withOutput}/${total}`, color: 'text-[#A0A0A0]' }
 }
 
 function segmentApprovalSummary(posts?: { id: string; status: string }[]): {
   total: number
   approved: number
   completeNotApproved: number
+  maybe: number
 } {
-  if (!posts?.length) return { total: 0, approved: 0, completeNotApproved: 0 }
+  if (!posts?.length) return { total: 0, approved: 0, completeNotApproved: 0, maybe: 0 }
   const approved = posts.filter((p) => p.status === 'approved').length
   const completeNotApproved = posts.filter((p) => p.status === 'complete').length
-  return { total: posts.length, approved, completeNotApproved }
+  const maybe = posts.filter((p) => p.status === 'maybe').length
+  return { total: posts.length, approved, completeNotApproved, maybe }
 }
 
 function shortId(id: string) {
@@ -396,6 +400,7 @@ export default function AdminFlowsPage() {
                   approval.total === 0
                     ? 'No segments'
                     : `${approval.approved} approved of ${approval.total} segments` +
+                      (approval.maybe > 0 ? `; ${approval.maybe} maybe` : '') +
                       (approval.completeNotApproved > 0
                         ? `; ${approval.completeNotApproved} complete, awaiting approval`
                         : '')
@@ -435,6 +440,11 @@ export default function AdminFlowsPage() {
                             ) : null}
                             {approval.approved}/{approval.total} approved
                           </span>
+                          {approval.maybe > 0 ? (
+                            <span className="text-[10px] text-[#C9A227] leading-tight">
+                              {approval.maybe} maybe
+                            </span>
+                          ) : null}
                           {approval.completeNotApproved > 0 && !allApproved ? (
                             <span className="text-[10px] text-[#666] leading-tight">
                               {approval.completeNotApproved} ready for review

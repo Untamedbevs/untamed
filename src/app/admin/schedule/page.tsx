@@ -488,14 +488,14 @@ function ScheduleCard({
             onChange={(ids) => onUpdate(post.id, { media_ids: ids })}
           />
 
-          {post.publish_result && (
+          {post.publish_result != null ? (
             <div className="mt-3">
               <h4 className="text-xs font-medium text-[#888] uppercase tracking-wide mb-1">Publish results</h4>
               <pre className="text-[10px] text-[#A0A0A0] bg-[#0A0A0A] rounded-lg p-2 overflow-x-auto">
                 {JSON.stringify(post.publish_result, null, 2)}
               </pre>
             </div>
-          )}
+          ) : null}
 
           {post.flow_media && post.flow_media.length > 0 && (
             <div className="flex gap-2 flex-wrap">

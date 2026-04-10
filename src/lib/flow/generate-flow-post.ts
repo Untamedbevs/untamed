@@ -79,9 +79,11 @@ export function sortFlowPosts(posts: FlowPostJoined[]): FlowPostJoined[] {
 
 /** True when prior-segment deps are satisfied and model-specific inputs exist. */
 /** Segment already finished with a stored asset URL (S3/CDN via media). */
+const SEGMENT_HAS_OUTPUT = ['complete', 'approved', 'maybe'] as const
+
 export function isPostCompleteWithOutput(post: FlowPostJoined): boolean {
   return (
-    (post.status === 'complete' || post.status === 'approved') &&
+    (SEGMENT_HAS_OUTPUT as readonly string[]).includes(post.status) &&
     !!post.generated_media_id &&
     !!post.generated_media?.url
   )
@@ -92,14 +94,14 @@ export function segmentDependenciesReady(post: FlowPostJoined, all: FlowPostJoin
 
   if (post.reference_source_sort_order != null) {
     const src = all.find((p) => p.sort_order === post.reference_source_sort_order)
-    if (!src || !['complete', 'approved'].includes(src.status)) return false
+    if (!src || !(SEGMENT_HAS_OUTPUT as readonly string[]).includes(src.status)) return false
     const g = src.generated_media
     if (!g?.url || g.file_type !== 'image') return false
   }
 
   if (post.end_frame_source_sort_order != null) {
     const src = all.find((p) => p.sort_order === post.end_frame_source_sort_order)
-    if (!src || !['complete', 'approved'].includes(src.status)) return false
+    if (!src || !(SEGMENT_HAS_OUTPUT as readonly string[]).includes(src.status)) return false
     const g = src.generated_media
     if (!g?.url || g.file_type !== 'image') return false
   }
@@ -138,7 +140,7 @@ export function pickNextRunnablePost(all: FlowPostJoined[]): FlowPostJoined | nu
 }
 
 export function flowGenerationComplete(all: FlowPostJoined[]): boolean {
-  return all.every((p) => p.status === 'complete' || p.status === 'approved')
+  return all.every((p) => (SEGMENT_HAS_OUTPUT as readonly string[]).includes(p.status))
 }
 
 export function countPendingOrRejected(all: FlowPostJoined[]): number {

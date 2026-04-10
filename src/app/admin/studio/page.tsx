@@ -21,6 +21,7 @@ import {
   Eye,
   GripVertical,
   AlertCircle,
+  HelpCircle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { PLATFORMS } from '@/lib/constants/platforms'
@@ -61,7 +62,7 @@ interface FlowPost {
   reference_source_sort_order?: number | null
   end_frame_source_sort_order?: number | null
   generated_media_id: string | null
-  status: 'pending' | 'generating' | 'complete' | 'approved' | 'rejected'
+  status: 'pending' | 'generating' | 'complete' | 'approved' | 'rejected' | 'maybe'
   fal_model: string | null
   generation_metadata: Record<string, unknown> | null
   reference_media?: MediaItem | null
@@ -265,11 +266,14 @@ function buildVideoFrameMediaOptions(flow: Flow, currentPost: FlowPost, libraryM
   return options
 }
 
+/** Prior segment counts as ready once it has output (including tentative maybe). */
+const FLOW_SEGMENT_OUTPUT_READY = ['complete', 'approved', 'maybe'] as const
+
 /** Primary image URL: prior line output wins over library attachment. */
 function resolvePrimaryReferenceUrl(flow: Flow, post: FlowPost): string | undefined {
   if (post.reference_source_sort_order != null) {
     const src = flow.flow_posts.find((p) => p.sort_order === post.reference_source_sort_order)
-    if (!src || !['complete', 'approved'].includes(src.status)) return undefined
+    if (!src || !(FLOW_SEGMENT_OUTPUT_READY as readonly string[]).includes(src.status)) return undefined
     const g = src.generated_media
     if (g?.file_type === 'image' && g.url) return g.url
     return undefined
@@ -282,7 +286,7 @@ function resolvePrimaryReferenceUrl(flow: Flow, post: FlowPost): string | undefi
 function resolveEndFrameUrl(flow: Flow, post: FlowPost): string | undefined {
   if (post.end_frame_source_sort_order != null) {
     const src = flow.flow_posts.find((p) => p.sort_order === post.end_frame_source_sort_order)
-    if (!src || !['complete', 'approved'].includes(src.status)) return undefined
+    if (!src || !(FLOW_SEGMENT_OUTPUT_READY as readonly string[]).includes(src.status)) return undefined
     const g = src.generated_media
     if (g?.file_type === 'image' && g.url) return g.url
     return undefined
@@ -296,6 +300,7 @@ const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   complete: { bg: 'bg-[#00BFFF]/10', text: 'text-[#00BFFF]' },
   approved: { bg: 'bg-[#4A7C0F]/10', text: 'text-[#4A7C0F]' },
   rejected: { bg: 'bg-[#FF0040]/10', text: 'text-[#FF0040]' },
+  maybe: { bg: 'bg-[#C9A227]/10', text: 'text-[#E8C547]' },
 }
 
 // ─── Main Component ──────────────────────────────────────────────────────────
@@ -578,6 +583,10 @@ function StudioContent() {
     await updatePostField(postId, { status: 'rejected' })
   }
 
+  async function maybePost(postId: string) {
+    await updatePostField(postId, { status: 'maybe' })
+  }
+
   async function regeneratePost(post: FlowPost) {
     await updatePostField(post.id, { status: 'pending', generated_media_id: null } as Partial<FlowPost>)
     await refreshFlow()
@@ -616,9 +625,11 @@ function StudioContent() {
 
   // ─── Render ──────────────────────────────────────────────────────────────
 
-  const completedCount = flow?.flow_posts.filter((p) => ['complete', 'approved'].includes(p.status)).length || 0
+  const completedCount =
+    flow?.flow_posts.filter((p) => (FLOW_SEGMENT_OUTPUT_READY as readonly string[]).includes(p.status)).length || 0
   const totalCount = flow?.flow_posts.length || plannedPosts.length || 0
   const approvedCount = flow?.flow_posts.filter((p) => p.status === 'approved').length || 0
+  const maybeCountBar = flow?.flow_posts.filter((p) => p.status === 'maybe').length || 0
 
   return (
     <div className="space-y-6">
@@ -659,7 +670,9 @@ function StudioContent() {
 
         {totalCount > 0 && (
           <span className="ml-auto text-xs text-[#666]">
-            {phase === 'review' ? `${approvedCount}/${totalCount} approved` : `${completedCount}/${totalCount} generated`}
+            {phase === 'review'
+              ? `${approvedCount}/${totalCount} approved${maybeCountBar > 0 ? ` · ${maybeCountBar} maybe` : ''}`
+              : `${completedCount}/${totalCount} generated`}
           </span>
         )}
       </div>
@@ -727,6 +740,7 @@ function StudioContent() {
         <ReviewPhase
           flow={flow}
           onApprove={approvePost}
+          onMaybe={maybePost}
           onReject={rejectPost}
           onRegenerate={regeneratePost}
           onExport={exportToCampaign}
@@ -1365,7 +1379,9 @@ function GeneratePhase({
   onAdvance: () => void
 }) {
   const pendingCount = flow.flow_posts.filter((p) => p.status === 'pending' || p.status === 'rejected').length
-  const completedCount = flow.flow_posts.filter((p) => ['complete', 'approved'].includes(p.status)).length
+  const completedCount = flow.flow_posts.filter((p) =>
+    (FLOW_SEGMENT_OUTPUT_READY as readonly string[]).includes(p.status)
+  ).length
   const isGenerating = generatingPostId !== null
 
   return (
@@ -1731,6 +1747,7 @@ function GeneratePhase({
 function ReviewPhase({
   flow,
   onApprove,
+  onMaybe,
   onReject,
   onRegenerate,
   onExport,
@@ -1740,6 +1757,7 @@ function ReviewPhase({
 }: {
   flow: Flow
   onApprove: (id: string) => void
+  onMaybe: (id: string) => void
   onReject: (id: string) => void
   onRegenerate: (post: FlowPost) => void
   onExport: () => void
@@ -1748,10 +1766,11 @@ function ReviewPhase({
   onBack: () => void
 }) {
   const completedPosts = flow.flow_posts
-    .filter((p) => ['complete', 'approved', 'rejected'].includes(p.status))
+    .filter((p) => ['complete', 'approved', 'rejected', 'maybe'].includes(p.status))
     .sort((a, b) => a.sort_order - b.sort_order)
 
   const approvedCount = flow.flow_posts.filter((p) => p.status === 'approved').length
+  const maybeCount = flow.flow_posts.filter((p) => p.status === 'maybe').length
   const totalCompleted = completedPosts.length
 
   return (
@@ -1767,7 +1786,12 @@ function ReviewPhase({
         </button>
 
         <div className="flex items-center gap-3">
-          <span className="text-xs text-[#666]">{approvedCount}/{totalCompleted} approved</span>
+          <span className="text-xs text-[#666]">
+            {approvedCount}/{totalCompleted} approved
+            {maybeCount > 0 ? (
+              <span className="text-[#C9A227]"> · {maybeCount} maybe</span>
+            ) : null}
+          </span>
           <button
             onClick={onExport}
             disabled={approvedCount === 0}
@@ -1790,8 +1814,9 @@ function ReviewPhase({
               className={cn(
                 'bg-[#141414] border rounded-2xl overflow-hidden transition-all group',
                 post.status === 'approved' ? 'border-[#4A7C0F]/50' :
-                  post.status === 'rejected' ? 'border-[#FF0040]/30' :
-                    'border-[#2A2A2A] hover:border-[#444]'
+                  post.status === 'maybe' ? 'border-[#C9A227]/40' :
+                    post.status === 'rejected' ? 'border-[#FF0040]/30' :
+                      'border-[#2A2A2A] hover:border-[#444]'
               )}
             >
               {/* Image/Video */}
@@ -1836,11 +1861,11 @@ function ReviewPhase({
               <div className="p-3 space-y-2">
                 <p className="text-xs text-[#A0A0A0] line-clamp-2">{post.concept}</p>
 
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 flex-wrap">
                   <button
                     onClick={() => onApprove(post.id)}
                     className={cn(
-                      'flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-medium transition-all',
+                      'flex-1 min-w-[4.5rem] flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-medium transition-all',
                       post.status === 'approved'
                         ? 'bg-[#4A7C0F] text-white'
                         : 'bg-[#4A7C0F]/10 text-[#4A7C0F] hover:bg-[#4A7C0F]/20'
@@ -1851,9 +1876,24 @@ function ReviewPhase({
                   </button>
 
                   <button
+                    type="button"
+                    onClick={() => onMaybe(post.id)}
+                    disabled={post.status === 'maybe'}
+                    className={cn(
+                      'flex-1 min-w-[4.5rem] flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-50',
+                      post.status === 'maybe'
+                        ? 'bg-[#C9A227] text-black'
+                        : 'bg-[#C9A227]/10 text-[#E8C547] hover:bg-[#C9A227]/20'
+                    )}
+                  >
+                    <HelpCircle className="w-3 h-3" />
+                    Maybe
+                  </button>
+
+                  <button
                     onClick={() => onReject(post.id)}
                     className={cn(
-                      'flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-medium transition-all',
+                      'flex-1 min-w-[4.5rem] flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-medium transition-all',
                       post.status === 'rejected'
                         ? 'bg-[#FF0040] text-white'
                         : 'bg-[#FF0040]/10 text-[#FF0040] hover:bg-[#FF0040]/20'
@@ -1910,13 +1950,22 @@ function ReviewPhase({
 
             <div className="flex items-center justify-between mt-4">
               <p className="text-xs text-[#666] max-w-lg truncate">{previewPost.prompt}</p>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap justify-end">
                 <button
                   onClick={() => { onApprove(previewPost.id); setPreviewPost(null) }}
                   className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium bg-[#4A7C0F]/10 text-[#4A7C0F] hover:bg-[#4A7C0F]/20 transition-all"
                 >
                   <Check className="w-4 h-4" />
                   Approve
+                </button>
+                <button
+                  type="button"
+                  disabled={previewPost.status === 'maybe'}
+                  onClick={() => { onMaybe(previewPost.id); setPreviewPost(null) }}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium bg-[#C9A227]/10 text-[#E8C547] hover:bg-[#C9A227]/20 transition-all disabled:opacity-40"
+                >
+                  <HelpCircle className="w-4 h-4" />
+                  Maybe
                 </button>
                 <button
                   onClick={() => { onReject(previewPost.id); setPreviewPost(null) }}
