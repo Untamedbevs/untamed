@@ -1,8 +1,12 @@
 import type { Metadata } from 'next'
 import { Inter, Oswald, Metal_Mania, Permanent_Marker, Rubik_Dirt } from 'next/font/google'
+import localFont from 'next/font/local'
 import './globals.css'
+import Script from 'next/script'
+import { Suspense } from 'react'
 import { AgeGate } from '@/components/AgeGate'
 import { TrackingProvider } from '@/components/TrackingProvider'
+import { ReferralBanner } from '@/components/ReferralBanner'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -35,6 +39,35 @@ const rubikDirt = Rubik_Dirt({
   subsets: ['latin'],
   variable: '--font-rubik-dirt',
   weight: '400',
+  display: 'swap',
+})
+
+const cyberBrush = localFont({
+  src: '../fonts/CyberBrush.ttf',
+  variable: '--font-cyber-brush',
+  display: 'swap',
+})
+
+const dirtyHeadline = localFont({
+  src: '../fonts/DirtyHeadline.ttf',
+  variable: '--font-dirty-headline',
+  display: 'swap',
+})
+
+const helveticaCondensed = localFont({
+  src: [
+    {
+      path: '../fonts/HelveticaNeueCondensed.otf',
+      weight: '400',
+      style: 'normal',
+    },
+    {
+      path: '../fonts/HelveticaNeueCondensedBold.ttf',
+      weight: '700',
+      style: 'normal',
+    },
+  ],
+  variable: '--font-helvetica-condensed',
   display: 'swap',
 })
 
@@ -81,10 +114,19 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${oswald.variable} ${metalMania.variable} ${permanentMarker.variable} ${rubikDirt.variable}`}>
+    <html lang="en" className={`${inter.variable} ${oswald.variable} ${metalMania.variable} ${permanentMarker.variable} ${rubikDirt.variable} ${cyberBrush.variable} ${dirtyHeadline.variable} ${helveticaCondensed.variable}`}>
+      <head>
+        <Script src="https://cart.accelpay.io/scripts/brand.js" strategy="afterInteractive" />
+        <Script id="accelpay-brand" strategy="afterInteractive">
+          {`apbrand = { id: 5008728 };`}
+        </Script>
+      </head>
       <body className="bg-untamed-black text-untamed-white antialiased">
         <TrackingProvider>
           <AgeGate />
+          <Suspense fallback={null}>
+            <ReferralBanner />
+          </Suspense>
           {children}
         </TrackingProvider>
       </body>

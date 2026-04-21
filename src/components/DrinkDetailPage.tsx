@@ -70,7 +70,7 @@ export function DrinkDetailPage({ drink }: DrinkDetailPageProps) {
                 </p>
 
                 <h1
-                  className="font-[var(--font-oswald)] text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold uppercase tracking-wider leading-none mb-3"
+                  className="font-[var(--font-cyber-brush)] text-6xl sm:text-7xl md:text-8xl lg:text-9xl tracking-wider leading-none mb-3"
                   style={{ color: drink.color }}
                 >
                   {drink.name}
@@ -254,7 +254,7 @@ export function DrinkDetailPage({ drink }: DrinkDetailPageProps) {
                 Every one of us has a wild side &mdash; an untamed spirit that refuses to be boxed in.
                 At Untamed Beverages, we crafted four premium vodka martinis, each inspired by the world&apos;s most
                 powerful big cats. The{' '}
-                <span style={{ color: drink.color }} className="font-medium">{drink.name}</span>{' '}
+                <span style={{ color: drink.color }} className="font-[var(--font-cyber-brush)] text-2xl md:text-3xl">{drink.name}</span>{' '}
                 is yours.
               </p>
               <p className="text-untamed-white text-xl md:text-2xl font-light italic mt-8">
@@ -423,7 +423,7 @@ export function DrinkDetailPage({ drink }: DrinkDetailPageProps) {
                     </div>
                     <div>
                       <h3
-                        className="font-[var(--font-oswald)] text-lg font-bold uppercase tracking-wider"
+                        className="font-[var(--font-cyber-brush)] text-2xl tracking-wider"
                         style={{ color: otherDrink.color }}
                       >
                         {otherDrink.name}

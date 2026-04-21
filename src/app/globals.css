@@ -89,6 +89,9 @@
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-display: 'Oswald', 'Impact', sans-serif;
   --font-mono: 'Courier New', monospace;
+  --font-wild: var(--font-cyber-brush), cursive;
+  --font-headline: var(--font-dirty-headline), sans-serif;
+  --font-condensed: var(--font-helvetica-condensed), 'Arial Narrow', sans-serif;
 }
 
 /* ============================================

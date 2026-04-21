@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { POINTS } from '@/lib/loyalty/constants'
+import { resolveReferralCode, checkAndGrantRewards } from '@/lib/referral/helpers'
+import { REF_COOKIE_NAME } from '@/lib/referral/constants'
 
 export async function POST(request: NextRequest) {
   try {
@@ -81,6 +83,56 @@ export async function POST(request: NextRequest) {
       type: 'signup_bonus',
       description: 'Welcome to the Pack! Signup bonus.',
     })
+
+    // Credit referrer if ut_ref cookie is present
+    const refCookie = request.cookies.get(REF_COOKIE_NAME)
+    if (refCookie?.value) {
+      try {
+        const referrer = await resolveReferralCode(supabase, refCookie.value)
+        if (referrer) {
+          const { data: refParticipant } = await supabase
+            .from('referral_participants')
+            .select('consumer_signups, distributor_leads, paid_conversions')
+            .eq('id', referrer.id)
+            .single()
+
+          if (refParticipant) {
+            const newSignups = (refParticipant.consumer_signups || 0) + 1
+
+            await Promise.all([
+              supabase
+                .from('referral_participants')
+                .update({ consumer_signups: newSignups })
+                .eq('id', referrer.id),
+              supabase.from('referral_events').insert({
+                participant_id: referrer.id,
+                event_type: 'consumer_signup',
+                referred_email: normalizedEmail,
+              }),
+            ])
+
+            // Update warm-intro status if applicable
+            await supabase
+              .from('referral_invites')
+              .update({ status: 'converted', converted_at: new Date().toISOString() })
+              .eq('participant_id', referrer.id)
+              .eq('referred_email', normalizedEmail)
+              .eq('invite_type', 'consumer')
+              .neq('status', 'converted')
+
+            await checkAndGrantRewards(
+              supabase,
+              referrer.id,
+              newSignups,
+              refParticipant.distributor_leads || 0,
+              refParticipant.paid_conversions || 0
+            )
+          }
+        }
+      } catch {
+        // Referral crediting is best-effort; don't fail the join
+      }
+    }
 
     return NextResponse.json({ member: newMember, isNew: true })
   } catch {

@@ -89,7 +89,7 @@ export default function HomePage() {
               {/* Tagline */}
               <p className="text-2xl md:text-3xl lg:text-4xl font-light text-untamed-white mb-4 italic">
                 Get In Touch With Your{' '}
-                <span className="font-semibold not-italic text-gradient-wild">
+                <span className="font-[var(--font-cyber-brush)] not-italic text-gradient-wild text-3xl md:text-4xl lg:text-5xl">
                   Wild Side
                 </span>
               </p>
@@ -431,7 +431,7 @@ export default function HomePage() {
             >
               <h2 className="font-[var(--font-oswald)] text-4xl md:text-5xl lg:text-6xl font-bold uppercase tracking-wider text-untamed-white mb-6">
                 Unleash Your{' '}
-                <span className="text-gradient-wild">Wild Side</span>
+                <span className="font-[var(--font-cyber-brush)] text-gradient-wild">Wild Side</span>
               </h2>
               <p className="text-untamed-white-muted text-lg md:text-xl mb-10 max-w-xl mx-auto">
                 Follow us on Instagram to stay updated on where to find Untamed near you.

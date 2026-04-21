@@ -67,6 +67,19 @@ const nextConfig: NextConfig = {
           '/drinks/lioness/rewards?utm_source=box&utm_medium=qr&utm_campaign=launch_2026&utm_content=lioness',
         permanent: false,
       },
+      // Referral program short URLs
+      {
+        source: '/r/refer',
+        destination:
+          '/referral?utm_source=qr&utm_medium=referral&utm_campaign=referral_program',
+        permanent: false,
+      },
+      {
+        source: '/r/distribute',
+        destination:
+          '/distribute?utm_source=qr&utm_medium=referral&utm_campaign=distributor_program',
+        permanent: false,
+      },
     ]
   },
 }

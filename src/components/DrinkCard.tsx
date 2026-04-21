@@ -63,7 +63,7 @@ export function DrinkCard({ drink, index }: DrinkCardProps) {
 
           {/* Drink Info */}
           <h3
-            className="font-[var(--font-oswald)] text-2xl md:text-3xl font-bold uppercase tracking-wider mb-1 whitespace-nowrap"
+            className="font-[var(--font-cyber-brush)] text-3xl md:text-4xl tracking-wider mb-1 whitespace-nowrap"
             style={{ color: drink.color }}
           >
             {drink.name}
