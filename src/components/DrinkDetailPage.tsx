@@ -20,7 +20,7 @@ export function DrinkDetailPage({ drink }: DrinkDetailPageProps) {
   // Re-trigger AccelPay scan when the drink page mounts (handles client-side navigation)
   useEffect(() => {
     if (!drink.bevCartListingId) return
-    const win = window as Record<string, unknown>
+    const win = window as unknown as Record<string, unknown>
     if (typeof win.apRender === 'function') {
       ;(win.apRender as () => void)()
     }
