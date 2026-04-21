@@ -1,9 +1,10 @@
 'use client'
 
+import { useEffect, useRef } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Droplets, Martini, Flame } from 'lucide-react'
+import { ArrowLeft, Droplets, Martini, Flame, ShoppingCart } from 'lucide-react'
 import type { Drink } from '@/lib/drinks'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
@@ -15,6 +16,22 @@ interface DrinkDetailPageProps {
 
 export function DrinkDetailPage({ drink }: DrinkDetailPageProps) {
   const otherDrinks = drinks.filter((d) => d.slug !== drink.slug)
+  const bevCartRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!drink.bevCartListingId) return
+
+    const scriptId = 'bevcart-embed-script'
+    if (!document.getElementById(scriptId)) {
+      const script = document.createElement('script')
+      script.id = scriptId
+      script.src = 'https://www.bevcart.com/embed/product.js'
+      script.async = true
+      document.body.appendChild(script)
+    } else if (typeof window !== 'undefined' && (window as Record<string, unknown>).BevCart) {
+      ;(window as Record<string, unknown> & { BevCart: { init: () => void } }).BevCart.init()
+    }
+  }, [drink.bevCartListingId])
 
   return (
     <>
@@ -112,6 +129,16 @@ export function DrinkDetailPage({ drink }: DrinkDetailPageProps) {
                     2 Martinis Per Can
                   </div>
                 </div>
+
+                {/* BevCart Buy Button */}
+                {drink.bevCartListingId && drink.bevCartVariantId && (
+                  <div ref={bevCartRef} className="mt-8">
+                    <div
+                      data-bclistingid={drink.bevCartListingId}
+                      data-bcvariantid={drink.bevCartVariantId}
+                    />
+                  </div>
+                )}
               </motion.div>
 
               {/* Right: Can + Animal */}

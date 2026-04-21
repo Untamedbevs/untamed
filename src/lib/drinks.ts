@@ -22,6 +22,8 @@ export interface Drink {
   canImage: string
   animalImage: string
   scratchBackground: string
+  bevCartListingId?: string
+  bevCartVariantId?: string
 }
 
 export const drinks: Drink[] = [
@@ -102,6 +104,8 @@ export const drinks: Drink[] = [
     canImage: '/images/can-cougar.png',
     animalImage: '/images/animal-cougar.png',
     scratchBackground: '/images/scratch-cougar.png',
+    bevCartListingId: '5008742',
+    bevCartVariantId: '5008744',
   },
   {
     slug: 'lioness',
