@@ -218,3 +218,55 @@ body {
   background-clip: text;
 }
 
+/* ============================================
+   AccelPay Embed Overrides
+   ============================================ */
+
+.accelpay-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 14px 40px !important;
+  font-family: var(--font-display) !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase !important;
+  color: var(--untamed-black) !important;
+  background: var(--untamed-white) !important;
+  border: none !important;
+  border-radius: 9999px !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  box-shadow: 0 0 0 0 transparent !important;
+}
+
+.accelpay-btn:hover {
+  transform: translateY(-2px) !important;
+  background: var(--panther-light) !important;
+  color: #fff !important;
+  box-shadow: 0 8px 30px rgba(155, 48, 255, 0.35) !important;
+}
+
+.accelpay-btn:active {
+  transform: scale(0.97) !important;
+}
+
+.accelpay-btn-oos {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 14px 40px !important;
+  font-family: var(--font-display) !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase !important;
+  color: var(--muted-foreground) !important;
+  background: transparent !important;
+  border: 2px solid var(--card-border) !important;
+  border-radius: 9999px !important;
+  cursor: not-allowed !important;
+  opacity: 0.6 !important;
+}
+
