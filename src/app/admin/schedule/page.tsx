@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { Suspense, useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -520,7 +520,7 @@ function ScheduleCard({
   )
 }
 
-export default function AdminSchedulePage() {
+function AdminScheduleContent() {
   const searchParams = useSearchParams()
   const addFlowId = searchParams.get('add_flow')
 
@@ -1005,5 +1005,13 @@ export default function AdminSchedulePage() {
         </>
       )}
     </div>
+  )
+}
+
+export default function AdminSchedulePage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-zinc-400">Loading schedule...</div>}>
+      <AdminScheduleContent />
+    </Suspense>
   )
 }
