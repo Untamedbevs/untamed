@@ -125,7 +125,7 @@ export function DrinkDetailPage({ drink }: DrinkDetailPageProps) {
 
                 {/* AccelPay Buy Button */}
                 {drink.bevCartListingId && drink.bevCartVariantId && (
-                  <div className="mt-8">
+                  <div className="mt-8" id={`accelpay-${drink.cssVar}`}>
                     <div
                       data-bclistingid={drink.bevCartListingId}
                       data-bcvariantid={drink.bevCartVariantId}

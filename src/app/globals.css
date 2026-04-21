@@ -245,7 +245,68 @@ body {
   transform: translateY(-2px) !important;
   background: var(--panther-light) !important;
   color: #fff !important;
-  box-shadow: 0 8px 30px rgba(155, 48, 255, 0.35) !important;
+  box-shadow: 0 8px 30px var(--panther-glow) !important;
+}
+
+/* Per-drink color overrides */
+#accelpay-cougar .accelpay-btn {
+  background: var(--cougar-light) !important;
+  color: #fff !important;
+}
+
+#accelpay-cougar .accelpay-btn:hover {
+  background: var(--cougar) !important;
+  box-shadow: 0 8px 30px var(--cougar-glow) !important;
+}
+
+#accelpay-cougar .accelpay-btn-oos {
+  border-color: var(--cougar-dark) !important;
+  color: var(--cougar-light) !important;
+}
+
+#accelpay-panther .accelpay-btn {
+  background: var(--panther-light) !important;
+  color: #fff !important;
+}
+
+#accelpay-panther .accelpay-btn:hover {
+  background: var(--panther) !important;
+  box-shadow: 0 8px 30px var(--panther-glow) !important;
+}
+
+#accelpay-panther .accelpay-btn-oos {
+  border-color: var(--panther-dark) !important;
+  color: var(--panther-light) !important;
+}
+
+#accelpay-cheetah .accelpay-btn {
+  background: var(--cheetah) !important;
+  color: var(--untamed-black) !important;
+}
+
+#accelpay-cheetah .accelpay-btn:hover {
+  background: var(--cheetah-light) !important;
+  box-shadow: 0 8px 30px var(--cheetah-glow) !important;
+}
+
+#accelpay-cheetah .accelpay-btn-oos {
+  border-color: var(--cheetah-dark) !important;
+  color: var(--cheetah) !important;
+}
+
+#accelpay-lioness .accelpay-btn {
+  background: var(--lioness-light) !important;
+  color: #fff !important;
+}
+
+#accelpay-lioness .accelpay-btn:hover {
+  background: var(--lioness) !important;
+  box-shadow: 0 8px 30px var(--lioness-glow) !important;
+}
+
+#accelpay-lioness .accelpay-btn-oos {
+  border-color: var(--lioness-dark) !important;
+  color: var(--lioness-light) !important;
 }
 
 .accelpay-btn:active {
