@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Droplets, Martini, Flame, ShoppingCart } from 'lucide-react'
+import { ArrowLeft, Droplets, Martini, Flame } from 'lucide-react'
 import type { Drink } from '@/lib/drinks'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
@@ -16,20 +16,13 @@ interface DrinkDetailPageProps {
 
 export function DrinkDetailPage({ drink }: DrinkDetailPageProps) {
   const otherDrinks = drinks.filter((d) => d.slug !== drink.slug)
-  const bevCartRef = useRef<HTMLDivElement>(null)
 
+  // Re-trigger AccelPay scan when the drink page mounts (handles client-side navigation)
   useEffect(() => {
     if (!drink.bevCartListingId) return
-
-    const scriptId = 'bevcart-embed-script'
-    if (!document.getElementById(scriptId)) {
-      const script = document.createElement('script')
-      script.id = scriptId
-      script.src = 'https://www.bevcart.com/embed/product.js'
-      script.async = true
-      document.body.appendChild(script)
-    } else if (typeof window !== 'undefined' && (window as Record<string, unknown>).BevCart) {
-      ;(window as Record<string, unknown> & { BevCart: { init: () => void } }).BevCart.init()
+    const win = window as Record<string, unknown>
+    if (typeof win.apRender === 'function') {
+      ;(win.apRender as () => void)()
     }
   }, [drink.bevCartListingId])
 
@@ -130,9 +123,9 @@ export function DrinkDetailPage({ drink }: DrinkDetailPageProps) {
                   </div>
                 </div>
 
-                {/* BevCart Buy Button */}
+                {/* AccelPay Buy Button */}
                 {drink.bevCartListingId && drink.bevCartVariantId && (
-                  <div ref={bevCartRef} className="mt-8">
+                  <div className="mt-8">
                     <div
                       data-bclistingid={drink.bevCartListingId}
                       data-bcvariantid={drink.bevCartVariantId}
