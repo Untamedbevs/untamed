@@ -43,7 +43,10 @@ export function ProductGallery({ drink }: ProductGalleryProps) {
   function handleSelect(index: number) {
     setDirection(index > activeIndex ? 1 : -1)
     setActiveIndex(index)
-    if (videoRef.current && index !== 0) {
+    if (index === 0 && videoRef.current) {
+      videoRef.current.muted = false
+      videoRef.current.play()
+    } else if (videoRef.current) {
       videoRef.current.pause()
     }
   }

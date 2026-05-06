@@ -109,7 +109,7 @@ export function DrinkDetailPage({ drink }: DrinkDetailPageProps) {
                     variantId={drink.bevCartVariantId}
                   />
                   <p className="text-untamed-white-muted text-sm mt-3">
-                    1 can &bull; 2 martinis per can &bull; $3 per cocktail &bull; 4 cans per case &bull; Ships direct
+                    2 martinis per can &bull; $3 per cocktail &bull; 4 cans per case &bull; Ships direct
                   </p>
                   <p className="text-untamed-white-muted/60 text-xs mt-2">
                     Click the button to add to cart, then adjust quantity in cart.
