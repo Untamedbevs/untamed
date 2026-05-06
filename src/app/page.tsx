@@ -292,7 +292,7 @@ export default function HomePage() {
               >
                 <p className="font-condensed text-6xl md:text-7xl font-bold text-lioness">$3</p>
                 <p className="text-untamed-white text-xl font-medium mt-2">Per Cocktail</p>
-                <p className="text-untamed-white-muted text-sm">Lowest in the market</p>
+                <p className="text-untamed-white-muted text-sm">Low cost per cocktail</p>
               </motion.div>
             </div>
 

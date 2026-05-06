@@ -287,6 +287,65 @@ export function DrinkDetailPage({ drink }: DrinkDetailPageProps) {
         </section>
 
         {/* ============================================
+            THE 1-2-3 ADVANTAGE SECTION
+            ============================================ */}
+        <section className="relative py-20 md:py-28">
+          <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-card-border to-transparent" />
+
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+            >
+              <h2 className="font-[var(--font-oswald)] text-3xl md:text-4xl lg:text-5xl font-bold uppercase tracking-wider text-untamed-white mb-4">
+                The <span style={{ color: drink.color }}>1-2-3</span> Advantage
+              </h2>
+              <p className="text-untamed-white-muted text-lg mb-12 max-w-xl mx-auto">
+                Premium vodka martinis at a price that makes sense.
+              </p>
+            </motion.div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5 }}
+                className="flex flex-col items-center"
+              >
+                <p className="font-[var(--font-oswald)] text-6xl md:text-7xl font-bold" style={{ color: drink.color }}>1</p>
+                <p className="text-untamed-white text-xl font-medium mt-2">Can</p>
+                <p className="text-untamed-white-muted text-sm">12 oz &bull; 15% ABV</p>
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+                className="flex flex-col items-center"
+              >
+                <p className="font-[var(--font-oswald)] text-6xl md:text-7xl font-bold" style={{ color: drink.color }}>2</p>
+                <p className="text-untamed-white text-xl font-medium mt-2">Martinis</p>
+                <p className="text-untamed-white-muted text-sm">Full 6 oz pours</p>
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                className="flex flex-col items-center"
+              >
+                <p className="font-[var(--font-oswald)] text-6xl md:text-7xl font-bold" style={{ color: drink.color }}>$3</p>
+                <p className="text-untamed-white text-xl font-medium mt-2">Per Cocktail</p>
+                <p className="text-untamed-white-muted text-sm">Low cost per cocktail</p>
+              </motion.div>
+            </div>
+          </div>
+        </section>
+
+        {/* ============================================
             THE RITUAL SECTION
             ============================================ */}
         <section className="relative py-20 md:py-28 overflow-hidden">

@@ -104,16 +104,6 @@ function InquiryCTA({
   )
 }
 
-const COMPETITOR_DATA = [
-  { brand: 'Untamed', size: '12 oz can', abv: '15%', cocktails: '2', price: '$6.00', perCocktail: '$3.00', highlight: true },
-  { brand: 'Ketel One Martini', size: '3.4 oz can', abv: '20%', cocktails: '1', price: '$5.00', perCocktail: '$5.00' },
-  { brand: 'Tip Top', size: '3.4 oz can', abv: '22%', cocktails: '1', price: '$5.00', perCocktail: '$5.00' },
-  { brand: 'Post Meridiem', size: '3.4 oz can', abv: '22%', cocktails: '1', price: '$4.49', perCocktail: '$4.49' },
-  { brand: 'Social Hour', size: '8.45 oz can', abv: '11%', cocktails: '1', price: '$5.00', perCocktail: '$5.00' },
-  { brand: 'Top Dog', size: '6.8 oz can', abv: '12.5%', cocktails: '1', price: '$3.60', perCocktail: '$3.60' },
-  { brand: 'Loverboy', size: '8.45 oz can', abv: '12%', cocktails: '1', price: '$4.99', perCocktail: '$4.99' },
-]
-
 const RETAILER_ADVANTAGES = [
   {
     icon: DollarSign,
@@ -360,66 +350,15 @@ function DistributeContent() {
                 <div>
                   <p className="font-condensed text-5xl sm:text-6xl font-bold" style={{ color: ORANGE }}>$3</p>
                   <p className="text-white font-medium mt-2">Per Cocktail</p>
-                  <p className="text-untamed-white-muted text-sm">Lowest cost per drink</p>
+                  <p className="text-untamed-white-muted text-sm">Low cost per cocktail</p>
                 </div>
               </div>
               <p className="text-untamed-white-muted mt-8 max-w-2xl mx-auto">
-                At $0.50/oz for a 12 oz can, Untamed offers the lowest cost per standard drink on the market.
+                At $0.50/oz for a 12 oz can, Untamed offers a low cost per standard drink on the market.
                 It leads in size, alcohol content, and value — 45% cheaper per drink than the average competitor.
               </p>
             </div>
           </motion.div>
-        </section>
-
-        {/* ============================================
-            COMPETITIVE COMPARISON TABLE
-            ============================================ */}
-        <section className="px-4 sm:px-6 lg:px-8 mb-20">
-          <div className="max-w-7xl mx-auto">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-            >
-              <h2 className="font-condensed text-2xl sm:text-3xl font-bold text-white uppercase text-center mb-8">
-                The Competitive Landscape
-              </h2>
-              <div className="overflow-x-auto rounded-2xl border border-card-border">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-card-border bg-untamed-black-card">
-                      <th className="text-left px-4 py-3 text-untamed-white-muted font-medium">Brand</th>
-                      <th className="text-left px-4 py-3 text-untamed-white-muted font-medium">Size</th>
-                      <th className="text-left px-4 py-3 text-untamed-white-muted font-medium">ABV</th>
-                      <th className="text-left px-4 py-3 text-untamed-white-muted font-medium">Cocktails</th>
-                      <th className="text-left px-4 py-3 text-untamed-white-muted font-medium">Price</th>
-                      <th className="text-left px-4 py-3 text-untamed-white-muted font-medium">$/Cocktail</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {COMPETITOR_DATA.map((row) => (
-                      <tr
-                        key={row.brand}
-                        className={`border-b border-card-border last:border-0 ${row.highlight ? 'bg-[#FF8C2A0D]' : ''}`}
-                      >
-                        <td className={`px-4 py-3 font-medium ${row.highlight ? 'text-[#FF8C2A]' : 'text-white'}`}>
-                          {row.brand}
-                        </td>
-                        <td className="px-4 py-3 text-untamed-white-muted">{row.size}</td>
-                        <td className="px-4 py-3 text-untamed-white-muted">{row.abv}</td>
-                        <td className="px-4 py-3 text-untamed-white-muted">{row.cocktails}</td>
-                        <td className="px-4 py-3 text-untamed-white-muted">{row.price}</td>
-                        <td className={`px-4 py-3 font-medium ${row.highlight ? 'text-[#FF8C2A]' : 'text-untamed-white-muted'}`}>
-                          {row.perCocktail}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </motion.div>
-          </div>
         </section>
 
         {/* ============================================
