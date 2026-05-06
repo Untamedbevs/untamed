@@ -19,11 +19,25 @@ export interface Drink {
   personalityQuestion: string
   story: string
   whatsInside: string
+  productVideo: string
+  productVideoThumb: string
   canImage: string
+  canImageBack: string
+  canImageFrontAndBack: string
+  boxImageFront: string
+  boxImageBack: string
+  boxWithCanImage: string
   animalImage: string
   scratchBackground: string
-  bevCartListingId?: string
-  bevCartVariantId?: string
+  bevCartListingId: string
+  bevCartVariantId: string
+  priceCents: number
+  pricePerCocktailCents: number
+}
+
+export const groupImages = {
+  front: '/images/cans-group-front.png',
+  back: '/images/cans-group-back.png',
 }
 
 export const drinks: Drink[] = [
@@ -49,9 +63,20 @@ export const drinks: Drink[] = [
       'The Black Panther moves through the shadows \u2014 unseen, unbothered, unstoppable. This isn\u2019t a cocktail for the loud. It\u2019s for the ones who own every room without saying a word. Rich espresso, smooth caramel, a hint of vanilla \u2014 dark, layered, and impossible to forget. Just like you.',
     whatsInside:
       'Deep, bold espresso meets velvety caramel and a whisper of vanilla, all carried by premium vodka. Every sip is smooth, dark, and layered \u2014 like the shadows the panther moves through. This isn\u2019t just a martini. It\u2019s midnight in a can.',
+    productVideo: '/videos/product-black-panther.mp4',
+    productVideoThumb: '/images/video-thumb-black-panther.jpg',
     canImage: '/images/can-black-panther.png',
+    canImageBack: '/images/can-black-panther-back.png',
+    canImageFrontAndBack: '/images/can-black-panther-front-and-back.png',
+    boxImageFront: '/images/box-black-panther-front.png',
+    boxImageBack: '/images/box-black-panther-back.png',
+    boxWithCanImage: '/images/box-black-panther-with-can.png',
     animalImage: '/images/animal-black-panther.png',
     scratchBackground: '/images/scratch-panther.png',
+    bevCartListingId: '5065230',
+    bevCartVariantId: '5065232',
+    priceCents: 2400,
+    pricePerCocktailCents: 300,
   },
   {
     slug: 'cheetah',
@@ -75,9 +100,20 @@ export const drinks: Drink[] = [
       'The Cheetah doesn\u2019t hesitate. When the moment is right, it strikes \u2014 fast, focused, and fearless. This is a cocktail built for people who trust their instincts and move with precision. Bright lemon, clean citrus, pure energy in a can. No wasted motion. No second-guessing. Just go.',
     whatsInside:
       'Bright, electric citrus hits first \u2014 sharp lemon balanced with just enough sweetness to keep you locked in. Premium vodka gives it a clean, crisp backbone that finishes fast and leaves you wanting more. Pure energy, zero hesitation.',
+    productVideo: '/videos/product-cheetah.mp4',
+    productVideoThumb: '/images/video-thumb-cheetah.jpg',
     canImage: '/images/can-cheetah.png',
+    canImageBack: '/images/can-cheetah-back.png',
+    canImageFrontAndBack: '/images/can-cheetah-front-and-back.png',
+    boxImageFront: '/images/box-cheetah-front.png',
+    boxImageBack: '/images/box-cheetah-back.png',
+    boxWithCanImage: '/images/box-cheetah-with-can.png',
     animalImage: '/images/animal-cheetah.png',
     scratchBackground: '/images/scratch-cheetah.png',
+    bevCartListingId: '5065238',
+    bevCartVariantId: '5065240',
+    priceCents: 2400,
+    pricePerCocktailCents: 300,
   },
   {
     slug: 'cougar',
@@ -101,11 +137,20 @@ export const drinks: Drink[] = [
       'The Cougar doesn\u2019t chase \u2014 it commands. Quiet power, earned authority, and the patience to wait for exactly the right moment. This classic dirty martini is bold, savory, and unapologetically strong. It\u2019s for those who\u2019ve already proven themselves and don\u2019t need anyone\u2019s permission to own it.',
     whatsInside:
       'Briny, savory, and unapologetically bold \u2014 olive brine meets premium vodka in a classic dirty martini that doesn\u2019t hold back. There\u2019s nothing sweet about this one. Just clean spirit, sharp salt, and a finish that commands respect.',
+    productVideo: '/videos/product-cougar.mp4',
+    productVideoThumb: '/images/video-thumb-cougar.jpg',
     canImage: '/images/can-cougar.png',
+    canImageBack: '/images/can-cougar-back.png',
+    canImageFrontAndBack: '/images/can-cougar-front-and-back.png',
+    boxImageFront: '/images/box-cougar-front.png',
+    boxImageBack: '/images/box-cougar-back.png',
+    boxWithCanImage: '/images/box-cougar-with-can.png',
     animalImage: '/images/animal-cougar.png',
     scratchBackground: '/images/scratch-cougar.png',
     bevCartListingId: '5008742',
     bevCartVariantId: '5008744',
+    priceCents: 2400,
+    pricePerCocktailCents: 300,
   },
   {
     slug: 'lioness',
@@ -129,9 +174,20 @@ export const drinks: Drink[] = [
       'The Lioness leads with heart and fights with fire. Loyalty runs deep, compassion runs deeper, but make no mistake \u2014 she will protect what\u2019s hers. Sweet peach, aromatic rosemary, and a finish that lingers. This is for the ones who hold it all together and make it look effortless.',
     whatsInside:
       'Lush, sun-ripened peach meets aromatic rosemary and premium vodka for a cocktail that\u2019s equal parts sweet and sophisticated. The herbal notes ground the fruit with warmth, and the finish lingers long after the last sip \u2014 effortless and unforgettable.',
+    productVideo: '/videos/product-lioness.mp4',
+    productVideoThumb: '/images/video-thumb-lioness.jpg',
     canImage: '/images/can-lioness.png',
+    canImageBack: '/images/can-lioness-back.png',
+    canImageFrontAndBack: '/images/can-lioness-front-and-back.png',
+    boxImageFront: '/images/box-lioness-front.png',
+    boxImageBack: '/images/box-lioness-back.png',
+    boxWithCanImage: '/images/box-lioness-with-can.png',
     animalImage: '/images/animal-lioness.png',
     scratchBackground: '/images/scratch-lioness.png',
+    bevCartListingId: '5065234',
+    bevCartVariantId: '5065236',
+    priceCents: 2400,
+    pricePerCocktailCents: 300,
   },
 ]
 

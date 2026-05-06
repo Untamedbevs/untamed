@@ -14,9 +14,10 @@ import type { DistributorBusinessType, VolumeInterest } from '@/lib/referral/typ
 
 interface DistributorLeadFormProps {
   referrerName?: string | null
+  onSuccess?: () => void
 }
 
-export function DistributorLeadForm({ referrerName }: DistributorLeadFormProps) {
+export function DistributorLeadForm({ referrerName, onSuccess }: DistributorLeadFormProps) {
   const searchParams = useSearchParams()
   const ref = searchParams.get('ref')
 
@@ -69,13 +70,21 @@ export function DistributorLeadForm({ referrerName }: DistributorLeadFormProps) 
 
   if (submitted) {
     return (
-      <div className="rounded-2xl border-2 border-green-500/30 bg-green-500/5 p-8 text-center">
+      <div className="p-8 text-center">
         <CheckCircle className="w-12 h-12 text-green-400 mx-auto mb-4" />
         <h3 className="text-2xl font-bold text-white mb-2">Inquiry Received</h3>
-        <p className="text-muted-foreground">
-          Thanks for your interest in distributing Untamed Beverages.
+        <p className="text-muted-foreground mb-6">
+          Thanks for your interest in carrying Untamed Beverages.
           Our team will be in touch within 48 hours.
         </p>
+        {onSuccess && (
+          <button
+            onClick={onSuccess}
+            className="px-8 py-3 rounded-full border border-card-border text-white font-medium transition-all hover:bg-untamed-black-light"
+          >
+            Done
+          </button>
+        )}
       </div>
     )
   }

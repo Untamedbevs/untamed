@@ -334,7 +334,7 @@ export default function StaffManagementPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white font-[var(--font-oswald)] uppercase tracking-wider">
+          <h1 className="text-2xl font-bold text-white font-condensed uppercase tracking-wider">
             Staff Management
           </h1>
           <p className="text-sm text-[#666] mt-1">

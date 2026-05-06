@@ -1,10 +1,11 @@
 'use client'
 
-import Link from 'next/link'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { ArrowRight } from 'lucide-react'
 import type { Drink } from '@/lib/drinks'
+import { siteAssetAbsoluteUrl } from '@/lib/site-assets'
+import { AddToCartButton } from '@/components/AddToCartButton'
 
 interface DrinkCardProps {
   drink: Drink
@@ -20,7 +21,7 @@ export function DrinkCard({ drink, index }: DrinkCardProps) {
       transition={{ duration: 0.6, delay: index * 0.15 }}
       className="h-full"
     >
-      <Link
+      <a
         href={`/drinks/${drink.slug}`}
         className="group block relative rounded-2xl overflow-hidden border border-card-border
           bg-untamed-black-card transition-all duration-500
@@ -41,11 +42,12 @@ export function DrinkCard({ drink, index }: DrinkCardProps) {
         {/* Scratch Background */}
         <div className="absolute inset-0 opacity-20 group-hover:opacity-30 transition-opacity duration-500">
           <Image
-            src={drink.scratchBackground}
+            src={siteAssetAbsoluteUrl(drink.scratchBackground)}
             alt=""
             fill
             className="object-cover"
             aria-hidden="true"
+            unoptimized
           />
         </div>
 
@@ -54,16 +56,17 @@ export function DrinkCard({ drink, index }: DrinkCardProps) {
           {/* Can Image */}
           <div className="relative w-24 h-48 md:w-28 md:h-56 mb-6 group-hover:scale-105 transition-transform duration-500">
             <Image
-              src={drink.canImage}
+              src={siteAssetAbsoluteUrl(drink.canImage)}
               alt={`${drink.name} ${drink.flavor}`}
               fill
               className="object-contain drop-shadow-2xl"
+              unoptimized
             />
           </div>
 
           {/* Drink Info */}
           <h3
-            className="font-[var(--font-cyber-brush)] text-3xl md:text-4xl tracking-wider mb-1 whitespace-nowrap"
+            className="font-wild cyber-brush-fix text-3xl md:text-4xl tracking-wider mb-1"
             style={{ color: drink.color }}
           >
             {drink.name}
@@ -76,16 +79,27 @@ export function DrinkCard({ drink, index }: DrinkCardProps) {
           </p>
 
           {/* CTA */}
-          <div
-            className="flex items-center gap-2 text-sm font-medium tracking-wider uppercase
-              group-hover:gap-3 transition-all duration-300"
-            style={{ color: drink.color }}
-          >
-            Explore
-            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
+          <div className="flex items-center gap-3 mt-auto">
+            <div
+              className="flex items-center gap-2 text-sm font-medium tracking-wider uppercase
+                group-hover:gap-3 transition-all duration-300"
+              style={{ color: drink.color }}
+            >
+              Explore
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
+            </div>
+          </div>
+
+          {/* Add to Cart */}
+          <div className="mt-4">
+            <AddToCartButton
+              listingId={drink.bevCartListingId}
+              variantId={drink.bevCartVariantId}
+              compact
+            />
           </div>
         </div>
-      </Link>
+      </a>
     </motion.div>
   )
 }

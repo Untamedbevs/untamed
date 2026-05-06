@@ -282,7 +282,7 @@ function PerCanDonut({ lineItems }: { lineItems: LineItem[] }) {
         <div className="w-9 h-9 rounded-xl bg-[#9B30FF]/15 flex items-center justify-center">
           <PieChart className="w-[18px] h-[18px] text-[#9B30FF]" />
         </div>
-        <h2 className="text-base font-semibold text-white uppercase tracking-wide font-[var(--font-oswald)]">
+        <h2 className="text-base font-semibold text-white uppercase tracking-wide font-condensed">
           Per-Can Cost Mix
         </h2>
       </div>
@@ -408,7 +408,7 @@ function CostBreakdownBar({ estimate }: { estimate: Estimate }) {
         <div className="w-9 h-9 rounded-xl bg-[#00BFFF]/15 flex items-center justify-center">
           <BarChart3 className="w-[18px] h-[18px] text-[#00BFFF]" />
         </div>
-        <h2 className="text-base font-semibold text-white uppercase tracking-wide font-[var(--font-oswald)]">
+        <h2 className="text-base font-semibold text-white uppercase tracking-wide font-condensed">
           Total Cost Breakdown
         </h2>
       </div>
@@ -554,7 +554,7 @@ export default function FinancialPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white font-[var(--font-oswald)] uppercase tracking-wide">
+          <h1 className="text-2xl font-bold text-white font-condensed uppercase tracking-wide">
             Beverage Cost Estimator
           </h1>
           <p className="text-sm text-[#A0A0A0] mt-1">
@@ -589,7 +589,7 @@ export default function FinancialPage() {
               <div className="w-9 h-9 rounded-xl bg-[#9B30FF]/15 flex items-center justify-center">
                 <Package className="w-[18px] h-[18px] text-[#9B30FF]" />
               </div>
-              <h2 className="text-base font-semibold text-white uppercase tracking-wide font-[var(--font-oswald)]">
+              <h2 className="text-base font-semibold text-white uppercase tracking-wide font-condensed">
                 Production Inputs
               </h2>
             </div>
@@ -672,7 +672,7 @@ export default function FinancialPage() {
               <div className="w-9 h-9 rounded-xl bg-[#E87511]/15 flex items-center justify-center">
                 <Warehouse className="w-[18px] h-[18px] text-[#E87511]" />
               </div>
-              <h2 className="text-base font-semibold text-white uppercase tracking-wide font-[var(--font-oswald)]">
+              <h2 className="text-base font-semibold text-white uppercase tracking-wide font-condensed">
                 Fee Settings
               </h2>
             </div>
@@ -755,7 +755,7 @@ export default function FinancialPage() {
                   <div className="w-9 h-9 rounded-xl bg-[#4A7C0F]/15 flex items-center justify-center">
                     <DollarSign className="w-[18px] h-[18px] text-[#4A7C0F]" />
                   </div>
-                  <h2 className="text-base font-semibold text-white uppercase tracking-wide font-[var(--font-oswald)]">
+                  <h2 className="text-base font-semibold text-white uppercase tracking-wide font-condensed">
                     Per-Can Breakdown
                   </h2>
                 </div>
@@ -813,7 +813,7 @@ export default function FinancialPage() {
                     <div className="w-9 h-9 rounded-xl bg-[#D4D700]/15 flex items-center justify-center">
                       <Tags className="w-[18px] h-[18px] text-[#D4D700]" />
                     </div>
-                    <h2 className="text-base font-semibold text-white uppercase tracking-wide font-[var(--font-oswald)]">
+                    <h2 className="text-base font-semibold text-white uppercase tracking-wide font-condensed">
                       Additional Fees
                     </h2>
                   </div>
@@ -863,7 +863,7 @@ export default function FinancialPage() {
                       <div className="w-9 h-9 rounded-xl bg-[#9B30FF]/15 flex items-center justify-center">
                         <TrendingUp className="w-[18px] h-[18px] text-[#9B30FF]" />
                       </div>
-                      <h2 className="text-base font-semibold text-white uppercase tracking-wide font-[var(--font-oswald)]">
+                      <h2 className="text-base font-semibold text-white uppercase tracking-wide font-condensed">
                         Grand Total
                       </h2>
                     </div>
@@ -901,7 +901,7 @@ export default function FinancialPage() {
                 <div className="w-9 h-9 rounded-xl bg-[#00BFFF]/15 flex items-center justify-center">
                   <Info className="w-[18px] h-[18px] text-[#00BFFF]" />
                 </div>
-                <h2 className="text-base font-semibold text-white uppercase tracking-wide font-[var(--font-oswald)]">
+                <h2 className="text-base font-semibold text-white uppercase tracking-wide font-condensed">
                   Full Pricing Tables
                 </h2>
               </div>

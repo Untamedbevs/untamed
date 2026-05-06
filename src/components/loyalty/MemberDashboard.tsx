@@ -56,7 +56,7 @@ export function MemberDashboard({
             )}
             <p className="text-untamed-white-muted text-sm uppercase tracking-wider mb-1">Your Points</p>
             <p
-              className="font-[var(--font-oswald)] text-6xl md:text-7xl font-bold"
+              className="font-condensed text-6xl md:text-7xl font-bold"
               style={{ color }}
             >
               {member.points_balance}
@@ -105,7 +105,7 @@ export function MemberDashboard({
       {tab === 'history' && (
         <div className="space-y-3">
           <h3
-            className="font-[var(--font-oswald)] text-2xl font-bold uppercase tracking-wider"
+            className="font-condensed text-2xl font-bold uppercase tracking-wider"
             style={{ color }}
           >
             Point History

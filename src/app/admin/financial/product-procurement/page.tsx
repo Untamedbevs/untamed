@@ -269,7 +269,7 @@ function IngredientBarChart({ drinkCalcs }: { drinkCalcs: DrinkCalc[] }) {
         <div className="w-9 h-9 rounded-xl bg-[#00BFFF]/15 flex items-center justify-center">
           <BarChart3 className="w-[18px] h-[18px] text-[#00BFFF]" />
         </div>
-        <h2 className="text-base font-semibold text-white uppercase tracking-wide font-[var(--font-oswald)]">
+        <h2 className="text-base font-semibold text-white uppercase tracking-wide font-condensed">
           Ingredient Volume
         </h2>
       </div>
@@ -422,7 +422,7 @@ function ProductionPieChart({ drinkCalcs }: { drinkCalcs: DrinkCalc[] }) {
         <div className="w-9 h-9 rounded-xl bg-[#9B30FF]/15 flex items-center justify-center">
           <PieChart className="w-[18px] h-[18px] text-[#9B30FF]" />
         </div>
-        <h2 className="text-base font-semibold text-white uppercase tracking-wide font-[var(--font-oswald)]">
+        <h2 className="text-base font-semibold text-white uppercase tracking-wide font-condensed">
           Production Mix
         </h2>
       </div>
@@ -653,7 +653,7 @@ export default function ProductProcurementPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white font-[var(--font-oswald)] uppercase tracking-wide">
+          <h1 className="text-2xl font-bold text-white font-condensed uppercase tracking-wide">
             Product Procurement Tool
           </h1>
           <p className="text-sm text-[#A0A0A0] mt-1">
@@ -782,7 +782,7 @@ export default function ProductProcurementPage() {
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* Left: Per-drink formula breakdowns */}
         <div className="xl:col-span-1 space-y-4">
-          <h2 className="flex items-center gap-3 text-base font-semibold text-white uppercase tracking-wide font-[var(--font-oswald)]">
+          <h2 className="flex items-center gap-3 text-base font-semibold text-white uppercase tracking-wide font-condensed">
             <div className="w-9 h-9 rounded-xl bg-[#9B30FF]/15 flex items-center justify-center">
               <Beaker className="w-[18px] h-[18px] text-[#9B30FF]" />
             </div>
@@ -859,7 +859,7 @@ export default function ProductProcurementPage() {
 
         {/* Right: Procurement summary */}
         <div className="xl:col-span-2 space-y-6">
-          <h2 className="flex items-center gap-3 text-base font-semibold text-white uppercase tracking-wide font-[var(--font-oswald)]">
+          <h2 className="flex items-center gap-3 text-base font-semibold text-white uppercase tracking-wide font-condensed">
             <div className="w-9 h-9 rounded-xl bg-[#4A7C0F]/15 flex items-center justify-center">
               <ClipboardList className="w-[18px] h-[18px] text-[#4A7C0F]" />
             </div>

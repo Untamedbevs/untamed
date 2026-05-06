@@ -85,9 +85,9 @@
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
 
-  /* Typography */
+  /* Typography — matches can/box packaging hierarchy */
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-display: 'Oswald', 'Impact', sans-serif;
+  --font-display: var(--font-helvetica-condensed), 'Arial Narrow', sans-serif;
   --font-mono: 'Courier New', monospace;
   --font-wild: var(--font-cyber-brush), cursive;
   --font-headline: var(--font-dirty-headline), sans-serif;
@@ -180,6 +180,12 @@ body {
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Cyber Brush — brush strokes extend past the glyph bounding box; give room so the left edge isn't clipped */
+.cyber-brush-fix {
+  padding-left: 0.12em;
+  padding-top: 0.05em;
 }
 
 /* Gradient text utility */
@@ -307,6 +313,17 @@ body {
 #accelpay-lioness .accelpay-btn-oos {
   border-color: var(--lioness-dark) !important;
   color: var(--lioness-light) !important;
+}
+
+/* Per-drink compact AccelPay embed on cards */
+.accelpay-compact .accelpay-btn {
+  padding: 8px 20px !important;
+  font-size: 12px !important;
+}
+
+.accelpay-compact .accelpay-btn-oos {
+  padding: 8px 20px !important;
+  font-size: 12px !important;
 }
 
 .accelpay-btn:active {

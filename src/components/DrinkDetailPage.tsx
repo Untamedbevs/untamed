@@ -1,14 +1,16 @@
 'use client'
 
-import { useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Droplets, Martini, Flame } from 'lucide-react'
+import { Droplets, Martini, Flame } from 'lucide-react'
 import type { Drink } from '@/lib/drinks'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
+import { AddToCartButton } from '@/components/AddToCartButton'
+import { ProductGallery } from '@/components/ProductGallery'
 import { drinks } from '@/lib/drinks'
+import { siteAssetAbsoluteUrl } from '@/lib/site-assets'
 
 interface DrinkDetailPageProps {
   drink: Drink
@@ -16,15 +18,6 @@ interface DrinkDetailPageProps {
 
 export function DrinkDetailPage({ drink }: DrinkDetailPageProps) {
   const otherDrinks = drinks.filter((d) => d.slug !== drink.slug)
-
-  // Re-trigger AccelPay scan when the drink page mounts (handles client-side navigation)
-  useEffect(() => {
-    if (!drink.bevCartListingId) return
-    const win = window as unknown as Record<string, unknown>
-    if (typeof win.apRender === 'function') {
-      ;(win.apRender as () => void)()
-    }
-  }, [drink.bevCartListingId])
 
   return (
     <>
@@ -38,34 +31,20 @@ export function DrinkDetailPage({ drink }: DrinkDetailPageProps) {
           {/* Full-bleed scratch background */}
           <div className="absolute inset-0">
             <Image
-              src={drink.scratchBackground}
+              src={siteAssetAbsoluteUrl(drink.scratchBackground)}
               alt=""
               fill
               className="object-cover opacity-40"
               priority
               aria-hidden="true"
+              unoptimized
             />
             <div className="absolute inset-0 bg-gradient-to-b from-untamed-black/80 via-untamed-black/60 to-untamed-black" />
             <div className="absolute inset-0 bg-gradient-to-r from-untamed-black/70 to-transparent" />
           </div>
 
           <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-16 md:pt-32 md:pb-20">
-            {/* Back link */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5 }}
-            >
-              <Link
-                href="/#drinks"
-                className="inline-flex items-center gap-2 text-untamed-white-muted hover:text-untamed-white transition-colors duration-300 mb-8 md:mb-12 text-sm tracking-wider uppercase"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                All Drinks
-              </Link>
-            </motion.div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-start">
               {/* Left: Text Content */}
               <motion.div
                 initial={{ opacity: 0, y: 30 }}
@@ -80,7 +59,7 @@ export function DrinkDetailPage({ drink }: DrinkDetailPageProps) {
                 </p>
 
                 <h1
-                  className="font-[var(--font-cyber-brush)] text-6xl sm:text-7xl md:text-8xl lg:text-9xl tracking-wider leading-none mb-3"
+                  className="font-wild cyber-brush-fix text-5xl sm:text-6xl md:text-7xl lg:text-8xl tracking-wider leading-none mb-3"
                   style={{ color: drink.color }}
                 >
                   {drink.name}
@@ -123,50 +102,28 @@ export function DrinkDetailPage({ drink }: DrinkDetailPageProps) {
                   </div>
                 </div>
 
-                {/* AccelPay Buy Button */}
-                {drink.bevCartListingId && drink.bevCartVariantId && (
-                  <div className="mt-8" id={`accelpay-${drink.cssVar}`}>
-                    <div
-                      data-bclistingid={drink.bevCartListingId}
-                      data-bcvariantid={drink.bevCartVariantId}
-                    />
-                  </div>
-                )}
+                {/* Add to Cart */}
+                <div className="mt-8">
+                  <AddToCartButton
+                    listingId={drink.bevCartListingId}
+                    variantId={drink.bevCartVariantId}
+                  />
+                  <p className="text-untamed-white-muted text-sm mt-3">
+                    1 can &bull; 2 martinis per can &bull; $3 per cocktail &bull; 4 cans per case &bull; Ships direct
+                  </p>
+                  <p className="text-untamed-white-muted/60 text-xs mt-2">
+                    Click the button to add to cart, then adjust quantity in cart.
+                  </p>
+                </div>
               </motion.div>
 
-              {/* Right: Can + Animal */}
+              {/* Right: Product Gallery */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.7, delay: 0.2 }}
-                className="relative flex items-center justify-center"
               >
-                {/* Glow behind can */}
-                <div
-                  className="absolute w-64 h-64 md:w-80 md:h-80 rounded-full blur-[100px] opacity-30"
-                  style={{ backgroundColor: drink.color }}
-                />
-
-                {/* Animal behind */}
-                <div className="absolute -bottom-8 -right-4 md:-right-8 w-40 h-56 md:w-56 md:h-72 opacity-30">
-                  <Image
-                    src={drink.animalImage}
-                    alt={drink.animal}
-                    fill
-                    className="object-contain object-bottom"
-                  />
-                </div>
-
-                {/* Can render */}
-                <div className="relative w-48 h-[380px] md:w-56 md:h-[440px] lg:w-64 lg:h-[500px] animate-float">
-                  <Image
-                    src={drink.canImage}
-                    alt={`${drink.name} ${drink.flavor} Can`}
-                    fill
-                    className="object-contain drop-shadow-[0_0_40px_rgba(0,0,0,0.5)]"
-                    priority
-                  />
-                </div>
+                <ProductGallery drink={drink} />
               </motion.div>
             </div>
           </div>
@@ -190,10 +147,11 @@ export function DrinkDetailPage({ drink }: DrinkDetailPageProps) {
               >
                 <div className="relative w-48 h-64 md:w-64 md:h-80">
                   <Image
-                    src={drink.animalImage}
+                    src={siteAssetAbsoluteUrl(drink.animalImage)}
                     alt={drink.animal}
                     fill
                     className="object-contain"
+                    unoptimized
                   />
                 </div>
               </motion.div>
@@ -207,16 +165,16 @@ export function DrinkDetailPage({ drink }: DrinkDetailPageProps) {
                 className="lg:col-span-3"
               >
                 <h2
-                  className="font-[var(--font-oswald)] text-3xl md:text-4xl lg:text-5xl font-bold uppercase tracking-wider mb-6"
+                  className="text-2xl md:text-3xl lg:text-4xl font-bold uppercase tracking-wider mb-6"
                   style={{ color: drink.color }}
                 >
-                  {drink.personalityQuestion}
+                  Are You a <span className="font-wild cyber-brush-fix">{drink.name}</span>?
                 </h2>
                 <p className="text-untamed-white-muted text-base md:text-lg leading-relaxed mb-8">
                   {drink.personality}
                 </p>
                 <p className="text-untamed-white text-xl md:text-2xl font-light italic">
-                  &ldquo;Chill it. Shake it. Unleash it!&rdquo;
+                  &ldquo;Chill it. Shake it. <span className="font-wild cyber-brush-fix not-italic text-2xl md:text-3xl">Unleash it!</span>&rdquo;
                 </p>
               </motion.div>
             </div>
@@ -254,7 +212,7 @@ export function DrinkDetailPage({ drink }: DrinkDetailPageProps) {
               >
                 Our Story
               </p>
-              <h2 className="font-[var(--font-oswald)] text-4xl md:text-5xl lg:text-6xl font-bold uppercase tracking-wider text-untamed-white mb-8">
+              <h2 className="font-condensed text-3xl md:text-4xl lg:text-5xl font-bold uppercase tracking-wider text-untamed-white mb-8">
                 Born to Be{' '}
                 <span className={`text-gradient-${drink.cssVar}`}>Wild</span>
               </h2>
@@ -272,13 +230,13 @@ export function DrinkDetailPage({ drink }: DrinkDetailPageProps) {
               </p>
               <p className="text-untamed-white-muted text-lg md:text-xl leading-relaxed">
                 Every one of us has a wild side &mdash; an untamed spirit that refuses to be boxed in.
-                At Untamed Beverages, we crafted four premium vodka martinis, each inspired by the world&apos;s most
+                At <span className="font-headline text-2xl">Untamed</span> Beverages, we crafted four premium vodka martinis, each inspired by the world&apos;s most
                 powerful big cats. The{' '}
-                <span style={{ color: drink.color }} className="font-[var(--font-cyber-brush)] text-2xl md:text-3xl">{drink.name}</span>{' '}
+                <span style={{ color: drink.color }} className="font-wild cyber-brush-fix text-2xl md:text-3xl">{drink.name}</span>{' '}
                 is yours.
               </p>
               <p className="text-untamed-white text-xl md:text-2xl font-light italic mt-8">
-                &ldquo;Chill it. Shake it. Unleash it!&rdquo;
+                &ldquo;Chill it. Shake it. <span className="font-wild cyber-brush-fix not-italic text-2xl md:text-3xl">Unleash it!</span>&rdquo;
               </p>
             </motion.div>
           </div>
@@ -298,7 +256,7 @@ export function DrinkDetailPage({ drink }: DrinkDetailPageProps) {
               transition={{ duration: 0.6 }}
               className="text-center"
             >
-              <h2 className="font-[var(--font-oswald)] text-3xl md:text-4xl font-bold uppercase tracking-wider text-untamed-white mb-4">
+              <h2 className="font-condensed text-3xl md:text-4xl font-bold uppercase tracking-wider text-untamed-white mb-4">
                 What&apos;s Inside
               </h2>
               <p className="text-untamed-white-muted text-lg md:text-xl leading-relaxed">
@@ -337,11 +295,12 @@ export function DrinkDetailPage({ drink }: DrinkDetailPageProps) {
           {/* Subtle scratch background */}
           <div className="absolute inset-0 opacity-5">
             <Image
-              src={drink.scratchBackground}
+              src={siteAssetAbsoluteUrl(drink.scratchBackground)}
               alt=""
               fill
               className="object-cover"
               aria-hidden="true"
+              unoptimized
             />
           </div>
 
@@ -352,7 +311,7 @@ export function DrinkDetailPage({ drink }: DrinkDetailPageProps) {
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
             >
-              <h2 className="font-[var(--font-oswald)] text-3xl md:text-4xl font-bold uppercase tracking-wider text-untamed-white mb-12">
+              <h2 className="font-condensed text-3xl md:text-4xl font-bold uppercase tracking-wider text-untamed-white mb-12">
                 The Ritual
               </h2>
             </motion.div>
@@ -372,13 +331,13 @@ export function DrinkDetailPage({ drink }: DrinkDetailPageProps) {
                   className="text-center"
                 >
                   <p
-                    className="font-[var(--font-oswald)] text-5xl md:text-6xl font-bold mb-3 opacity-30"
+                    className="font-condensed text-5xl md:text-6xl font-bold mb-3 opacity-30"
                     style={{ color: drink.color }}
                   >
                     {item.step}
                   </p>
                   <h3
-                    className="font-[var(--font-oswald)] text-xl md:text-2xl font-bold uppercase tracking-wider mb-3"
+                    className={`${item.title.includes('Unleash') ? 'font-wild cyber-brush-fix text-2xl md:text-3xl' : 'font-condensed text-xl md:text-2xl font-bold uppercase'} tracking-wider mb-3`}
                     style={{ color: drink.color }}
                   >
                     {item.title}
@@ -406,7 +365,7 @@ export function DrinkDetailPage({ drink }: DrinkDetailPageProps) {
               transition={{ duration: 0.6 }}
               className="text-center mb-12"
             >
-              <h2 className="font-[var(--font-oswald)] text-3xl md:text-4xl font-bold uppercase tracking-wider text-untamed-white">
+              <h2 className="font-condensed text-3xl md:text-4xl font-bold uppercase tracking-wider text-untamed-white">
                 Explore More
               </h2>
             </motion.div>
@@ -420,7 +379,7 @@ export function DrinkDetailPage({ drink }: DrinkDetailPageProps) {
                   viewport={{ once: true }}
                   transition={{ duration: 0.5 }}
                 >
-                  <Link
+                  <a
                     href={`/drinks/${otherDrink.slug}`}
                     className="group flex items-center gap-4 p-4 rounded-xl border border-card-border bg-untamed-black-card
                       transition-all duration-500"
@@ -435,15 +394,16 @@ export function DrinkDetailPage({ drink }: DrinkDetailPageProps) {
                   >
                     <div className="relative w-12 h-24 shrink-0">
                       <Image
-                        src={otherDrink.canImage}
+                        src={siteAssetAbsoluteUrl(otherDrink.canImage)}
                         alt={otherDrink.name}
                         fill
                         className="object-contain"
+                        unoptimized
                       />
                     </div>
                     <div>
                       <h3
-                        className="font-[var(--font-cyber-brush)] text-2xl tracking-wider"
+                        className="font-wild cyber-brush-fix text-2xl tracking-wider"
                         style={{ color: otherDrink.color }}
                       >
                         {otherDrink.name}
@@ -452,7 +412,7 @@ export function DrinkDetailPage({ drink }: DrinkDetailPageProps) {
                         {otherDrink.flavor}
                       </p>
                     </div>
-                  </Link>
+                  </a>
                 </motion.div>
               ))}
             </div>

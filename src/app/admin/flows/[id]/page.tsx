@@ -547,7 +547,7 @@ export default function AdminFlowDetailPage() {
             <div className="flex items-start gap-3">
               <Layers className="w-8 h-8 text-[#9B30FF] shrink-0 mt-1" />
               <div className="min-w-0 flex-1">
-                <h1 className="font-[var(--font-oswald)] text-2xl font-bold uppercase tracking-wider text-white">
+                <h1 className="font-condensed text-2xl font-bold uppercase tracking-wider text-white">
                   {flow.title}
                 </h1>
                 <div className="flex flex-wrap items-center gap-2 mt-2 text-xs text-[#666]">

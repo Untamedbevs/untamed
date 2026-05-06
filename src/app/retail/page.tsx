@@ -13,8 +13,96 @@ import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
 import { DistributorLeadForm } from '@/components/referral/DistributorLeadForm'
 import { drinks } from '@/lib/drinks'
+import { siteAssetAbsoluteUrl } from '@/lib/site-assets'
 
 const ORANGE = '#FF8C2A'
+
+function InquiryModal({
+  open,
+  onClose,
+  referrerName,
+}: {
+  open: boolean
+  onClose: () => void
+  referrerName: string | null
+}) {
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => { document.body.style.overflow = '' }
+  }, [open])
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+        >
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            transition={{ duration: 0.25 }}
+            className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border-2 bg-untamed-black-card"
+            style={{ borderColor: '#FF8C2A33' }}
+          >
+            <div className="sticky top-0 z-10 flex items-center justify-between px-8 pt-6 pb-4 bg-untamed-black-card border-b border-card-border">
+              <div>
+                <h2 className="font-condensed text-2xl font-bold text-white uppercase">
+                  Start the Conversation
+                </h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Tell us about your business and we will reach out within 48 hours.
+                </p>
+              </div>
+              <button
+                onClick={onClose}
+                className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-muted-foreground hover:text-white hover:bg-untamed-black-light transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="px-8 py-6">
+              <Suspense fallback={null}>
+                <DistributorLeadForm referrerName={referrerName} onSuccess={onClose} />
+              </Suspense>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  )
+}
+
+function InquiryCTA({
+  label = 'Get Started',
+  onClick,
+}: {
+  label?: string
+  onClick: () => void
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-6 sm:px-8 py-3.5 rounded-full font-bold text-black uppercase tracking-wider text-sm sm:text-base transition-all duration-300 hover:scale-[1.02] hover:shadow-lg"
+      style={{
+        backgroundColor: ORANGE,
+        boxShadow: '0 0 20px rgba(255, 140, 42, 0.3)',
+      }}
+    >
+      <Send className="w-5 h-5 shrink-0" />
+      {label}
+    </button>
+  )
+}
 
 const COMPETITOR_DATA = [
   { brand: 'Untamed', size: '12 oz can', abv: '15%', cocktails: '2', price: '$6.00', perCocktail: '$3.00', highlight: true },
@@ -145,98 +233,6 @@ const ACTIVATION_IDEAS = [
   'VIP add-on or fast-serve premium option for venues',
 ]
 
-function InquiryModal({
-  open,
-  onClose,
-  referrerName,
-}: {
-  open: boolean
-  onClose: () => void
-  referrerName: string | null
-}) {
-  useEffect(() => {
-    if (open) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = ''
-    }
-    return () => { document.body.style.overflow = '' }
-  }, [open])
-
-  return (
-    <AnimatePresence>
-      {open && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
-          className="fixed inset-0 z-[60] flex items-center justify-center p-4"
-        >
-          {/* Backdrop */}
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
-
-          {/* Modal */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            transition={{ duration: 0.25 }}
-            className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border-2 bg-untamed-black-card"
-            style={{ borderColor: '#FF8C2A33' }}
-          >
-            <div className="sticky top-0 z-10 flex items-center justify-between px-8 pt-6 pb-4 bg-untamed-black-card border-b border-card-border">
-              <div>
-                <h2 className="font-condensed text-2xl font-bold text-white uppercase">
-                  Start the Conversation
-                </h2>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Tell us about your business and we will reach out within 48 hours.
-                </p>
-              </div>
-              <button
-                onClick={onClose}
-                className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-muted-foreground hover:text-white hover:bg-untamed-black-light transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="px-8 py-6">
-              <Suspense fallback={null}>
-                <DistributorLeadForm referrerName={referrerName} onSuccess={onClose} />
-              </Suspense>
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  )
-}
-
-function InquiryCTA({
-  label = 'Get Started',
-  className = '',
-  onClick,
-}: {
-  label?: string
-  className?: string
-  onClick: () => void
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full font-bold text-black uppercase tracking-wider transition-all duration-300 hover:scale-[1.02] hover:shadow-lg ${className}`}
-      style={{
-        backgroundColor: ORANGE,
-        boxShadow: '0 0 20px rgba(255, 140, 42, 0.3)',
-      }}
-    >
-      <Send className="w-5 h-5" />
-      {label}
-    </button>
-  )
-}
-
 function DistributeContent() {
   const searchParams = useSearchParams()
   const ref = searchParams.get('ref')
@@ -294,8 +290,8 @@ function DistributeContent() {
               </p>
 
               {/* Hero CTA */}
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
-                <InquiryCTA label="Request Partnership Info" onClick={openModal} />
+              <div className="flex flex-col items-center gap-6 mb-12">
+                <InquiryCTA label="Connect With Us" onClick={openModal} />
                 <div className="flex flex-wrap justify-center gap-3">
                   <a href="#retailers" className="px-5 py-2.5 rounded-full border border-[#FF8C2A40] text-[#FF8C2A] text-sm font-medium hover:bg-[#FF8C2A1A] transition-colors">
                     For Retailers
@@ -321,10 +317,11 @@ function DistributeContent() {
                 <div key={drink.slug} className="text-center">
                   <div className="relative w-16 h-28 sm:w-24 sm:h-40 mx-auto mb-2">
                     <Image
-                      src={drink.canImage}
+                      src={siteAssetAbsoluteUrl(drink.canImage)}
                       alt={drink.name}
                       fill
                       className="object-contain"
+                      unoptimized
                     />
                   </div>
                   <p className="text-xs sm:text-sm text-untamed-white-muted">{drink.flavor}</p>
@@ -668,7 +665,7 @@ function DistributeContent() {
               <p className="text-untamed-white-muted text-lg mb-8 max-w-xl mx-auto">
                 Whether you are a retailer, bar, restaurant, or distributor, we would love to start the conversation.
               </p>
-              <InquiryCTA label="Request Partnership Info" onClick={openModal} />
+              <InquiryCTA label="Connect With Us" onClick={openModal} />
             </div>
           </motion.div>
         </section>

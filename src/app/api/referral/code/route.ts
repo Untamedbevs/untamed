@@ -77,7 +77,7 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({
       participant: updated,
       consumerLink: `${siteUrl}/?ref=${normalizedCode}`,
-      distributorLink: `${siteUrl}/distribute?ref=${normalizedCode}`,
+      distributorLink: `${siteUrl}/retail?ref=${normalizedCode}`,
     })
   } catch {
     return NextResponse.json({ error: 'Failed to update code' }, { status: 500 })

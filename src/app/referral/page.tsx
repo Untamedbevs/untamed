@@ -137,8 +137,8 @@ export default function ReferralPage() {
       <div className="min-h-screen bg-untamed-black">
         <Navigation />
 
-        <div className="pt-24 pb-16 px-6">
-          <div className="max-w-xl mx-auto text-center">
+        <div className="pt-24 pb-16 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto text-center">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -152,61 +152,117 @@ export default function ReferralPage() {
                 Referral Program
               </div>
 
-              <h1 className="font-oswald text-4xl sm:text-5xl font-bold text-white uppercase mb-4">
+              <h1 className="font-condensed text-4xl sm:text-5xl font-bold text-white uppercase mb-4">
                 Spread the <span style={{ color: GOLD }}>Wild</span>
               </h1>
-              <p className="text-lg text-untamed-white-muted mb-8">
+              <p className="text-lg text-untamed-white-muted mb-10">
                 Share Untamed with friends and businesses. Earn rewards for every signup and
-                distributor lead you bring to the pack.
+                retailer lead you bring to the pack.
               </p>
 
-              <form onSubmit={handleJoin} className="space-y-4 max-w-md mx-auto">
-                <div className="relative">
-                  <User
-                    className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5"
-                    style={{ color: GOLD }}
-                  />
-                  <input
-                    type="text"
-                    placeholder="First name"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    className="w-full pl-12 pr-4 py-3.5 bg-untamed-black-light border border-card-border rounded-xl text-white placeholder:text-muted focus:outline-none transition-colors"
-                  />
+              {/* Inline enrollment form */}
+              <form onSubmit={handleJoin} className="mb-10">
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="relative flex-1">
+                    <User
+                      className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5"
+                      style={{ color: GOLD }}
+                    />
+                    <input
+                      type="text"
+                      placeholder="Full name"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      className="w-full pl-12 pr-4 py-3.5 bg-untamed-black-light border border-card-border rounded-xl text-white placeholder:text-muted focus:outline-none transition-colors"
+                    />
+                  </div>
+                  <div className="relative flex-1">
+                    <Mail
+                      className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5"
+                      style={{ color: GOLD }}
+                    />
+                    <input
+                      type="email"
+                      placeholder="Email address"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      className="w-full pl-12 pr-4 py-3.5 bg-untamed-black-light border border-card-border rounded-xl text-white placeholder:text-muted focus:outline-none transition-colors"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={loading || !email}
+                    className="flex items-center justify-center gap-2 px-8 py-3.5 rounded-full font-bold text-black uppercase tracking-wider text-sm whitespace-nowrap transition-all duration-300 hover:scale-[1.02] hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                    style={{ backgroundColor: GOLD, boxShadow: `0 0 20px ${GOLD_GLOW}` }}
+                  >
+                    {loading ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <>
+                        Get My Links
+                        <ArrowRight className="w-5 h-5" />
+                      </>
+                    )}
+                  </button>
                 </div>
-                <div className="relative">
-                  <Mail
-                    className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5"
-                    style={{ color: GOLD }}
-                  />
-                  <input
-                    type="email"
-                    placeholder="Email address"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="w-full pl-12 pr-4 py-3.5 bg-untamed-black-light border border-card-border rounded-xl text-white placeholder:text-muted focus:outline-none transition-colors"
-                  />
-                </div>
-
-                {error && <p className="text-red-400 text-sm">{error}</p>}
-
-                <button
-                  type="submit"
-                  disabled={loading || !email}
-                  className="w-full flex items-center justify-center gap-2 py-3.5 rounded-full font-bold text-black uppercase tracking-wider transition-all duration-300 hover:scale-[1.02] hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{ backgroundColor: GOLD, boxShadow: `0 0 20px ${GOLD_GLOW}` }}
-                >
-                  {loading ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <>
-                      Get My Referral Links
-                      <ArrowRight className="w-5 h-5" />
-                    </>
-                  )}
-                </button>
+                {error && <p className="text-red-400 text-sm text-center mt-3">{error}</p>}
               </form>
+
+              {/* Two referral paths explanation */}
+              <div className="grid sm:grid-cols-2 gap-5 mb-10 text-left">
+                <div className="rounded-2xl border border-card-border bg-untamed-black-card p-6">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#22c55e1A' }}>
+                      <Users className="w-5 h-5 text-green-400" />
+                    </div>
+                    <h3 className="font-bold text-white text-lg">Refer Consumers</h3>
+                  </div>
+                  <p className="text-sm text-untamed-white-muted leading-relaxed mb-3">
+                    Share your personal link with friends, family, and social followers. When they sign up for the loyalty program or make a purchase, you earn points and unlock reward tiers.
+                  </p>
+                  <ul className="space-y-1.5 text-sm text-untamed-white-muted">
+                    <li className="flex items-start gap-2">
+                      <ArrowRight className="w-3.5 h-3.5 mt-0.5 text-green-400 shrink-0" />
+                      <span>Earn points for every new loyalty signup</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <ArrowRight className="w-3.5 h-3.5 mt-0.5 text-green-400 shrink-0" />
+                      <span>Bonus rewards when they make a purchase</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <ArrowRight className="w-3.5 h-3.5 mt-0.5 text-green-400 shrink-0" />
+                      <span>Share via text, social media, or email</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="rounded-2xl border border-card-border bg-untamed-black-card p-6">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#FF8C2A1A' }}>
+                      <Building2 className="w-5 h-5 text-[#FF8C2A]" />
+                    </div>
+                    <h3 className="font-bold text-white text-lg">Refer Retailers</h3>
+                  </div>
+                  <p className="text-sm text-untamed-white-muted leading-relaxed mb-3">
+                    Know a bar, restaurant, or liquor store that should carry Untamed? Send them your retail referral link. When they submit a lead form, you earn rewards for connecting us.
+                  </p>
+                  <ul className="space-y-1.5 text-sm text-untamed-white-muted">
+                    <li className="flex items-start gap-2">
+                      <ArrowRight className="w-3.5 h-3.5 mt-0.5 text-[#FF8C2A] shrink-0" />
+                      <span>Earn bigger rewards for retailer leads</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <ArrowRight className="w-3.5 h-3.5 mt-0.5 text-[#FF8C2A] shrink-0" />
+                      <span>Help your favorite spots stock Untamed</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <ArrowRight className="w-3.5 h-3.5 mt-0.5 text-[#FF8C2A] shrink-0" />
+                      <span>Unlock top-tier rewards faster</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
 
               {/* Tier preview */}
               <TierPreview />
@@ -235,8 +291,8 @@ export default function ReferralPage() {
     <div className="min-h-screen bg-untamed-black">
       <Navigation />
 
-      <div className="pt-24 pb-16 px-6">
-        <div className="max-w-3xl mx-auto">
+      <div className="pt-24 pb-16 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -251,23 +307,9 @@ export default function ReferralPage() {
                 <Share2 className="w-4 h-4" />
                 Your Referral Dashboard
               </div>
-              <h1 className="font-oswald text-3xl sm:text-4xl font-bold text-white uppercase">
+              <h1 className="font-condensed text-3xl sm:text-4xl font-bold text-white uppercase">
                 Welcome back, <span style={{ color: GOLD }}>{participant.display_name || 'Pack Member'}</span>
               </h1>
-            </div>
-
-            {/* Stats grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-10">
-              {stats.map((stat) => (
-                <div
-                  key={stat.label}
-                  className="rounded-2xl border border-card-border bg-untamed-black-card p-4 text-center"
-                >
-                  <stat.icon className="w-5 h-5 mx-auto mb-2" style={{ color: stat.color }} />
-                  <p className="text-2xl font-bold text-white">{stat.value.toLocaleString()}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{stat.label}</p>
-                </div>
-              ))}
             </div>
 
             {/* Referral links */}
@@ -284,6 +326,20 @@ export default function ReferralPage() {
                 clicks={participant.total_clicks}
                 conversions={participant.distributor_leads}
               />
+            </div>
+
+            {/* Stats grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-10">
+              {stats.map((stat) => (
+                <div
+                  key={stat.label}
+                  className="rounded-2xl border border-card-border bg-untamed-black-card p-4 text-center"
+                >
+                  <stat.icon className="w-5 h-5 mx-auto mb-2" style={{ color: stat.color }} />
+                  <p className="text-2xl font-bold text-white">{stat.value.toLocaleString()}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{stat.label}</p>
+                </div>
+              ))}
             </div>
 
             {/* Code customization */}
@@ -378,7 +434,7 @@ function TierPreview() {
 
   return (
     <div className="mt-12">
-      <h3 className="font-oswald text-xl font-bold text-white uppercase mb-6">
+      <h3 className="font-condensed text-xl font-bold text-white uppercase mb-6">
         Rewards You Can Earn
       </h3>
       <div className="grid sm:grid-cols-2 gap-4">

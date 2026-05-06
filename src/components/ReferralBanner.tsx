@@ -16,7 +16,7 @@ export function ReferralBanner() {
 
     tracked.current = true
 
-    const type = pathname.startsWith('/distribute') ? 'distributor' : 'consumer'
+    const type = pathname.startsWith('/retail') ? 'distributor' : 'consumer'
 
     fetch('/api/referral/track', {
       method: 'POST',

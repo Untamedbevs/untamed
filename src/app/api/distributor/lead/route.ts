@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { resolveReferralCode, checkAndGrantRewards } from '@/lib/referral/helpers'
+import { resolveReferralCode, checkAndGrantRewards, generateUniqueCode } from '@/lib/referral/helpers'
 import { REF_COOKIE_NAME } from '@/lib/referral/constants'
+import { POINTS } from '@/lib/loyalty/constants'
 import { z } from 'zod'
 
 const leadSchema = z.object({
@@ -101,6 +102,61 @@ export async function POST(request: NextRequest) {
           newLeadCount,
           participant.paid_conversions || 0
         )
+      }
+    }
+
+    // Auto-enroll the retailer as a referral participant so they can refer others
+    const normalizedEmail = data.email.toLowerCase().trim()
+    const { data: existingParticipant } = await supabase
+      .from('referral_participants')
+      .select('id')
+      .eq('email', normalizedEmail)
+      .maybeSingle()
+
+    if (!existingParticipant) {
+      // Find or create loyalty member for the retailer
+      let loyaltyMemberId: string | null = null
+
+      const { data: existingMember } = await supabase
+        .from('loyalty_members')
+        .select('id')
+        .eq('email', normalizedEmail)
+        .maybeSingle()
+
+      if (existingMember) {
+        loyaltyMemberId = existingMember.id
+      } else {
+        const { data: newMember } = await supabase
+          .from('loyalty_members')
+          .insert({
+            email: normalizedEmail,
+            first_name: data.contactName,
+            visitor_id: 'retailer-lead',
+            points_balance: POINTS.SIGNUP_BONUS,
+          })
+          .select('id')
+          .maybeSingle()
+
+        if (newMember) {
+          loyaltyMemberId = newMember.id
+          await supabase.from('loyalty_transactions').insert({
+            member_id: loyaltyMemberId,
+            points: POINTS.SIGNUP_BONUS,
+            type: 'signup_bonus',
+            description: 'Welcome to the Pack! Retailer signup bonus.',
+          })
+        }
+      }
+
+      if (loyaltyMemberId) {
+        const referralCode = await generateUniqueCode(supabase, data.contactName || data.businessName)
+        await supabase.from('referral_participants').insert({
+          loyalty_member_id: loyaltyMemberId,
+          email: normalizedEmail,
+          referral_code: referralCode,
+          display_name: data.contactName,
+          referred_by_participant_id: referralParticipantId,
+        })
       }
     }
 

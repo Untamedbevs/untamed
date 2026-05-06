@@ -52,7 +52,7 @@ export function ContactModal({ open, onClose }: ContactModalProps) {
               </div>
 
               {/* Heading */}
-              <h2 className="font-[var(--font-oswald)] text-2xl md:text-3xl font-bold uppercase tracking-wider text-untamed-white text-center mb-3">
+              <h2 className="font-condensed text-2xl md:text-3xl font-bold uppercase tracking-wider text-untamed-white text-center mb-3">
                 Get In Touch
               </h2>
 

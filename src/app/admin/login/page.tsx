@@ -37,7 +37,7 @@ export default function AdminLoginPage() {
     <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="font-[var(--font-oswald)] text-3xl font-bold uppercase tracking-wider text-white">
+          <h1 className="font-condensed text-3xl font-bold uppercase tracking-wider text-white">
             Untamed Admin
           </h1>
           <p className="text-[#A0A0A0] mt-2">Sign in to manage your content</p>

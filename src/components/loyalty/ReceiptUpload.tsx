@@ -88,7 +88,7 @@ export function ReceiptUpload({ drink, memberId, onUploaded, accentColor, accent
   return (
     <div className="space-y-4">
       <h3
-        className="font-[var(--font-oswald)] text-2xl font-bold uppercase tracking-wider"
+        className="font-condensed text-2xl font-bold uppercase tracking-wider"
         style={{ color }}
       >
         Upload Receipt

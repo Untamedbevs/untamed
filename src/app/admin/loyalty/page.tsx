@@ -155,7 +155,7 @@ export default function AdminLoyaltyPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="font-[var(--font-oswald)] text-2xl font-bold uppercase tracking-wider text-white">
+        <h1 className="font-condensed text-2xl font-bold uppercase tracking-wider text-white">
           Loyalty Program
         </h1>
       </div>
@@ -387,7 +387,7 @@ export default function AdminLoyaltyPage() {
                 key={stat.label}
                 className="p-4 bg-[#111] border border-[#2A2A2A] rounded-xl text-center"
               >
-                <p className="text-[#9B30FF] font-[var(--font-oswald)] text-2xl font-bold">
+                <p className="text-[#9B30FF] font-condensed text-2xl font-bold">
                   {stat.value.toLocaleString()}
                 </p>
                 <p className="text-[#666] text-xs uppercase tracking-wider mt-1">{stat.label}</p>

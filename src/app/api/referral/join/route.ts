@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
         participant: existingParticipant,
         isNew: false,
         consumerLink: `${siteUrl}/?ref=${existingParticipant.referral_code}`,
-        distributorLink: `${siteUrl}/distribute?ref=${existingParticipant.referral_code}`,
+        distributorLink: `${siteUrl}/retail?ref=${existingParticipant.referral_code}`,
       })
     }
 
@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
       participant,
       isNew: true,
       consumerLink: `${siteUrl}/?ref=${participant.referral_code}`,
-      distributorLink: `${siteUrl}/distribute?ref=${participant.referral_code}`,
+      distributorLink: `${siteUrl}/retail?ref=${participant.referral_code}`,
     })
   } catch {
     return NextResponse.json({ error: 'Failed to join referral program' }, { status: 500 })

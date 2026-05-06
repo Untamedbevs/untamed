@@ -261,7 +261,7 @@ export default function AdminFlowsPage() {
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="font-[var(--font-oswald)] text-2xl font-bold uppercase tracking-wider text-white flex items-center gap-2">
+          <h1 className="font-condensed text-2xl font-bold uppercase tracking-wider text-white flex items-center gap-2">
             <Layers className="w-7 h-7 text-[#9B30FF]" />
             Flows
           </h1>

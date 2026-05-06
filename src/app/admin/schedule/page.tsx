@@ -699,7 +699,7 @@ function AdminScheduleContent() {
     <div className="space-y-8">
       <header className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="font-[var(--font-oswald)] text-2xl font-bold uppercase tracking-wider text-white">
+          <h1 className="font-condensed text-2xl font-bold uppercase tracking-wider text-white">
             Posting Queue
           </h1>
           <p className="text-sm text-[#888] mt-1">

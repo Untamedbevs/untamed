@@ -9,9 +9,9 @@ export function Footer() {
   return (
     <footer className="bg-untamed-black border-t border-card-border">
       <div className="max-w-screen-2xl mx-auto px-6 sm:px-8 lg:px-12 py-12 md:py-16">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-16">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-10 md:gap-12">
           {/* Brand */}
-          <div>
+          <div className="col-span-2 md:col-span-1">
             <Link href="/" className="inline-flex items-center gap-3 mb-4">
               <Image
                 src="/images/logo-mark.png"
@@ -29,7 +29,7 @@ export function Footer() {
               />
             </Link>
             <p className="text-untamed-white-muted text-sm leading-relaxed mb-4">
-              Premium ready-to-drink vodka martinis. Get in touch with your wild side.
+              Premium ready-to-drink vodka martinis. 1 can. 2 martinis. $3 per cocktail.
             </p>
             <a
               href="https://instagram.com/untamedbevs"
@@ -42,34 +42,67 @@ export function Footer() {
             </a>
           </div>
 
-          {/* Drinks */}
+          {/* Shop */}
           <div>
             <h3 className="text-untamed-white font-semibold uppercase tracking-wider text-sm mb-4">
-              Our Drinks
+              Shop
             </h3>
             <div className="flex flex-col gap-3">
               {drinks.map((drink) => (
-                <Link
+                <a
                   key={drink.slug}
                   href={`/drinks/${drink.slug}`}
-                  className="text-sm transition-colors duration-300"
+                  className="font-wild cyber-brush-fix text-lg transition-colors duration-300"
                   style={{ color: drink.color }}
                 >
-                  {drink.name} &mdash; {drink.flavor}
-                </Link>
+                  {drink.name}
+                </a>
               ))}
             </div>
           </div>
 
-          {/* Legal */}
+          {/* For Business */}
           <div>
             <h3 className="text-untamed-white font-semibold uppercase tracking-wider text-sm mb-4">
-              Legal
+              Retail
             </h3>
             <div className="flex flex-col gap-3 text-sm text-untamed-white-muted">
-              <p>Must be 21+ to purchase.</p>
-              <p>15% ALC./VOL.</p>
-              <p>Always drink responsibly.</p>
+              <Link href="/retail" className="hover:text-untamed-white transition-colors duration-300">
+                Carry <span className="font-headline">Untamed</span>
+              </Link>
+              <Link href="/retail#retailers" className="hover:text-untamed-white transition-colors duration-300">
+                For Retailers
+              </Link>
+              <Link href="/retail#on-premise" className="hover:text-untamed-white transition-colors duration-300">
+                For Bars &amp; Restaurants
+              </Link>
+              <Link href="/retail#distributors" className="hover:text-untamed-white transition-colors duration-300">
+                For Distributors
+              </Link>
+              <Link href="/referral" className="hover:text-untamed-white transition-colors duration-300">
+                Referral Program
+              </Link>
+            </div>
+          </div>
+
+          {/* Rewards & Legal */}
+          <div>
+            <h3 className="text-untamed-white font-semibold uppercase tracking-wider text-sm mb-4">
+              More
+            </h3>
+            <div className="flex flex-col gap-3 text-sm text-untamed-white-muted">
+              <Link href="/about" className="hover:text-untamed-white transition-colors duration-300">
+                Our Story
+              </Link>
+              <Link href="/rewards" className="hover:text-untamed-white transition-colors duration-300">
+                Rewards Program
+              </Link>
+              <Link href="/referral" className="hover:text-untamed-white transition-colors duration-300">
+                Refer a Friend
+              </Link>
+              <p className="mt-4 text-untamed-white-muted/60">Must be 21+ to purchase.</p>
+              <p className="text-untamed-white-muted/60">15% ALC./VOL.</p>
+              <p className="text-untamed-white-muted/60">Always drink responsibly.</p>
               <a
                 href="https://www.responsibility.org"
                 target="_blank"

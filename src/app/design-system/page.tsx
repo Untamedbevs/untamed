@@ -2,6 +2,7 @@
 
 import Image from 'next/image'
 import { drinks } from '@/lib/drinks'
+import { siteAssetAbsoluteUrl } from '@/lib/site-assets'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
 
@@ -132,7 +133,7 @@ export default function DesignSystemPage() {
                 className="w-14 h-14 md:w-16 md:h-16"
               />
               <div>
-                <h1 className="font-[var(--font-oswald)] text-3xl md:text-4xl lg:text-5xl font-bold uppercase tracking-wider text-untamed-white">
+                <h1 className="font-condensed text-3xl md:text-4xl lg:text-5xl font-bold uppercase tracking-wider text-untamed-white">
                   Design System
                 </h1>
                 <p className="text-untamed-white-muted text-sm md:text-base">
@@ -308,10 +309,10 @@ export default function DesignSystemPage() {
             <div className="space-y-6 rounded-2xl border border-card-border bg-untamed-black-card p-6 md:p-8">
               <div className="border-b border-card-border pb-4">
                 <p className="text-untamed-white-muted text-xs uppercase tracking-wider mb-3">Display / Heading (Oswald)</p>
-                <p className="font-[var(--font-oswald)] text-6xl md:text-7xl lg:text-8xl font-bold uppercase tracking-wider text-untamed-white">Unleash</p>
-                <p className="font-[var(--font-oswald)] text-4xl md:text-5xl font-bold uppercase tracking-wider text-untamed-white/80">Section Title</p>
-                <p className="font-[var(--font-oswald)] text-2xl md:text-3xl font-bold uppercase tracking-wider text-untamed-white/60">Card Heading</p>
-                <p className="font-[var(--font-oswald)] text-xl font-semibold uppercase tracking-wider text-untamed-white/40">Label Text</p>
+                <p className="font-condensed text-6xl md:text-7xl lg:text-8xl font-bold uppercase tracking-wider text-untamed-white">Unleash</p>
+                <p className="font-condensed text-4xl md:text-5xl font-bold uppercase tracking-wider text-untamed-white/80">Section Title</p>
+                <p className="font-condensed text-2xl md:text-3xl font-bold uppercase tracking-wider text-untamed-white/60">Card Heading</p>
+                <p className="font-condensed text-xl font-semibold uppercase tracking-wider text-untamed-white/40">Label Text</p>
               </div>
 
               <div>
@@ -339,7 +340,7 @@ export default function DesignSystemPage() {
                 >
                   {/* Header bar */}
                   <div className="px-6 py-3 flex items-center justify-between" style={{ backgroundColor: `${drink.color}15` }}>
-                    <span className="font-[var(--font-oswald)] text-lg font-bold uppercase tracking-wider" style={{ color: drink.color }}>
+                    <span className="font-condensed text-lg font-bold uppercase tracking-wider" style={{ color: drink.color }}>
                       {drink.name}
                     </span>
                     <span className="text-xs font-mono" style={{ color: drink.color }}>{drink.color}</span>
@@ -349,10 +350,11 @@ export default function DesignSystemPage() {
                     {/* Can */}
                     <div className="relative w-16 h-32 shrink-0">
                       <Image
-                        src={drink.canImage}
+                        src={siteAssetAbsoluteUrl(drink.canImage)}
                         alt={drink.name}
                         fill
                         className="object-contain"
+                        unoptimized
                       />
                     </div>
 
@@ -549,7 +551,7 @@ export default function DesignSystemPage() {
 function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
     <div className="mb-8">
-      <h2 className="font-[var(--font-oswald)] text-2xl md:text-3xl font-bold uppercase tracking-wider text-untamed-white mb-2">
+      <h2 className="font-condensed text-2xl md:text-3xl font-bold uppercase tracking-wider text-untamed-white mb-2">
         {title}
       </h2>
       {subtitle && <p className="text-untamed-white-muted text-sm md:text-base">{subtitle}</p>}

@@ -17,6 +17,7 @@ import {
   Calculator,
   ClipboardList,
   Target,
+  Type,
   Menu,
   X,
   LogOut,
@@ -25,6 +26,8 @@ import {
   ChevronDown,
   User,
   Users,
+  Share2,
+  Building2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { LucideIcon } from 'lucide-react'
@@ -45,6 +48,8 @@ const ALL_NAV_ITEMS: NavItem[] = [
   { href: '/admin/schedule', label: 'Schedule', icon: CalendarClock },
   { href: '/admin/campaigns', label: 'Campaigns', icon: Megaphone },
   { href: '/admin/loyalty', label: 'Loyalty', icon: Trophy },
+  { href: '/admin/referrals', label: 'Referrals', icon: Share2 },
+  { href: '/admin/retail', label: 'Retail Leads', icon: Building2 },
   {
     href: '/admin/financial',
     label: 'Financial',
@@ -59,6 +64,7 @@ const ALL_NAV_ITEMS: NavItem[] = [
 
 const SUPER_ADMIN_ITEMS: NavItem[] = [
   { href: '/admin/staff', label: 'Staff', icon: Users },
+  { href: '/admin/fonts', label: 'Fonts', icon: Type },
 ]
 
 const RESTRICTED_PATHS = ['/admin/loyalty', '/admin/financial']
@@ -146,7 +152,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           collapsed ? 'justify-center' : 'justify-between'
         )}>
           {!collapsed && (
-            <Link href="/admin" className="font-[var(--font-oswald)] text-lg font-bold uppercase tracking-wider text-white">
+            <Link href="/admin" className="font-headline text-lg font-bold uppercase tracking-wider text-white">
               Untamed
             </Link>
           )}
@@ -282,7 +288,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           >
             <Menu className="w-5 h-5" />
           </button>
-          <h2 className="font-[var(--font-oswald)] text-lg font-semibold uppercase tracking-wider text-white">
+          <h2 className="text-lg font-semibold uppercase tracking-wider text-white">
             {ALL_NAV_ITEMS.find((item) => isActive(item.href))?.label || 'Admin'}
           </h2>
         </header>

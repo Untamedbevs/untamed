@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
       rewards: rewardsRes.data || [],
       invites: invitesRes.data || [],
       consumerLink: `${siteUrl}/?ref=${participant.referral_code}`,
-      distributorLink: `${siteUrl}/distribute?ref=${participant.referral_code}`,
+      distributorLink: `${siteUrl}/retail?ref=${participant.referral_code}`,
     })
   } catch {
     return NextResponse.json({ error: 'Failed to load dashboard' }, { status: 500 })

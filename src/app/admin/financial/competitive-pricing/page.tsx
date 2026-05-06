@@ -141,7 +141,7 @@ function HorizontalBarChart({
           <Icon className={`w-[18px] h-[18px] ${iconColor}`} />
         </div>
         <div>
-          <h2 className="text-base font-semibold text-white uppercase tracking-wide font-[var(--font-oswald)]">
+          <h2 className="text-base font-semibold text-white uppercase tracking-wide font-condensed">
             {title}
           </h2>
           {lowerIsBetter && (
@@ -233,7 +233,7 @@ function MarketScatter({ data }: { data: BrandMetrics[] }) {
           <Target className="w-[18px] h-[18px] text-[#9B30FF]" />
         </div>
         <div>
-          <h2 className="text-base font-semibold text-white uppercase tracking-wide font-[var(--font-oswald)]">
+          <h2 className="text-base font-semibold text-white uppercase tracking-wide font-condensed">
             Market Position Map
           </h2>
           <p className="text-xs text-[#666] mt-0.5">Can Price vs ABV — bubble size = can volume</p>
@@ -533,7 +533,7 @@ export default function CompetitivePricingPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white font-[var(--font-oswald)] uppercase tracking-wide">
+          <h1 className="text-2xl font-bold text-white font-condensed uppercase tracking-wide">
             Competitive Pricing Analysis
           </h1>
           <p className="text-sm text-[#A0A0A0] mt-1">
@@ -589,7 +589,7 @@ export default function CompetitivePricingPage() {
                 <div className="w-9 h-9 rounded-xl bg-[#9B30FF]/15 flex items-center justify-center">
                   <Package className="w-[18px] h-[18px] text-[#9B30FF]" />
                 </div>
-                <h2 className="text-base font-semibold text-white uppercase tracking-wide font-[var(--font-oswald)]">
+                <h2 className="text-base font-semibold text-white uppercase tracking-wide font-condensed">
                   Your Products
                 </h2>
               </div>
@@ -700,7 +700,7 @@ export default function CompetitivePricingPage() {
                     <Award className="w-[18px] h-[18px] text-[#9B30FF]" />
                   </div>
                   <div>
-                    <h2 className="text-base font-semibold text-white uppercase tracking-wide font-[var(--font-oswald)]">
+                    <h2 className="text-base font-semibold text-white uppercase tracking-wide font-condensed">
                       {rec.product.name}
                     </h2>
                     <p className="text-xs text-[#666]">{rec.categoryName} &middot; {channel === 'dtc' ? 'DTC' : 'Retail'}</p>
@@ -786,7 +786,7 @@ export default function CompetitivePricingPage() {
               <div className="w-9 h-9 rounded-xl bg-[#00BFFF]/15 flex items-center justify-center">
                 <Filter className="w-[18px] h-[18px] text-[#00BFFF]" />
               </div>
-              <h2 className="text-base font-semibold text-white uppercase tracking-wide font-[var(--font-oswald)]">
+              <h2 className="text-base font-semibold text-white uppercase tracking-wide font-condensed">
                 Size Category
               </h2>
             </div>
@@ -837,7 +837,7 @@ export default function CompetitivePricingPage() {
                       <div className="w-9 h-9 rounded-xl bg-[#9B30FF]/15 flex items-center justify-center">
                         <Zap className="w-[18px] h-[18px] text-[#9B30FF]" />
                       </div>
-                      <h2 className="text-base font-semibold text-white uppercase tracking-wide font-[var(--font-oswald)]">
+                      <h2 className="text-base font-semibold text-white uppercase tracking-wide font-condensed">
                         {untamedMetrics.length > 1 ? s.name : 'Market'} Synopsis
                       </h2>
                     </div>
@@ -854,7 +854,7 @@ export default function CompetitivePricingPage() {
               <div className="w-9 h-9 rounded-xl bg-[#4A7C0F]/15 flex items-center justify-center">
                 <BarChart3 className="w-[18px] h-[18px] text-[#4A7C0F]" />
               </div>
-              <h2 className="text-base font-semibold text-white uppercase tracking-wide font-[var(--font-oswald)]">
+              <h2 className="text-base font-semibold text-white uppercase tracking-wide font-condensed">
                 Competitive Comparison
               </h2>
             </div>

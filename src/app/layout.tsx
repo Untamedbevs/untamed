@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Inter, Oswald, Metal_Mania, Permanent_Marker, Rubik_Dirt } from 'next/font/google'
+import { Inter, Oswald } from 'next/font/google'
 import localFont from 'next/font/local'
 import './globals.css'
 import Script from 'next/script'
@@ -21,26 +21,6 @@ const oswald = Oswald({
   display: 'swap',
 })
 
-const metalMania = Metal_Mania({
-  subsets: ['latin'],
-  variable: '--font-metal-mania',
-  weight: '400',
-  display: 'swap',
-})
-
-const permanentMarker = Permanent_Marker({
-  subsets: ['latin'],
-  variable: '--font-permanent-marker',
-  weight: '400',
-  display: 'swap',
-})
-
-const rubikDirt = Rubik_Dirt({
-  subsets: ['latin'],
-  variable: '--font-rubik-dirt',
-  weight: '400',
-  display: 'swap',
-})
 
 const cyberBrush = localFont({
   src: '../fonts/CyberBrush.ttf',
@@ -114,7 +94,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${oswald.variable} ${metalMania.variable} ${permanentMarker.variable} ${rubikDirt.variable} ${cyberBrush.variable} ${dirtyHeadline.variable} ${helveticaCondensed.variable}`}>
+    <html lang="en" className={`${inter.variable} ${oswald.variable} ${cyberBrush.variable} ${dirtyHeadline.variable} ${helveticaCondensed.variable}`}>
       <head>
         <Script src="https://cart.accelpay.io/scripts/brand.js" strategy="afterInteractive" />
         <Script id="accelpay-brand" strategy="afterInteractive">

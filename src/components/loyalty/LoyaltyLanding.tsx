@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Image from 'next/image'
-import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Sparkles, Mail, Loader2, Trophy, Gift, Receipt, ScanLine } from 'lucide-react'
 import type { Drink } from '@/lib/drinks'
 import { drinks } from '@/lib/drinks'
+import { siteAssetAbsoluteUrl } from '@/lib/site-assets'
 import type { LoyaltyMember, LoyaltyTransaction, LoyaltyReceipt } from '@/lib/loyalty/types'
 import { POINTS, REWARDS } from '@/lib/loyalty/constants'
 import { useTracking } from '@/components/TrackingProvider'
@@ -120,11 +120,12 @@ export function LoyaltyLanding({ drink }: LoyaltyLandingProps) {
           {drink?.scratchBackground && (
             <div className="absolute inset-0">
               <Image
-                src={drink.scratchBackground}
+                src={siteAssetAbsoluteUrl(drink.scratchBackground)}
                 alt=""
                 fill
                 className="object-cover opacity-40"
                 priority
+                unoptimized
                 aria-hidden="true"
               />
             </div>
@@ -139,13 +140,13 @@ export function LoyaltyLanding({ drink }: LoyaltyLandingProps) {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.5 }}
               >
-                <Link
+                <a
                   href={`/drinks/${drink.slug}`}
                   className="inline-flex items-center gap-2 text-untamed-white-muted hover:text-untamed-white transition-colors duration-300 mb-8 md:mb-12 text-sm tracking-wider uppercase"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   {drink.name}
-                </Link>
+                </a>
               </motion.div>
             )}
 
@@ -164,14 +165,14 @@ export function LoyaltyLanding({ drink }: LoyaltyLandingProps) {
                 </p>
 
                 <h1
-                  className="font-[var(--font-oswald)] text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold uppercase tracking-wider leading-none mb-3"
+                  className="font-condensed text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold uppercase tracking-wider leading-none mb-3"
                   style={{ color: theme.color }}
                 >
                   Join the Pack
                 </h1>
 
                 <p className="text-untamed-white-muted text-lg md:text-xl mb-8 max-w-xl">
-                  Earn points with every purchase. Upload your receipts, unlock exclusive rewards, and unleash your wild side.
+                  Earn points with every purchase. Upload your receipts, unlock exclusive rewards, and <span className="font-wild cyber-brush-fix text-xl md:text-2xl">unleash</span> your <span className="font-wild cyber-brush-fix text-xl md:text-2xl">wild side</span>.
                 </p>
 
                 {/* Quick Stats */}
@@ -217,20 +218,22 @@ export function LoyaltyLanding({ drink }: LoyaltyLandingProps) {
                     {drink.animalImage && (
                       <div className="absolute -bottom-8 -right-4 md:-right-8 w-40 h-56 md:w-56 md:h-72 opacity-30">
                         <Image
-                          src={drink.animalImage}
+                          src={siteAssetAbsoluteUrl(drink.animalImage)}
                           alt={drink.animal}
                           fill
                           className="object-contain object-bottom"
+                          unoptimized
                         />
                       </div>
                     )}
                     <div className="relative w-48 h-[380px] md:w-56 md:h-[440px] lg:w-64 lg:h-[500px] animate-float">
                       <Image
-                        src={drink.canImage}
+                        src={siteAssetAbsoluteUrl(drink.canImage)}
                         alt={`${drink.name} ${drink.flavor} Can`}
                         fill
                         className="object-contain drop-shadow-[0_0_40px_rgba(0,0,0,0.5)]"
                         priority
+                        unoptimized
                       />
                     </div>
                   </>
@@ -246,11 +249,12 @@ export function LoyaltyLanding({ drink }: LoyaltyLandingProps) {
                         style={{ transform: `rotate(${(i - 1.5) * 4}deg)` }}
                       >
                         <Image
-                          src={d.canImage}
+                          src={siteAssetAbsoluteUrl(d.canImage)}
                           alt={d.name}
                           fill
                           className="object-contain drop-shadow-[0_0_30px_rgba(0,0,0,0.5)]"
                           priority={i < 2}
+                          unoptimized
                         />
                       </motion.div>
                     ))}
@@ -288,7 +292,7 @@ export function LoyaltyLanding({ drink }: LoyaltyLandingProps) {
                     transition={{ duration: 0.6 }}
                   >
                     <Sparkles className="w-10 h-10 mb-4" style={{ color: theme.color }} />
-                    <h2 className="font-[var(--font-oswald)] text-3xl md:text-4xl lg:text-5xl font-bold uppercase tracking-wider text-untamed-white mb-4">
+                    <h2 className="font-condensed text-3xl md:text-4xl lg:text-5xl font-bold uppercase tracking-wider text-untamed-white mb-4">
                       Get Started
                     </h2>
                     <p className="text-untamed-white-muted text-base md:text-lg leading-relaxed mb-6">
@@ -332,7 +336,7 @@ export function LoyaltyLanding({ drink }: LoyaltyLandingProps) {
                   viewport={{ once: true }}
                   transition={{ duration: 0.6 }}
                 >
-                  <h2 className="font-[var(--font-oswald)] text-3xl md:text-4xl font-bold uppercase tracking-wider text-untamed-white mb-12">
+                  <h2 className="font-condensed text-3xl md:text-4xl font-bold uppercase tracking-wider text-untamed-white mb-12">
                     How It Works
                   </h2>
                 </motion.div>
@@ -352,13 +356,13 @@ export function LoyaltyLanding({ drink }: LoyaltyLandingProps) {
                       className="text-center"
                     >
                       <p
-                        className="font-[var(--font-oswald)] text-5xl md:text-6xl font-bold mb-3 opacity-30"
+                        className="font-condensed text-5xl md:text-6xl font-bold mb-3 opacity-30"
                         style={{ color: theme.color }}
                       >
                         {item.step}
                       </p>
                       <h3
-                        className="font-[var(--font-oswald)] text-xl md:text-2xl font-bold uppercase tracking-wider mb-3"
+                        className="font-condensed text-xl md:text-2xl font-bold uppercase tracking-wider mb-3"
                         style={{ color: theme.color }}
                       >
                         {item.title}
@@ -390,7 +394,7 @@ export function LoyaltyLanding({ drink }: LoyaltyLandingProps) {
                   >
                     Earn &amp; Redeem
                   </p>
-                  <h2 className="font-[var(--font-oswald)] text-3xl md:text-4xl lg:text-5xl font-bold uppercase tracking-wider text-untamed-white">
+                  <h2 className="font-condensed text-3xl md:text-4xl lg:text-5xl font-bold uppercase tracking-wider text-untamed-white">
                     Available Rewards
                   </h2>
                 </motion.div>
@@ -413,7 +417,7 @@ export function LoyaltyLanding({ drink }: LoyaltyLandingProps) {
                 animate={{ opacity: 1, y: 0 }}
               >
                 <Trophy className="w-12 h-12 mx-auto mb-4" style={{ color: theme.color }} />
-                <h2 className="font-[var(--font-oswald)] text-3xl md:text-4xl font-bold uppercase tracking-wider text-untamed-white mb-2">
+                <h2 className="font-condensed text-3xl md:text-4xl font-bold uppercase tracking-wider text-untamed-white mb-2">
                   Welcome Back
                 </h2>
                 <p className="text-untamed-white-muted text-base mb-8">
@@ -505,11 +509,11 @@ export function LoyaltyLanding({ drink }: LoyaltyLandingProps) {
               className="flex flex-col items-center"
             >
               <ScanLine className="w-10 h-10 mb-4" style={{ color: theme.color }} />
-              <h2 className="font-[var(--font-oswald)] text-3xl md:text-4xl font-bold uppercase tracking-wider text-untamed-white mb-4">
+              <h2 className="font-condensed text-3xl md:text-4xl font-bold uppercase tracking-wider text-untamed-white mb-4">
                 Scan to Join
               </h2>
               <p className="text-untamed-white-muted text-base md:text-lg max-w-lg mb-8">
-                Scan the QR code on any Untamed can or box to come straight here and start earning rewards!
+                Scan the QR code on any <span className="font-headline">Untamed</span> can or box to come straight here and start earning rewards!
               </p>
 
               <div

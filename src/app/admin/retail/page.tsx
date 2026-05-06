@@ -36,7 +36,7 @@ export default function AdminDistributorLeadsPage() {
   const [saving, setSaving] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
-    fetch('/api/admin/distributor-leads')
+    fetch('/api/admin/retail')
       .then((res) => res.json())
       .then((data) => {
         setLeads(data.leads)
@@ -48,7 +48,7 @@ export default function AdminDistributorLeadsPage() {
   async function updateLead(id: string, updates: { status?: string; admin_notes?: string }) {
     setSaving((prev) => ({ ...prev, [id]: true }))
     try {
-      const res = await fetch(`/api/admin/distributor-leads/${id}`, {
+      const res = await fetch(`/api/admin/retail/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates),
@@ -85,7 +85,7 @@ export default function AdminDistributorLeadsPage() {
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-white">Distributor Leads</h1>
+        <h1 className="text-2xl font-bold text-white">Retail Leads</h1>
         <span className="text-sm text-[#999]">{leads.length} total</span>
       </div>
 
