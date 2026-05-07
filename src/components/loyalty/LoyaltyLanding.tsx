@@ -345,7 +345,7 @@ export function LoyaltyLanding({ drink }: LoyaltyLandingProps) {
                   {[
                     { step: '01', title: 'Join the Pack', desc: 'Sign up with your email. Instant signup bonus points.' },
                     { step: '02', title: 'Upload Receipts', desc: 'Snap a photo of your purchase receipt. We verify and credit your points.' },
-                    { step: '03', title: 'Unlock Rewards', desc: 'Redeem points for exclusive Untamed merch, glassware, and variety packs.' },
+                    { step: '03', title: 'Unlock Rewards', desc: 'Redeem points for exclusive Untamed merch, glassware, and 4-packs.' },
                   ].map((item, idx) => (
                     <motion.div
                       key={idx}

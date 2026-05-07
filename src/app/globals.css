@@ -185,8 +185,14 @@ body {
 /* Cyber Brush — brush strokes extend past the glyph bounding box; give room so the left edge isn't clipped */
 .cyber-brush-fix {
   display: inline-block;
-  padding: 0.08em 0.05em 0 0.25em;
-  margin-left: -0.1em;
+  padding: 0.1em 0.05em 0 0.35em;
+  margin-left: -0.12em;
+}
+@media (min-width: 768px) {
+  .cyber-brush-fix {
+    padding: 0.08em 0.05em 0 0.25em;
+    margin-left: -0.1em;
+  }
 }
 
 /* Gradient text utility */

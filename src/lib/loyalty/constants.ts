@@ -20,7 +20,7 @@ export const REWARDS = [
   },
   {
     id: 'variety-4pack',
-    name: 'Untamed Variety 4-Pack',
+    name: 'Untamed 4-Pack',
     description: 'One can of each flavor: Black Panther, Cheetah, Cougar, and Lioness.',
     pointsCost: 300,
     image: '/images/rewards/variety-pack.png',

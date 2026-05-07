@@ -104,12 +104,15 @@ export function DrinkDetailPage({ drink }: DrinkDetailPageProps) {
 
                 {/* Add to Cart */}
                 <div className="mt-8">
+                  <p className="text-untamed-white text-2xl md:text-3xl font-bold mb-4">
+                    $24.00 <span className="text-untamed-white-muted text-base font-normal">/ Pack</span>
+                  </p>
                   <AddToCartButton
                     listingId={drink.bevCartListingId}
                     variantId={drink.bevCartVariantId}
                   />
                   <p className="text-untamed-white-muted text-sm mt-3">
-                    2 martinis per can &bull; $3 per cocktail &bull; 4 cans per case &bull; Ships direct
+                    2 martinis per can &bull; $3 per cocktail &bull; 4 cans per box &bull; Ships direct
                   </p>
                   <p className="text-untamed-white-muted/60 text-xs mt-2">
                     Click the button to add to cart, then adjust quantity in cart.

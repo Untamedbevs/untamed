@@ -234,6 +234,41 @@ export default function HomePage() {
         </section>
 
         {/* ============================================
+            THE DRINKS SECTION
+            ============================================ */}
+        <section id="drinks" className="relative py-20 md:py-32">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            {/* Section Header */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="text-center mb-16"
+            >
+              <p className="text-panther-light text-sm tracking-[0.3em] uppercase mb-3">
+                The Collection
+              </p>
+              <h2 className="font-condensed text-4xl md:text-5xl lg:text-6xl font-bold uppercase tracking-wider text-untamed-white mb-4">
+                Our Drinks
+              </h2>
+              <p className="text-untamed-white-muted text-lg max-w-2xl mx-auto">
+                Four premium vodka martinis. Four wild spirits. Each can holds{' '}
+                <span className="text-untamed-white font-medium">2 full martinis</span> at{' '}
+                <span className="text-untamed-white font-medium">15% ALC/VOL</span>.
+              </p>
+            </motion.div>
+
+            {/* Drink Cards Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+              {drinks.map((drink, index) => (
+                <DrinkCard key={drink.slug} drink={drink} index={index} />
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ============================================
             THE 1-2-3 ADVANTAGE SECTION
             ============================================ */}
         <section className="relative py-20 md:py-32 overflow-hidden">
@@ -306,41 +341,6 @@ export default function HomePage() {
               At $0.50/oz, <span className="font-headline">Untamed</span> offers the lowest cost per standard drink on the market — 45% cheaper per drink than the average competitor.
               It leads in size, alcohol content, and value.
             </motion.p>
-          </div>
-        </section>
-
-        {/* ============================================
-            THE DRINKS SECTION
-            ============================================ */}
-        <section id="drinks" className="relative py-20 md:py-32">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            {/* Section Header */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-              className="text-center mb-16"
-            >
-              <p className="text-panther-light text-sm tracking-[0.3em] uppercase mb-3">
-                The Collection
-              </p>
-              <h2 className="font-condensed text-4xl md:text-5xl lg:text-6xl font-bold uppercase tracking-wider text-untamed-white mb-4">
-                Our Drinks
-              </h2>
-              <p className="text-untamed-white-muted text-lg max-w-2xl mx-auto">
-                Four premium vodka martinis. Four wild spirits. Each can holds{' '}
-                <span className="text-untamed-white font-medium">2 full martinis</span> at{' '}
-                <span className="text-untamed-white font-medium">15% ALC/VOL</span>.
-              </p>
-            </motion.div>
-
-            {/* Drink Cards Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
-              {drinks.map((drink, index) => (
-                <DrinkCard key={drink.slug} drink={drink} index={index} />
-              ))}
-            </div>
           </div>
         </section>
 
