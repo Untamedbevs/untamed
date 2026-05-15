@@ -23,7 +23,7 @@ export default function ShopPage() {
               Shop <span className="font-wild cyber-brush-fix text-5xl sm:text-6xl text-[#FFD700]">Untamed</span>
             </h1>
             <p className="text-untamed-white-muted text-lg max-w-xl mx-auto">
-              Premium vodka martinis. 1 can. 2 martinis. $3 per cocktail. 4 cans per box. Ships direct to your door.
+              Martinis with an attitude. 1 can. 2 martinis. $3 per cocktail. 4 cans per pack. Ships direct to your door.
             </p>
           </motion.div>
 

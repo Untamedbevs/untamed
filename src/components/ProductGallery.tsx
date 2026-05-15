@@ -29,8 +29,8 @@ function getGalleryItems(drink: Drink): GalleryItem[] {
     { type: 'image', src: cdnUrl(drink.canImage), alt: `${drink.name} Can Front`, label: 'Can Front' },
     { type: 'image', src: cdnUrl(drink.canImageBack), alt: `${drink.name} Can Back`, label: 'Can Back' },
     { type: 'image', src: cdnUrl(drink.canImageFrontAndBack), alt: `${drink.name} Front & Back`, label: 'Both Sides' },
-    { type: 'image', src: cdnUrl(drink.boxImageFront), alt: `${drink.name} Box Front`, label: 'Box Front' },
-    { type: 'image', src: cdnUrl(drink.boxImageBack), alt: `${drink.name} Box Back`, label: 'Box Back' },
+    { type: 'image', src: cdnUrl(drink.boxImageFront), alt: `${drink.name} Pack Front`, label: 'Pack Front' },
+    { type: 'image', src: cdnUrl(drink.boxImageBack), alt: `${drink.name} Pack Back`, label: 'Pack Back' },
   ]
 }
 

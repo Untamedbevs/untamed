@@ -63,7 +63,7 @@ export default function HomePage() {
               >
                 <Sparkles className="w-4 h-4 text-panther-light" />
                 <span className="text-untamed-white-muted text-sm tracking-[0.2em] uppercase">
-                  Premium Vodka Martinis
+                  Martinis With an <span className="font-wild cyber-brush-fix text-gradient-wild text-base">Attitude</span>
                 </span>
               </motion.div>
 
@@ -253,7 +253,7 @@ export default function HomePage() {
                 Our Drinks
               </h2>
               <p className="text-untamed-white-muted text-lg max-w-2xl mx-auto">
-                Four premium vodka martinis. Four wild spirits. Each can holds{' '}
+                Four martinis with an attitude. Four wild spirits. Each can holds{' '}
                 <span className="text-untamed-white font-medium">2 full martinis</span> at{' '}
                 <span className="text-untamed-white font-medium">15% ALC/VOL</span>.
               </p>
@@ -291,7 +291,7 @@ export default function HomePage() {
                 The <span className="text-gradient-wild">1-2-3</span> Advantage
               </h2>
               <p className="text-untamed-white-muted text-lg mb-12 max-w-xl mx-auto">
-                Premium vodka martinis at a price that makes sense.
+                Martinis with an attitude — at a price that makes sense.
               </p>
             </motion.div>
 
@@ -327,7 +327,7 @@ export default function HomePage() {
               >
                 <p className="font-condensed text-6xl md:text-7xl font-bold text-lioness">$3</p>
                 <p className="text-untamed-white text-xl font-medium mt-2">Per Cocktail</p>
-                <p className="text-untamed-white-muted text-sm">Low cost per cocktail</p>
+                <p className="text-untamed-white-muted text-sm">Luxury meets logic</p>
               </motion.div>
             </div>
 
@@ -338,8 +338,8 @@ export default function HomePage() {
               transition={{ duration: 0.5, delay: 0.3 }}
               className="text-untamed-white-muted text-base max-w-2xl mx-auto"
             >
-              At $0.50/oz, <span className="font-headline">Untamed</span> offers the lowest cost per standard drink on the market — 45% cheaper per drink than the average competitor.
-              It leads in size, alcohol content, and value.
+              Luxury meets logic. At just $0.50/oz, <span className="font-headline">Untamed</span> outperforms the market average by 45% on every pour.
+              While others compromise on scale or strength, we lead the industry in delivering maximum impact and exceptional value in a single, superior package.
             </motion.p>
           </div>
         </section>

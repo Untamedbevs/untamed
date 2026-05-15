@@ -363,12 +363,12 @@ function DistributeContent() {
                 <div>
                   <p className="font-condensed text-5xl sm:text-6xl font-bold" style={{ color: ORANGE }}>$3</p>
                   <p className="text-white font-medium mt-2">Per Cocktail</p>
-                  <p className="text-untamed-white-muted text-sm">Lowest cost per drink</p>
+                  <p className="text-untamed-white-muted text-sm">Luxury meets logic</p>
                 </div>
               </div>
               <p className="text-untamed-white-muted mt-8 max-w-2xl mx-auto">
-                At $0.50/oz for a 12 oz can, Untamed offers the lowest cost per standard drink on the market.
-                It leads in size, alcohol content, and value — 45% cheaper per drink than the average competitor.
+                Luxury meets logic. At just $0.50/oz, Untamed outperforms the market average by 45% on every pour.
+                While others compromise on scale or strength, we lead the industry in delivering maximum impact and exceptional value in a single, superior package.
               </p>
             </div>
           </motion.div>

@@ -1,6 +1,6 @@
 export const BRAND_KIT = {
   name: 'Untamed Beverages',
-  tagline: 'Premium Vodka Martinis. Unleash Your Nature.',
+  tagline: 'Martinis With an Attitude. Unleash Your Nature.',
   handles: '@untamedbevs',
 
   drinks: [

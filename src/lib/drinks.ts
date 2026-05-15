@@ -33,6 +33,7 @@ export interface Drink {
   bevCartVariantId: string
   priceCents: number
   pricePerCocktailCents: number
+  spiritEnergy: string
 }
 
 export const groupImages = {
@@ -77,6 +78,7 @@ export const drinks: Drink[] = [
     bevCartVariantId: '5065232',
     priceCents: 2400,
     pricePerCocktailCents: 300,
+    spiritEnergy: 'Dark intensity',
   },
   {
     slug: 'cheetah',
@@ -114,6 +116,7 @@ export const drinks: Drink[] = [
     bevCartVariantId: '5065240',
     priceCents: 2400,
     pricePerCocktailCents: 300,
+    spiritEnergy: 'Bold confidence',
   },
   {
     slug: 'cougar',
@@ -151,6 +154,7 @@ export const drinks: Drink[] = [
     bevCartVariantId: '5008744',
     priceCents: 2400,
     pricePerCocktailCents: 300,
+    spiritEnergy: 'Commanding edge',
   },
   {
     slug: 'lioness',
@@ -188,6 +192,7 @@ export const drinks: Drink[] = [
     bevCartVariantId: '5065236',
     priceCents: 2400,
     pricePerCocktailCents: 300,
+    spiritEnergy: 'Poised elegance',
   },
 ]
 

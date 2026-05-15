@@ -112,7 +112,7 @@ export function DrinkDetailPage({ drink }: DrinkDetailPageProps) {
                     variantId={drink.bevCartVariantId}
                   />
                   <p className="text-untamed-white-muted text-sm mt-3">
-                    2 martinis per can &bull; $3 per cocktail &bull; 4 cans per box &bull; Ships direct
+                    2 martinis per can &bull; $3 per cocktail &bull; 4 cans per pack &bull; Ships direct
                   </p>
                   <p className="text-untamed-white-muted/60 text-xs mt-2">
                     Click the button to add to cart, then adjust quantity in cart.
@@ -233,7 +233,7 @@ export function DrinkDetailPage({ drink }: DrinkDetailPageProps) {
               </p>
               <p className="text-untamed-white-muted text-lg md:text-xl leading-relaxed">
                 Every one of us has a wild side &mdash; an untamed spirit that refuses to be boxed in.
-                At <span className="font-headline text-2xl">Untamed</span> Beverages, we crafted four premium vodka martinis, each inspired by the world&apos;s most
+                At <span className="font-headline text-2xl">Untamed</span> Beverages, we crafted four martinis with an attitude, each inspired by the world&apos;s most
                 powerful big cats. The{' '}
                 <span style={{ color: drink.color }} className="font-wild cyber-brush-fix text-2xl md:text-3xl">{drink.name}</span>{' '}
                 is yours.
@@ -306,7 +306,7 @@ export function DrinkDetailPage({ drink }: DrinkDetailPageProps) {
                 The <span style={{ color: drink.color }}>1-2-3</span> Advantage
               </h2>
               <p className="text-untamed-white-muted text-lg mb-12 max-w-xl mx-auto">
-                Premium vodka martinis at a price that makes sense.
+                Martinis with an attitude — at a price that makes sense.
               </p>
             </motion.div>
 
@@ -342,7 +342,7 @@ export function DrinkDetailPage({ drink }: DrinkDetailPageProps) {
               >
                 <p className="font-[var(--font-oswald)] text-6xl md:text-7xl font-bold" style={{ color: drink.color }}>$3</p>
                 <p className="text-untamed-white text-xl font-medium mt-2">Per Cocktail</p>
-                <p className="text-untamed-white-muted text-sm">Low cost per cocktail</p>
+                <p className="text-untamed-white-muted text-sm">Luxury meets logic</p>
               </motion.div>
             </div>
           </div>
