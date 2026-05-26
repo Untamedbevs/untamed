@@ -28,6 +28,8 @@ import {
   Users,
   Share2,
   Building2,
+  MessageSquare,
+  Send,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { LucideIcon } from 'lucide-react'
@@ -50,6 +52,14 @@ const ALL_NAV_ITEMS: NavItem[] = [
   { href: '/admin/loyalty', label: 'Loyalty', icon: Trophy },
   { href: '/admin/referrals', label: 'Referrals', icon: Share2 },
   { href: '/admin/retail', label: 'Retail Leads', icon: Building2 },
+  {
+    href: '/admin/crm',
+    label: 'CRM',
+    icon: MessageSquare,
+    children: [
+      { href: '/admin/crm/blast', label: 'Email Blast', icon: Send },
+    ],
+  },
   {
     href: '/admin/financial',
     label: 'Financial',
