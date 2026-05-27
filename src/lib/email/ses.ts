@@ -99,13 +99,30 @@ export interface SendEmailParams {
   from?: string
   replyTo?: string
   cc?: string | string[]
+  /**
+   * Custom MIME headers. When present, the email is sent via SendRawEmail
+   * (which requires a multipart MIME composition) rather than the simple
+   * SendEmail API. Used for `List-Unsubscribe` / `List-Unsubscribe-Post`.
+   */
+  headers?: Record<string, string>
 }
 
 /**
  * Send an email via AWS SES.
+ *
+ * Uses the simple SendEmail API when possible, and falls back to raw MIME
+ * (via MailComposer) when custom headers are provided.
+ *
  * Returns the SES message ID on success.
  */
 export async function sendEmail(params: SendEmailParams): Promise<string> {
+  // If custom headers are needed, route through raw MIME (SES SendEmail
+  // does not expose a per-message header API). Re-use sendRawEmail with an
+  // empty attachment list so we share a single MIME-building code path.
+  if (params.headers && Object.keys(params.headers).length > 0) {
+    return sendRawEmail({ ...params, attachments: [] })
+  }
+
   const { to, subject, html, text, from, replyTo, cc } = params
   const toAddresses = Array.isArray(to) ? to : [to]
   const ccAddresses = cc ? (Array.isArray(cc) ? cc : [cc]).filter(Boolean) : []
@@ -154,11 +171,13 @@ export interface SendRawEmailParams extends SendEmailParams {
 }
 
 /**
- * Send an email with attachments via SES SendRawEmail.
+ * Send an email via SES SendRawEmail (multipart MIME).
+ *
+ * Required for attachments AND for custom headers (e.g. `List-Unsubscribe`).
  * Uses nodemailer's MailComposer to build a valid MIME message.
  */
 export async function sendRawEmail(params: SendRawEmailParams): Promise<string> {
-  const { to, subject, html, text, from, replyTo, cc, attachments } = params
+  const { to, subject, html, text, from, replyTo, cc, attachments, headers } = params
   const toAddresses = Array.isArray(to) ? to : [to]
   const ccAddresses = cc ? (Array.isArray(cc) ? cc : [cc]).filter(Boolean) : []
   const fromAddress = from || DEFAULT_FROM()
@@ -177,6 +196,11 @@ export async function sendRawEmail(params: SendRawEmailParams): Promise<string> 
     }),
   )
 
+  const combinedHeaders: Record<string, string> = { ...(headers || {}) }
+  if (configSetName) {
+    combinedHeaders['X-SES-CONFIGURATION-SET'] = configSetName
+  }
+
   const mail = new MailComposer({
     from: formatFromAddress(fromAddress),
     to: toAddresses.join(', '),
@@ -186,9 +210,7 @@ export async function sendRawEmail(params: SendRawEmailParams): Promise<string> 
     html,
     ...(text ? { text } : {}),
     attachments: attachmentParts,
-    headers: configSetName
-      ? { 'X-SES-CONFIGURATION-SET': configSetName }
-      : undefined,
+    headers: Object.keys(combinedHeaders).length > 0 ? combinedHeaders : undefined,
   })
 
   const mimeBuffer = await mail.compile().build()

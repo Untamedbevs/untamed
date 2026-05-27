@@ -14,6 +14,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendAndLogEmail } from '@/lib/messaging/email-log'
 import { getSenderById, DEFAULT_CRM_SENDER } from '@/lib/crm/senders'
+import {
+  buildListUnsubscribeHeaders,
+  buildUnsubscribeUrl,
+} from '@/lib/messaging/unsubscribe'
 
 const BATCH_SIZE = 25
 const MAX_PER_RUN = 1000
@@ -112,14 +116,24 @@ export async function GET(request: NextRequest) {
             msg.sender_email || (await resolveSenderEmail(msg.related_entity_id))
 
           const textContent = msg.text_body || msg.body || ''
+          const campaignId = msg.related_entity_id || undefined
+          const recipientEmail = msg.recipient_email!
+
+          const unsubUrl = buildUnsubscribeUrl(recipientEmail, campaignId)
+          const unsubHeaders = buildListUnsubscribeHeaders(recipientEmail, campaignId)
+
+          const html = renderBulkHtml(textContent, unsubUrl, recipientEmail)
+          const text = `${textContent}\n\n---\nUnsubscribe: ${unsubUrl}`
+
           await sendAndLogEmail({
-            to: msg.recipient_email!,
+            to: recipientEmail,
             subject: msg.subject || '',
-            html: `<pre style="font-family: sans-serif; white-space: pre-wrap;">${escapeHtml(textContent)}</pre>`,
-            text: textContent,
+            html,
+            text,
             from: senderEmail,
             replyTo: senderEmail,
-            campaignId: msg.related_entity_id || undefined,
+            headers: unsubHeaders,
+            campaignId,
             loyaltyMemberId: msg.loyalty_member_id || undefined,
             referralParticipantId: msg.referral_participant_id || undefined,
             distributorLeadId: msg.distributor_lead_id || undefined,
@@ -212,4 +226,39 @@ function escapeHtml(s: string): string {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;')
+}
+
+/**
+ * Wrap a plain-text blast body in branded HTML with an unsubscribe footer.
+ * The footer is required for CAN-SPAM compliance and to keep complaint rates low.
+ */
+function renderBulkHtml(textBody: string, unsubUrl: string, recipientEmail: string): string {
+  const body = escapeHtml(textBody).replace(/\n/g, '<br>')
+  return `<!doctype html>
+<html>
+<body style="margin:0;padding:0;background:#0A0A0A;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#FFFFFF;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0A0A0A;padding:40px 20px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#111;border:1px solid #2A2A2A;border-radius:16px;overflow:hidden;">
+          <tr>
+            <td style="padding:32px;">
+              <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#9B30FF;font-weight:700;margin-bottom:24px;">Untamed Beverages</div>
+              <div style="color:#D0D0D0;font-size:15px;line-height:1.6;">${body}</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:20px 32px;border-top:1px solid #2A2A2A;color:#666;font-size:11px;line-height:1.5;text-align:center;">
+              You're receiving this because you signed up for Untamed updates as <span style="color:#888;">${escapeHtml(recipientEmail)}</span>.<br>
+              <a href="${unsubUrl}" style="color:#9B30FF;text-decoration:underline;">Unsubscribe</a>
+              &nbsp;&middot;&nbsp;
+              Untamed Beverages, LLC
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`
 }

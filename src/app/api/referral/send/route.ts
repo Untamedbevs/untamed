@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { WARM_INTRO_DAILY_LIMIT } from '@/lib/referral/constants'
 import type { InviteType } from '@/lib/referral/types'
 import { sendAndLogEmail } from '@/lib/messaging/email-log'
+import { buildListUnsubscribeHeaders, buildUnsubscribeUrl } from '@/lib/messaging/unsubscribe'
 
 export async function POST(request: NextRequest) {
   try {
@@ -97,12 +98,17 @@ export async function POST(request: NextRequest) {
     const referralUrl = `${siteUrl}${referralPath}?ref=${participant.referral_code}`
     const referrerName = participant.display_name || normalizedEmail
 
+    const unsubUrl = buildUnsubscribeUrl(normalizedReferred, null, siteUrl)
+    const unsubHeaders = buildListUnsubscribeHeaders(normalizedReferred, null, siteUrl)
+
     const { subject, html, text } = buildWarmIntroEmail({
       referredFirstName: (referredName?.trim().split(' ')[0]) || null,
       referrerName,
       inviteType,
       referralUrl,
       customMessage: typeof customMessage === 'string' ? customMessage.trim() : '',
+      unsubUrl,
+      recipientEmail: normalizedReferred,
     })
 
     try {
@@ -112,6 +118,7 @@ export async function POST(request: NextRequest) {
         html,
         text,
         fromAlias: 'loyalty',
+        headers: unsubHeaders,
         referralParticipantId: participant.id,
       })
     } catch (sendErr) {
@@ -143,9 +150,18 @@ function buildWarmIntroEmail(params: {
   inviteType: 'consumer' | 'distributor'
   referralUrl: string
   customMessage: string
+  unsubUrl: string
+  recipientEmail: string
 }): { subject: string; html: string; text: string } {
-  const { referredFirstName, referrerName, inviteType, referralUrl, customMessage } =
-    params
+  const {
+    referredFirstName,
+    referrerName,
+    inviteType,
+    referralUrl,
+    customMessage,
+    unsubUrl,
+    recipientEmail,
+  } = params
   const greeting = referredFirstName ? `Hey ${referredFirstName},` : 'Hey,'
 
   const intro =
@@ -164,6 +180,8 @@ function buildWarmIntroEmail(params: {
     `${cta}: ${referralUrl}`,
     '',
     '— The Untamed Pack',
+    '',
+    `Unsubscribe: ${unsubUrl}`,
   ]
     .filter((l) => l !== null && l !== undefined)
     .join('\n')
@@ -172,6 +190,7 @@ function buildWarmIntroEmail(params: {
   const safeReferrer = escapeHtml(referrerName)
   const safeIntro = escapeHtml(intro)
   const safeCta = escapeHtml(cta)
+  const safeRecipient = escapeHtml(recipientEmail)
 
   const html = `<!doctype html>
 <html>
@@ -208,6 +227,13 @@ function buildWarmIntroEmail(params: {
               <p style="margin:24px 0 0;color:#666;font-size:12px;line-height:1.5;">
                 Sent by ${safeReferrer} via the Untamed referral program.
               </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:16px 32px;border-top:1px solid #2A2A2A;color:#666;font-size:11px;line-height:1.5;text-align:center;">
+              Sent to <span style="color:#888;">${safeRecipient}</span> &middot;
+              <a href="${unsubUrl}" style="color:#9B30FF;text-decoration:underline;">Unsubscribe</a>
+              &middot; Untamed Beverages, LLC
             </td>
           </tr>
         </table>
