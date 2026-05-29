@@ -24,6 +24,9 @@ export type FilterField =
   | 'business_type'
   | 'volume_interest'
   | 'has_referrer'
+  // UGC (works on both loyalty + distributor audiences)
+  | 'ugc_status'
+  | 'min_ugc_submissions'
   // Shared
   | 'created_after'
   | 'created_before'
@@ -31,7 +34,7 @@ export type FilterField =
 export interface FilterOption {
   value: FilterField
   label: string
-  group: 'loyalty' | 'referrer' | 'distributor' | 'shared'
+  group: 'loyalty' | 'referrer' | 'distributor' | 'ugc' | 'shared'
 }
 
 export const ALL_FILTER_OPTIONS: FilterOption[] = [
@@ -50,6 +53,8 @@ export const ALL_FILTER_OPTIONS: FilterOption[] = [
   { value: 'business_type', label: 'Business Type', group: 'distributor' },
   { value: 'volume_interest', label: 'Volume Interest', group: 'distributor' },
   { value: 'has_referrer', label: 'Has Referrer', group: 'distributor' },
+  { value: 'ugc_status', label: 'UGC Submission Status', group: 'ugc' },
+  { value: 'min_ugc_submissions', label: 'Min UGC Submissions', group: 'ugc' },
   { value: 'created_after', label: 'Created After', group: 'shared' },
   { value: 'created_before', label: 'Created Before', group: 'shared' },
 ]
@@ -61,6 +66,7 @@ export function getFilterOptions(audience: Audience): FilterOption[] {
     if (o.group === 'loyalty') return audience === 'loyalty'
     if (o.group === 'referrer') return audience === 'referrers'
     if (o.group === 'distributor') return audience === 'distributors'
+    if (o.group === 'ugc') return audience === 'loyalty' || audience === 'distributors'
     return false
   })
 }
@@ -99,6 +105,15 @@ export const TIER_NAMES = [
   'Pride Leader',
 ]
 
+export const UGC_STATUS_VALUES = [
+  'any',
+  'pending',
+  'approved',
+  'featured',
+  'rejected',
+  'none',
+]
+
 export function getValueOptions(field: FilterField): string[] | null {
   switch (field) {
     case 'has_receipts':
@@ -115,6 +130,8 @@ export function getValueOptions(field: FilterField): string[] | null {
       return VOLUME_INTEREST_VALUES
     case 'tier_name':
       return TIER_NAMES
+    case 'ugc_status':
+      return UGC_STATUS_VALUES
     default:
       return null
   }
@@ -130,7 +147,8 @@ export function isNumberField(field: FilterField): boolean {
     field === 'points_max' ||
     field === 'min_consumer_signups' ||
     field === 'min_distributor_leads' ||
-    field === 'min_paid_conversions'
+    field === 'min_paid_conversions' ||
+    field === 'min_ugc_submissions'
   )
 }
 

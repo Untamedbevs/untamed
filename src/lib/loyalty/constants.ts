@@ -1,6 +1,8 @@
 export const POINTS = {
   SIGNUP_BONUS: 10,
   PER_RECEIPT: 25,
+  PER_UGC_APPROVED: 50,
+  PER_UGC_FEATURED: 150,
 } as const
 
 export const REWARDS = [

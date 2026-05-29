@@ -304,25 +304,25 @@ export default function AboutPage() {
             </motion.div>
 
             {/* Spirit animals grid */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="mb-14"
-            >
-              <p className="text-untamed-white-muted text-lg leading-relaxed text-center mb-8">
+            <div className="mb-14">
+              <motion.p
+                initial={{ opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5 }}
+                className="text-untamed-white-muted text-lg leading-relaxed text-center mb-8"
+              >
                 In each cat, there is a different energy to connect with:
-              </p>
+              </motion.p>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {drinks.map((drink, idx) => (
                   <motion.a
                     key={drink.slug}
                     href={`/drinks/${drink.slug}`}
-                    initial={{ opacity: 0, y: 10 }}
+                    initial={{ opacity: 0, y: 15 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
-                    transition={{ duration: 0.4, delay: 0.1 + idx * 0.08 }}
+                    transition={{ duration: 0.4, delay: idx * 0.1 }}
                     className="group flex flex-col items-center gap-3 p-5 rounded-xl border border-card-border bg-untamed-black-card hover:border-opacity-60 transition-all duration-300"
                     onMouseEnter={(e) => {
                       e.currentTarget.style.borderColor = drink.color
@@ -349,7 +349,7 @@ export default function AboutPage() {
                   </motion.a>
                 ))}
               </div>
-            </motion.div>
+            </div>
 
             <motion.div
               initial={{ opacity: 0, y: 20 }}

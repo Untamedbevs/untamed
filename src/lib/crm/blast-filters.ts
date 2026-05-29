@@ -33,6 +33,10 @@ export interface BlastFilters {
   volume_interest?: string
   has_referrer?: boolean
 
+  // UGC
+  ugc_status?: 'any' | 'pending' | 'approved' | 'featured' | 'rejected' | 'none'
+  min_ugc_submissions?: number
+
   // Shared
   created_after?: string
   created_before?: string
@@ -144,6 +148,8 @@ async function queryLoyalty(
     }
   }
 
+  filtered = await applyUgcFilter(supabase, filters, filtered, 'loyalty')
+
   return filtered.map((m) => ({
     email: m.email!,
     name: m.first_name || m.email!,
@@ -238,11 +244,64 @@ async function queryDistributors(
   const { data: leads, error } = await query
   if (error || !leads) return []
 
-  return leads.map((l) => ({
+  const filtered = await applyUgcFilter(supabase, filters, leads, 'distributor')
+
+  return filtered.map((l) => ({
     email: l.email!,
     name: l.contact_name || l.business_name || l.email!,
     firstName: (l.contact_name || '').split(' ')[0] || '',
     type: 'distributor' as const,
     distributorLeadId: l.id,
   }))
+}
+
+// ---------------------------------------------------------------------------
+// UGC filter helper (works on loyalty members or distributor leads)
+// ---------------------------------------------------------------------------
+
+async function applyUgcFilter<T extends { id: string }>(
+  supabase: SupabaseAdmin,
+  filters: BlastFilters,
+  rows: T[],
+  ownerType: 'loyalty' | 'distributor'
+): Promise<T[]> {
+  if (rows.length === 0) return rows
+  const ugcStatus = filters.ugc_status
+  const minSubs = filters.min_ugc_submissions
+
+  if (ugcStatus === undefined && minSubs === undefined) return rows
+
+  const ids = rows.map((r) => r.id)
+  const ownerColumn =
+    ownerType === 'loyalty' ? 'loyalty_member_id' : 'distributor_lead_id'
+
+  let q = supabase
+    .from('ugc_submissions')
+    .select(`${ownerColumn}, status`)
+    .in(ownerColumn, ids)
+
+  if (ugcStatus && ugcStatus !== 'any' && ugcStatus !== 'none') {
+    q = q.eq('status', ugcStatus)
+  }
+
+  const { data: submissions } = await q
+  const subsList = (submissions || []) as Array<Record<string, unknown>>
+
+  const counts = new Map<string, number>()
+  for (const s of subsList) {
+    const ownerId = s[ownerColumn]
+    if (typeof ownerId !== 'string') continue
+    counts.set(ownerId, (counts.get(ownerId) || 0) + 1)
+  }
+
+  return rows.filter((r) => {
+    const c = counts.get(r.id) || 0
+    if (ugcStatus === 'none') {
+      if (c > 0) return false
+    } else if (ugcStatus && ugcStatus !== 'any') {
+      if (c === 0) return false
+    }
+    if (typeof minSubs === 'number' && c < minSubs) return false
+    return true
+  })
 }

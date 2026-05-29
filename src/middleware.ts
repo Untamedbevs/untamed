@@ -29,18 +29,37 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const isAdminRoute = request.nextUrl.pathname.startsWith('/admin')
-  const isLoginRoute = request.nextUrl.pathname === '/admin/login'
+  const pathname = request.nextUrl.pathname
 
-  if (isAdminRoute && !isLoginRoute && !user) {
+  const isAdminRoute = pathname.startsWith('/admin')
+  const isAdminLoginRoute = pathname === '/admin/login'
+
+  const isPortalRoute = pathname.startsWith('/portal')
+  const isPortalPublicRoute =
+    pathname === '/portal/login' || pathname.startsWith('/portal/auth')
+
+  if (isAdminRoute && !isAdminLoginRoute && !user) {
     const url = request.nextUrl.clone()
     url.pathname = '/admin/login'
     return NextResponse.redirect(url)
   }
 
-  if (isLoginRoute && user) {
+  if (isAdminLoginRoute && user) {
     const url = request.nextUrl.clone()
     url.pathname = '/admin'
+    return NextResponse.redirect(url)
+  }
+
+  if (isPortalRoute && !isPortalPublicRoute && !user) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/portal/login'
+    url.searchParams.set('returnTo', pathname + request.nextUrl.search)
+    return NextResponse.redirect(url)
+  }
+
+  if (pathname === '/portal/login' && user) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/portal'
     return NextResponse.redirect(url)
   }
 
@@ -48,5 +67,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*'],
+  matcher: ['/admin/:path*', '/portal/:path*'],
 }

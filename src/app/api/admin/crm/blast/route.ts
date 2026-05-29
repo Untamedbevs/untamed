@@ -7,11 +7,24 @@ import { getSenderById, DEFAULT_CRM_SENDER } from '@/lib/crm/senders'
 import { resolveStaff } from '@/lib/auth/resolve-staff'
 import { filterSuppressed } from '@/lib/messaging/suppressions'
 
+function getPortalLoginUrl(email: string): string {
+  const base =
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.SITE_URL ||
+    'https://untamedbevs.com'
+  return `${base.replace(/\/$/, '')}/portal/login?email=${encodeURIComponent(email)}`
+}
+
 function recipientVars(r: BlastRecipient): Record<string, string> {
   return {
     first_name: r.firstName || r.name.split(' ')[0] || '',
     name: r.name,
     email: r.email,
+    portal_login_url: getPortalLoginUrl(r.email),
+    community_url:
+      (process.env.NEXT_PUBLIC_SITE_URL ||
+        process.env.SITE_URL ||
+        'https://untamedbevs.com').replace(/\/$/, '') + '/community',
   }
 }
 

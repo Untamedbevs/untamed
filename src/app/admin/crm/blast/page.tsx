@@ -41,6 +41,58 @@ const MERGE_TAGS = [
   { tag: '{{first_name}}', label: 'First Name' },
   { tag: '{{name}}', label: 'Name' },
   { tag: '{{email}}', label: 'Email' },
+  { tag: '{{portal_login_url}}', label: 'Portal Login URL' },
+  { tag: '{{community_url}}', label: 'Community URL' },
+]
+
+interface BlastTemplate {
+  id: string
+  label: string
+  audience: Audience
+  subject: string
+  body: string
+  filters?: { field: FilterField; value: string }[]
+}
+
+const TEMPLATES: BlastTemplate[] = [
+  {
+    id: 'ugc-call',
+    label: 'UGC Call: ask members for photos & videos',
+    audience: 'loyalty',
+    subject: 'Hey {{first_name}}, show us how you Unleash It',
+    body:
+      'Hey {{first_name}},\n\n' +
+      'We\'re collecting photos and videos from real Untamed moments — yours could be featured on our site, social, or even a future can.\n\n' +
+      'Got a clip of you cracking open a Cougar at sunset, or a Cheetah on the boat? We want it.\n\n' +
+      'Submit in 30 seconds:\n{{portal_login_url}}\n\n' +
+      'Approved photos earn 50 loyalty points. Featured ones earn 150.\n\n' +
+      'See what others are sharing: {{community_url}}\n\n' +
+      'Stay wild,\nThe Untamed crew',
+  },
+  {
+    id: 'ugc-thank-you',
+    label: 'UGC Thank-you: appreciate recent contributors',
+    audience: 'loyalty',
+    subject: 'Thanks for sharing, {{first_name}}',
+    body:
+      '{{first_name}},\n\n' +
+      'Thank you for sharing your Untamed moment with us. Your submission is what keeps this brand grounded in real people.\n\n' +
+      'You can keep tabs on your submissions and points here:\n{{portal_login_url}}\n\n' +
+      'Stay wild,\nThe Untamed crew',
+    filters: [{ field: 'min_ugc_submissions', value: '1' }],
+  },
+  {
+    id: 'ugc-distributor-call',
+    label: 'UGC Call (Distributors): ask partners for shelf shots',
+    audience: 'distributors',
+    subject: 'Show us Untamed in your shop, {{first_name}}',
+    body:
+      '{{first_name}},\n\n' +
+      'A quick favor: we\'re building a partner gallery and would love to see Untamed on your shelves, your bar, or in customers\' hands.\n\n' +
+      'Snap a few photos or a short video and submit through your partner portal:\n{{portal_login_url}}\n\n' +
+      'We\'ll spotlight the best ones across our channels.\n\n' +
+      'Thanks,\nThe Untamed team',
+  },
 ]
 
 const AUDIENCE_OPTIONS: { value: Audience; label: string; description: string }[] = [
@@ -306,6 +358,37 @@ export default function BlastPage() {
         <main className="space-y-4">
           <Section title="Compose">
             <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-[#A0A0A0] mb-1.5">
+                  Quick start templates
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {TEMPLATES.map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => {
+                        setAudience(t.audience)
+                        setSubject(t.subject)
+                        setTextBody(t.body)
+                        if (t.filters) {
+                          setRows(
+                            t.filters.map((f) => ({
+                              id: Math.random().toString(36).slice(2),
+                              field: f.field,
+                              value: f.value,
+                            }))
+                          )
+                        }
+                      }}
+                      className="text-xs px-2.5 py-1 rounded-full border border-[#2A2A2A] bg-[#0A0A0A] text-[#A0A0A0] hover:border-[#9B30FF] hover:text-white transition-colors"
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div>
                 <label className="block text-xs font-medium text-[#A0A0A0] mb-1.5">
                   Subject

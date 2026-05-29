@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import {
   CalendarClock,
+  Camera,
   LayoutDashboard,
   Lightbulb,
   Image,
@@ -50,6 +51,7 @@ const ALL_NAV_ITEMS: NavItem[] = [
   { href: '/admin/schedule', label: 'Schedule', icon: CalendarClock },
   { href: '/admin/campaigns', label: 'Campaigns', icon: Megaphone },
   { href: '/admin/loyalty', label: 'Loyalty', icon: Trophy },
+  { href: '/admin/ugc', label: 'UGC', icon: Camera },
   { href: '/admin/referrals', label: 'Referrals', icon: Share2 },
   { href: '/admin/retail', label: 'Retail Leads', icon: Building2 },
   {
@@ -77,7 +79,7 @@ const SUPER_ADMIN_ITEMS: NavItem[] = [
   { href: '/admin/fonts', label: 'Fonts', icon: Type },
 ]
 
-const RESTRICTED_PATHS = ['/admin/loyalty', '/admin/financial']
+const RESTRICTED_PATHS = ['/admin/loyalty', '/admin/ugc', '/admin/financial']
 
 function getNavItems(role: string | undefined): NavItem[] {
   let items = ALL_NAV_ITEMS

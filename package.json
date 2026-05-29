@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@ai-sdk/react": "^3.0.101",
+    "@aws-sdk/client-mediaconvert": "^3.1054.0",
     "@aws-sdk/client-s3": "^3.996.0",
     "@aws-sdk/client-ses": "^3.1053.0",
     "@aws-sdk/s3-request-presigner": "^3.996.0",

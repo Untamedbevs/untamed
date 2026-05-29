@@ -100,6 +100,9 @@ export function Footer() {
               <Link href="/referral" className="hover:text-untamed-white transition-colors duration-300">
                 Refer a Friend
               </Link>
+              <Link href="/brand-kit" className="hover:text-untamed-white transition-colors duration-300">
+                Brand Kit
+              </Link>
               <p className="mt-4 text-untamed-white-muted/60">Must be 21+ to purchase.</p>
               <p className="text-untamed-white-muted/60">15% ALC./VOL.</p>
               <p className="text-untamed-white-muted/60">Always drink responsibly.</p>

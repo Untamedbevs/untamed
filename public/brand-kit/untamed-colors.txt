@@ -1,0 +1,48 @@
+UNTAMED BEVERAGES — COLOR PALETTE
+=================================
+
+BASE / CORE
+Untamed Black            #0A0A0A   (primary background)
+Black Light              #1A1A1A
+Card Background          #141414
+Card Border              #2A2A2A
+Muted                    #666666
+Muted Foreground         #999999
+Untamed White            #FAFAFA   (primary text)
+White Muted              #A0A0A0
+Silver                   #C0C0C0
+
+ACCENT — GOLD (the "Wild Side" energy)
+Gold                     #FFD700
+Amber                    #FFA500
+Gold gradient            linear-gradient(135deg, #FFD700, #FFA500)
+
+PRODUCT — BLACK PANTHER (Espresso Martini) — Purple
+Main                     #7B2D8E
+Light                    #9B30FF
+Dark                     #5A1F6A
+Glow                     rgba(155, 48, 255, 0.3)
+
+PRODUCT — CHEETAH (Lemon Drop Martini) — Yellow
+Main                     #D4D700
+Light                    #E6D800
+Dark                     #9E9E00
+Glow                     rgba(212, 215, 0, 0.3)
+
+PRODUCT — COUGAR (Classic Dirty Martini) — Green
+Main                     #4A7C0F
+Light                    #6B8E23
+Dark                     #355E0A
+Glow                     rgba(107, 142, 35, 0.3)
+
+PRODUCT — LIONESS (Peach & Rosemary Martini) — Orange
+Main                     #E87511
+Light                    #FF8C2A
+Dark                     #D4680F
+Glow                     rgba(232, 117, 17, 0.3)
+
+USAGE NOTES
+- Default to a dark canvas (#0A0A0A). The brand lives in the dark.
+- Gold = celebration / "wild side" highlight moments.
+- Purple (#9B30FF) = primary brand action color.
+- Each product owns its accent color; keep them distinct, never mix two product accents in one asset.

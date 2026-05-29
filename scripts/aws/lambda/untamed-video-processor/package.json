@@ -1,0 +1,13 @@
+{
+  "name": "untamed-video-processor",
+  "version": "1.0.0",
+  "description": "S3 trigger -> MediaConvert -> webhook to /api/ugc/processing-complete",
+  "main": "index.js",
+  "private": true,
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@aws-sdk/client-mediaconvert": "^3.620.0"
+  }
+}
