@@ -295,14 +295,19 @@ export function BrandKitContent() {
 
             <div className="flex flex-wrap items-center gap-4 mt-8">
               <DownloadButton
-                href="/brand-kit/untamed-brand-kit.zip"
-                label="Download Full Brand Kit"
-                sub="Logos, fonts, cans, colors & guide (.zip)"
+                href="/brand-kit/untamed-brand-kit.pdf"
+                label="Download Brand Kit PDF"
+                sub="The full one-sheet, ready to share"
                 primary
               />
               <DownloadButton
+                href="/brand-kit/untamed-brand-kit.zip"
+                label="Download Full Asset Kit"
+                sub="PDF, logos, fonts, cans, colors (.zip)"
+              />
+              <DownloadButton
                 href="/brand-kit/untamed-social-media-guide.txt"
-                label="Social Media Quick Guide"
+                label="Quick Guide"
                 sub="One-page text cheat sheet"
               />
             </div>
@@ -823,8 +828,14 @@ export function BrandKitContent() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {[
                 {
+                  href: '/brand-kit/untamed-brand-kit.pdf',
+                  label: 'Brand Kit PDF',
+                  sub: 'Shareable one-sheet (.pdf)',
+                  primary: true,
+                },
+                {
                   href: '/brand-kit/untamed-brand-kit.zip',
-                  label: 'Full Brand Kit',
+                  label: 'Full Asset Kit',
                   sub: 'Everything (.zip)',
                   primary: true,
                 },

@@ -5,7 +5,6 @@ import { motion } from 'framer-motion'
 import { ArrowRight } from 'lucide-react'
 import type { Drink } from '@/lib/drinks'
 import { siteAssetAbsoluteUrl } from '@/lib/site-assets'
-import { AddToCartButton } from '@/components/AddToCartButton'
 
 interface DrinkCardProps {
   drink: Drink
@@ -88,15 +87,6 @@ export function DrinkCard({ drink, index }: DrinkCardProps) {
               Explore
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
             </div>
-          </div>
-
-          {/* Add to Cart */}
-          <div className="mt-4">
-            <AddToCartButton
-              listingId={drink.bevCartListingId}
-              variantId={drink.bevCartVariantId}
-              compact
-            />
           </div>
         </div>
       </a>
