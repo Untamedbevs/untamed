@@ -89,6 +89,80 @@ export async function resolveReferralCode(
   return fromHistory
 }
 
+export function buildShareLinks(
+  siteUrl: string,
+  referralCode: string
+): { consumerLink: string; distributorLink: string } {
+  return {
+    consumerLink: `${siteUrl}/?ref=${referralCode}`,
+    distributorLink: `${siteUrl}/retail?ref=${referralCode}`,
+  }
+}
+
+/**
+ * Find or create a referral_participant for a loyalty member. Used by the
+ * portal so an authenticated loyalty member can land on /portal/referrals
+ * and immediately see their dashboard, even if they never explicitly
+ * "joined" the referral program at /referral.
+ */
+export async function ensureReferralParticipant(
+  supabase: SupabaseClient,
+  args: {
+    loyaltyMemberId: string
+    email: string
+    displayName: string | null
+  }
+): Promise<{
+  id: string
+  loyalty_member_id: string
+  email: string
+  referral_code: string
+  display_name: string | null
+  referred_by_participant_id: string | null
+  total_clicks: number
+  consumer_signups: number
+  distributor_leads: number
+  paid_conversions: number
+  custom_message: string | null
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}> {
+  const normalizedEmail = args.email.toLowerCase().trim()
+
+  const { data: existing } = await supabase
+    .from('referral_participants')
+    .select('*')
+    .eq('loyalty_member_id', args.loyaltyMemberId)
+    .maybeSingle()
+
+  if (existing) return existing
+
+  const referralCode = await generateUniqueCode(
+    supabase,
+    args.displayName || normalizedEmail.split('@')[0]
+  )
+
+  const { data: created, error } = await supabase
+    .from('referral_participants')
+    .insert({
+      loyalty_member_id: args.loyaltyMemberId,
+      email: normalizedEmail,
+      referral_code: referralCode,
+      display_name: args.displayName,
+    })
+    .select()
+    .single()
+
+  if (error || !created) {
+    throw new Error(
+      `Failed to create referral participant: ${error?.message || 'unknown error'}`
+    )
+  }
+
+  return created
+}
+
 export async function checkAndGrantRewards(
   supabase: SupabaseClient,
   participantId: string,

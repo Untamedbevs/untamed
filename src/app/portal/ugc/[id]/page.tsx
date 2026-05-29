@@ -109,7 +109,7 @@ export default function PortalUgcDetailPage({
   const drink = drinks.find((d) => d.slug === submission.drink_slug)
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6">
       <Link
         href="/portal/ugc"
         className="text-sm text-[#A0A0A0] hover:text-white inline-flex items-center gap-1"

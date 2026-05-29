@@ -100,7 +100,7 @@ export default function PortalAccountPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="space-y-6">
       <div className="bg-[#141414] border border-[#2A2A2A] rounded-2xl p-6">
         <h2 className="font-semibold text-white mb-4 flex items-center gap-2">
           <UserIcon className="w-4 h-4 text-[#9B30FF]" />

@@ -230,7 +230,7 @@ export default function NewUgcSubmissionPage() {
     queue.length > 0 && queue.every((q) => q.status === 'success')
 
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-headline text-2xl text-white">Submit photo or video</h1>

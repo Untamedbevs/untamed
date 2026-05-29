@@ -7,8 +7,9 @@ import Image from 'next/image'
 import {
   Building2, TrendingUp, Sparkles, ShieldCheck, Package,
   DollarSign, Clock, Users, BarChart3, Store, Utensils,
-  Truck, Zap, Target, Heart, Wine, ArrowRight, X, Send,
+  Truck, Zap, Target, Heart, Wine, ArrowRight, X, Send, User,
 } from 'lucide-react'
+import Link from 'next/link'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
 import { DistributorLeadForm } from '@/components/referral/DistributorLeadForm'
@@ -293,6 +294,13 @@ function DistributeContent() {
                     For Distributors
                   </a>
                 </div>
+                <Link
+                  href="/portal/login"
+                  className="inline-flex items-center gap-1.5 text-sm text-untamed-white-muted hover:text-white transition-colors"
+                >
+                  <User className="w-4 h-4" />
+                  Existing partner? <span className="underline underline-offset-2">Sign in to your portal</span>
+                </Link>
               </div>
             </motion.div>
 

@@ -10,6 +10,7 @@ import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
 import { ContactModal } from '@/components/ContactModal'
 import { DrinkCard } from '@/components/DrinkCard'
+import { HomeCommunityStrip } from '@/components/community/HomeCommunityStrip'
 import { drinks } from '@/lib/drinks'
 import { siteAssetAbsoluteUrl } from '@/lib/site-assets'
 
@@ -565,6 +566,11 @@ export default function HomePage() {
             </div>
           </div>
         </section>
+
+        {/* ============================================
+            COMMUNITY STRIP (renders only when content exists)
+            ============================================ */}
+        <HomeCommunityStrip />
 
         {/* ============================================
             CTA / FIND US SECTION

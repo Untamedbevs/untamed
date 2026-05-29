@@ -59,7 +59,7 @@ export default async function PortalDashboardPage() {
   const isDistributor = member.distributorLeads.length > 0
 
   return (
-    <div className="space-y-8 max-w-5xl">
+    <div className="space-y-8">
       <div>
         <h1 className="font-headline text-3xl text-white mb-1">{greeting}</h1>
         <p className="text-[#A0A0A0]">
