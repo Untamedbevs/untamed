@@ -183,7 +183,7 @@ export default async function PortalDashboardPage() {
             </div>
             <h3 className="font-semibold text-white mb-1">Browse rewards</h3>
             <p className="text-sm text-[#A0A0A0]">
-              Stickers, glassware, swag, and free 4-packs. Redeem your points.
+              Stickers, glassware, and merch. Redeem your points.
             </p>
           </Link>
         )}

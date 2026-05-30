@@ -265,6 +265,6 @@ CREATE POLICY "Staff can update distributor leads"
 INSERT INTO referral_reward_tiers (tier_name, tier_order, min_consumer_signups, min_distributor_leads, min_paid_conversions, reward_type, reward_value, description)
 VALUES
   ('Pack Runner', 1, 3, 0, 0, 'points', '{"points": 100}', 'Refer 3 friends who sign up and earn 100 bonus loyalty points'),
-  ('Territory Scout', 2, 5, 1, 0, 'free_product', '{"product": "variety_4pack"}', 'Refer 5 friends + 1 distributor lead and earn a free Variety 4-Pack'),
+  ('Territory Scout', 2, 5, 1, 0, 'points', '{"points": 500}', 'Refer 5 friends + 1 distributor lead and earn 500 bonus loyalty points'),
   ('Alpha Predator', 3, 10, 3, 0, 'merch', '{"item": "merch_bundle"}', 'Refer 10 friends + 3 distributor leads and earn the Untamed Merch Bundle'),
   ('Pride Leader', 4, 25, 5, 0, 'custom', '{"description": "VIP founding member status + exclusive merch drop"}', 'Refer 25 friends + 5 distributor leads for VIP founding member status');
