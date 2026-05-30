@@ -5,7 +5,7 @@ import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { ArrowDown, Mail, Sparkles, Building2 } from 'lucide-react'
+import { ArrowDown, Mail, Building2 } from 'lucide-react'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
 import { ContactModal } from '@/components/ContactModal'
@@ -55,36 +55,16 @@ export default function HomePage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
             >
-              {/* Tagline badge */}
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.3, duration: 0.5 }}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-untamed-white-muted/20 bg-untamed-white/5 mb-8"
-              >
-                <Sparkles className="w-4 h-4 text-panther-light" />
-                <span className="text-untamed-white-muted text-sm tracking-[0.2em] uppercase">
-                  Martinis With an <span className="font-wild cyber-brush-fix text-gradient-wild text-base">Attitude</span>
-                </span>
-              </motion.div>
-
               {/* Brand Logo */}
               <div className="flex flex-col items-center mb-6">
                 <Image
-                  src="/images/logo-mark.png"
-                  alt="Untamed Beverages"
-                  width={160}
-                  height={160}
-                  className="w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44 lg:w-48 lg:h-48 mb-4"
+                  src="https://media.untamedbeverages.com/media/Site_Assets/Graphics/1780139299257-untamed_coaster_design-v2.png"
+                  alt="Untamed Beverages — Premium Vodka Martinis With an Attitude"
+                  width={400}
+                  height={400}
+                  className="w-44 h-44 sm:w-52 sm:h-52 md:w-64 md:h-64 lg:w-72 lg:h-72 rounded-full"
                   priority
-                />
-                <Image
-                  src="/images/logo-text.png"
-                  alt="Untamed Beverages"
-                  width={500}
-                  height={80}
-                  className="h-10 sm:h-12 md:h-16 lg:h-20 w-auto"
-                  priority
+                  unoptimized
                 />
               </div>
 

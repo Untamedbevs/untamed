@@ -9,9 +9,18 @@ export function buildWarmIntroEmail(params: {
   inviteType: 'consumer' | 'distributor'
   referralUrl: string
   customMessage: string
+  unsubUrl: string
+  recipientEmail: string
 }): { subject: string; html: string; text: string } {
-  const { referredFirstName, referrerName, inviteType, referralUrl, customMessage } =
-    params
+  const {
+    referredFirstName,
+    referrerName,
+    inviteType,
+    referralUrl,
+    customMessage,
+    unsubUrl,
+    recipientEmail,
+  } = params
   const greeting = referredFirstName ? `Hey ${referredFirstName},` : 'Hey,'
 
   const intro =
@@ -30,6 +39,8 @@ export function buildWarmIntroEmail(params: {
     `${cta}: ${referralUrl}`,
     '',
     '— The Untamed Pack',
+    '',
+    `Unsubscribe: ${unsubUrl}`,
   ]
     .filter((l) => l !== null && l !== undefined)
     .join('\n')
@@ -38,6 +49,7 @@ export function buildWarmIntroEmail(params: {
   const safeReferrer = escapeHtml(referrerName)
   const safeIntro = escapeHtml(intro)
   const safeCta = escapeHtml(cta)
+  const safeRecipient = escapeHtml(recipientEmail)
 
   const html = `<!doctype html>
 <html>
@@ -74,6 +86,13 @@ export function buildWarmIntroEmail(params: {
               <p style="margin:24px 0 0;color:#666;font-size:12px;line-height:1.5;">
                 Sent by ${safeReferrer} via the Untamed referral program.
               </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:16px 32px;border-top:1px solid #2A2A2A;color:#666;font-size:11px;line-height:1.5;text-align:center;">
+              Sent to <span style="color:#888;">${safeRecipient}</span> &middot;
+              <a href="${unsubUrl}" style="color:#9B30FF;text-decoration:underline;">Unsubscribe</a>
+              &middot; Untamed Beverages, LLC
             </td>
           </tr>
         </table>

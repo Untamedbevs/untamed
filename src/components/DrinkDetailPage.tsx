@@ -290,6 +290,53 @@ export function DrinkDetailPage({ drink }: DrinkDetailPageProps) {
         </section>
 
         {/* ============================================
+            THE VALUE CONTAINER
+            ============================================ */}
+        <section className="relative py-20 md:py-28">
+          <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-card-border to-transparent" />
+
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+            >
+              <h2 className="font-[var(--font-oswald)] text-3xl md:text-4xl lg:text-5xl font-bold uppercase tracking-wider text-untamed-white mb-10">
+                The <span style={{ color: drink.color }}>Value</span>
+              </h2>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+              className="rounded-2xl border p-8 md:p-10"
+              style={{ borderColor: `${drink.color}30` }}
+            >
+              <p className="font-[var(--font-oswald)] text-6xl md:text-7xl font-bold text-untamed-white mb-2">$24</p>
+              <p className="text-untamed-white-muted text-lg mb-8">for a four-pack</p>
+
+              <div className="flex justify-center gap-12 mb-8">
+                <div>
+                  <p className="font-[var(--font-oswald)] text-4xl md:text-5xl font-bold" style={{ color: drink.color }}>8</p>
+                  <p className="text-untamed-white-muted text-sm mt-1">Cocktails</p>
+                </div>
+                <div>
+                  <p className="font-[var(--font-oswald)] text-4xl md:text-5xl font-bold" style={{ color: drink.color }}>$3</p>
+                  <p className="text-untamed-white-muted text-sm mt-1">Per Cocktail</p>
+                </div>
+              </div>
+
+              <p className="text-untamed-white-muted text-base max-w-lg mx-auto">
+                That is not just pricing. That is premium value, stated with clarity.
+              </p>
+            </motion.div>
+          </div>
+        </section>
+
+        {/* ============================================
             THE 1-2-3 ADVANTAGE SECTION
             ============================================ */}
         <section className="relative py-20 md:py-28">
