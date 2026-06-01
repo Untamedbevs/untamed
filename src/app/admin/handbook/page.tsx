@@ -272,12 +272,11 @@ function Referrals() {
       <Steps
         items={[
           <>
-            They <strong>sign in to the member portal</strong> (
-            <Path>/portal/login</Path>). The public <Path>/referral</Path> page
-            explains the program and sends them here. Any logged-in loyalty
-            member automatically gets a <strong>referral participant</strong>{' '}
-            record and a personal code (e.g. <Path>jordanbuckingham</Path>) the
-            first time they open <Path>/portal/referrals</Path>.
+            Every loyalty member <strong>already has a referral link</strong>
+            &mdash; a personal code (e.g. <Path>jordanbuckingham</Path>) is
+            created automatically at signup. The public <Path>/referral</Path>{' '}
+            page explains the program and sends people to sign in at{' '}
+            <Path>/portal/login</Path>.
           </>,
           <>
             On <Path>/portal/referrals</Path> they see their shareable link
@@ -380,7 +379,7 @@ function Distributor() {
     >
       <p>
         Businesses that want to stock Untamed submit a lead at{' '}
-        <Path>/retail</Path>. This is also how a Ring agent earns
+        <Path>/retail</Path>. This is also how a referral agent earns
         &ldquo;distributor lead&rdquo; credit toward their higher tiers.
       </p>
       <Steps
@@ -414,20 +413,28 @@ function Loyalty() {
   return (
     <SectionShell id="loyalty" icon={Trophy} title="Sign up for loyalty">
       <p>
-        The loyalty program is how regular customers earn points. There&apos;s
-        no separate &ldquo;create account&rdquo; step &mdash; giving an email
-        creates the member.
+        There is <strong>one signup path</strong>, and it always creates a real
+        portal account &mdash; no password required. Signing up for loyalty{' '}
+        <em>is</em> getting a portal. Every member can log in, and every member
+        automatically gets a referral link.
       </p>
       <Steps
         items={[
           <>
-            A customer enters their email anywhere it&apos;s collected (the
-            loyalty landing page, joining referrals, etc.).
+            A customer enters their <strong>name and email</strong> on the
+            rewards page (<Path>/rewards</Path> or a drink&apos;s rewards page,
+            reached by the can QR code).
           </>,
           <>
-            A <strong>loyalty member</strong> record is created and they
-            immediately receive a <strong>{POINTS.SIGNUP_BONUS}-point signup
-            bonus</strong>.
+            They get a <strong>6-digit code</strong> by email and type it right
+            on the page &mdash; no password to create.
+          </>,
+          <>
+            That instantly creates their <strong>portal account</strong> +{' '}
+            <strong>loyalty member</strong> with a{' '}
+            <strong>{POINTS.SIGNUP_BONUS}-point signup bonus</strong>, a referral
+            link, and (if they arrived via a <Path>?ref=</Path> link) credit to
+            their referrer. They land in the portal.
           </>,
           <>
             From then on they accrue points for purchases and content (see the
@@ -435,6 +442,12 @@ function Loyalty() {
           </>,
         ]}
       />
+      <Callout tone="tip" title="One kind of member">
+        Because signup always provisions a portal account, there are no
+        &ldquo;email-only&rdquo; members anymore. Returning customers use{' '}
+        <Path>/portal/login</Path>; anyone who joined under an old email gets
+        linked automatically the first time they sign in with that email.
+      </Callout>
       <h3 className="text-white font-semibold text-lg pt-2">
         How points are earned
       </h3>

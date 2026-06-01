@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { linkAuthUserToIdentitiesByEmail } from '@/lib/auth/link-identities'
+import { ensureMemberForAuthUser } from '@/lib/auth/link-identities'
+import { creditConsumerReferral } from '@/lib/referral/helpers'
+import { REF_COOKIE_NAME } from '@/lib/referral/constants'
 
 /**
  * Magic-link OAuth callback. Supabase redirects here with `?code=...` after
@@ -40,11 +42,25 @@ export async function GET(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
   if (user?.email) {
-    await linkAuthUserToIdentitiesByEmail(
-      createAdminClient(),
-      user.id,
-      user.email
-    )
+    const meta = user.user_metadata || {}
+    const firstName =
+      (meta.first_name as string | undefined) ||
+      (meta.full_name as string | undefined)?.split(' ')[0] ||
+      null
+    const admin = createAdminClient()
+    const result = await ensureMemberForAuthUser(admin, user.id, user.email, {
+      firstName,
+      favoriteDrinkSlug:
+        (meta.favorite_drink_slug as string | undefined) || null,
+      visitorId: (meta.visitor_id as string | undefined) || null,
+    })
+
+    if (result?.created) {
+      const refCode = request.cookies.get(REF_COOKIE_NAME)?.value
+      if (refCode) {
+        await creditConsumerReferral(admin, refCode, user.email)
+      }
+    }
   }
 
   return NextResponse.redirect(new URL(safeReturnTo, url.origin))

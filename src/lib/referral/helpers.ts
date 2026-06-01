@@ -166,6 +166,68 @@ export async function ensureReferralParticipant(
   return created
 }
 
+/**
+ * Credit a referrer when a referred consumer signs up. Resolves the referral
+ * code, increments the participant's consumer signups, logs the event, marks
+ * the matching warm-intro invite converted, and grants any newly earned tier
+ * rewards. Best-effort: never throws so it can't fail the signup it accompanies.
+ */
+export async function creditConsumerReferral(
+  supabase: SupabaseClient,
+  refCode: string,
+  referredEmail: string
+): Promise<void> {
+  try {
+    const code = refCode?.trim()
+    if (!code) return
+
+    const referrer = await resolveReferralCode(supabase, code)
+    if (!referrer) return
+
+    const normalizedEmail = referredEmail.toLowerCase().trim()
+
+    const { data: refParticipant } = await supabase
+      .from('referral_participants')
+      .select('consumer_signups, distributor_leads, paid_conversions')
+      .eq('id', referrer.id)
+      .single()
+
+    if (!refParticipant) return
+
+    const newSignups = (refParticipant.consumer_signups || 0) + 1
+
+    await Promise.all([
+      supabase
+        .from('referral_participants')
+        .update({ consumer_signups: newSignups })
+        .eq('id', referrer.id),
+      supabase.from('referral_events').insert({
+        participant_id: referrer.id,
+        event_type: 'consumer_signup',
+        referred_email: normalizedEmail,
+      }),
+    ])
+
+    await supabase
+      .from('referral_invites')
+      .update({ status: 'converted', converted_at: new Date().toISOString() })
+      .eq('participant_id', referrer.id)
+      .eq('referred_email', normalizedEmail)
+      .eq('invite_type', 'consumer')
+      .neq('status', 'converted')
+
+    await checkAndGrantRewards(
+      supabase,
+      referrer.id,
+      newSignups,
+      refParticipant.distributor_leads || 0,
+      refParticipant.paid_conversions || 0
+    )
+  } catch {
+    // Referral crediting is best-effort; never throw to the caller.
+  }
+}
+
 export async function checkAndGrantRewards(
   supabase: SupabaseClient,
   participantId: string,

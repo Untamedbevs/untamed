@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { linkAuthUserToIdentitiesByEmail } from '@/lib/auth/link-identities'
+import { ensureMemberForAuthUser } from '@/lib/auth/link-identities'
 
 export interface PortalLoyaltyMember {
   id: string
@@ -61,7 +61,20 @@ export async function resolveMember(): Promise<PortalMember | null> {
       .maybeSingle()
 
     if (!loyaltyRes.data) {
-      await linkAuthUserToIdentitiesByEmail(admin, user.id, user.email)
+      // Portal front door: link existing identities and, if this auth user
+      // still has no loyalty member, provision one (+ signup bonus). This makes
+      // having a portal account equivalent to being a loyalty member.
+      const meta = user.user_metadata || {}
+      const firstName =
+        (meta.first_name as string | undefined) ||
+        (meta.full_name as string | undefined)?.split(' ')[0] ||
+        null
+      await ensureMemberForAuthUser(admin, user.id, user.email, {
+        firstName,
+        favoriteDrinkSlug:
+          (meta.favorite_drink_slug as string | undefined) || null,
+        visitorId: (meta.visitor_id as string | undefined) || null,
+      })
       loyaltyRes = await admin
         .from('loyalty_members')
         .select('id, email, first_name, points_balance, favorite_drink_slug, created_at')

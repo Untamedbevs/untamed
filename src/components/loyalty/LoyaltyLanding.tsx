@@ -1,22 +1,18 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Sparkles, Mail, Loader2, Trophy, Gift, Receipt, ScanLine } from 'lucide-react'
+import { ArrowLeft, Sparkles, Loader2, Gift, Receipt, ScanLine } from 'lucide-react'
 import type { Drink } from '@/lib/drinks'
 import { drinks } from '@/lib/drinks'
 import { siteAssetAbsoluteUrl } from '@/lib/site-assets'
-import type { LoyaltyMember, LoyaltyTransaction, LoyaltyReceipt } from '@/lib/loyalty/types'
 import { POINTS, REWARDS } from '@/lib/loyalty/constants'
 import { useTracking } from '@/components/TrackingProvider'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
 import { JoinForm } from './JoinForm'
-import { MemberDashboard } from './MemberDashboard'
 import { RewardsShowcase } from './RewardsShowcase'
-
-type View = 'landing' | 'lookup' | 'dashboard'
 
 const BRAND_COLOR = '#FFD700'
 const BRAND_COLOR_LIGHT = '#FFA500'
@@ -36,69 +32,7 @@ function getTheme(drink?: Drink) {
 
 export function LoyaltyLanding({ drink }: LoyaltyLandingProps) {
   const { visitorId, ready } = useTracking()
-  const [view, setView] = useState<View>('landing')
-  const [member, setMember] = useState<LoyaltyMember | null>(null)
-  const [transactions, setTransactions] = useState<LoyaltyTransaction[]>([])
-  const [receipts, setReceipts] = useState<LoyaltyReceipt[]>([])
-  const [lookupEmail, setLookupEmail] = useState('')
-  const [lookupLoading, setLookupLoading] = useState(false)
-  const [lookupError, setLookupError] = useState('')
-  const [autoChecked, setAutoChecked] = useState(false)
-
   const theme = getTheme(drink)
-
-  const loadMember = useCallback(async (email: string) => {
-    const res = await fetch('/api/loyalty/lookup', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
-    })
-    if (!res.ok) return false
-    const data = await res.json()
-    if (data.found) {
-      setMember(data.member)
-      setTransactions(data.transactions)
-      setReceipts(data.receipts)
-      setView('dashboard')
-      return true
-    }
-    return false
-  }, [])
-
-  useEffect(() => {
-    if (autoChecked) return
-    setAutoChecked(true)
-    const savedEmail = localStorage.getItem('ut_loyalty_email')
-    if (savedEmail) {
-      loadMember(savedEmail)
-    }
-  }, [autoChecked, loadMember])
-
-  function handleJoined(newMember: Record<string, unknown>) {
-    setMember(newMember as unknown as LoyaltyMember)
-    setTransactions([])
-    setReceipts([])
-    setView('dashboard')
-  }
-
-  async function handleLookup(e: React.FormEvent) {
-    e.preventDefault()
-    setLookupLoading(true)
-    setLookupError('')
-    const found = await loadMember(lookupEmail)
-    if (found) {
-      localStorage.setItem('ut_loyalty_email', lookupEmail.toLowerCase().trim())
-    } else {
-      setLookupError('No account found with that email.')
-    }
-    setLookupLoading(false)
-  }
-
-  function handleRefresh() {
-    if (member) {
-      loadMember(member.email)
-    }
-  }
 
   if (!ready) {
     return (
@@ -266,229 +200,143 @@ export function LoyaltyLanding({ drink }: LoyaltyLandingProps) {
         </section>
 
         {/* ============================================
-            JOIN / LOOKUP / DASHBOARD SECTION
+            JOIN SECTION
             ============================================ */}
-        {view === 'landing' && (
-          <>
-            {/* Join Section */}
-            <section className="relative py-20 md:py-28">
-              <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-card-border to-transparent" />
+        <section className="relative py-20 md:py-28">
+          <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-card-border to-transparent" />
 
-              <div
-                className="absolute top-1/2 left-0 w-72 h-72 rounded-full blur-[150px] opacity-10"
-                style={{ backgroundColor: theme.color }}
-              />
-              <div
-                className="absolute top-1/2 right-0 w-72 h-72 rounded-full blur-[150px] opacity-10"
-                style={{ backgroundColor: theme.color }}
-              />
+          <div
+            className="absolute top-1/2 left-0 w-72 h-72 rounded-full blur-[150px] opacity-10"
+            style={{ backgroundColor: theme.color }}
+          />
+          <div
+            className="absolute top-1/2 right-0 w-72 h-72 rounded-full blur-[150px] opacity-10"
+            style={{ backgroundColor: theme.color }}
+          />
 
-              <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.6 }}
-                  >
-                    <Sparkles className="w-10 h-10 mb-4" style={{ color: theme.color }} />
-                    <h2 className="font-condensed text-3xl md:text-4xl lg:text-5xl font-bold uppercase tracking-wider text-untamed-white mb-4">
-                      Get Started
-                    </h2>
-                    <p className="text-untamed-white-muted text-base md:text-lg leading-relaxed mb-6">
-                      Enter your name and email to join. It&apos;s free, takes 5 seconds, and you&apos;ll earn {POINTS.SIGNUP_BONUS} points just for signing up.
-                    </p>
-                    <button
-                      onClick={() => setView('lookup')}
-                      className="text-untamed-white-muted text-sm hover:text-untamed-white transition-colors underline underline-offset-4"
-                    >
-                      Already a member? Check your rewards
-                    </button>
-                  </motion.div>
-
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.6, delay: 0.15 }}
-                    className="flex justify-center"
-                  >
-                    <JoinForm
-                      drink={drink || drinks[0]}
-                      visitorId={visitorId}
-                      onJoined={handleJoined}
-                      accentColor={theme.color}
-                      accentGlow={theme.colorGlow}
-                    />
-                  </motion.div>
-                </div>
-              </div>
-            </section>
-
-            {/* How It Works Section */}
-            <section className="relative py-20 md:py-28 overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-card-border to-transparent" />
-
-              <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.6 }}
-                >
-                  <h2 className="font-condensed text-3xl md:text-4xl font-bold uppercase tracking-wider text-untamed-white mb-12">
-                    How It Works
-                  </h2>
-                </motion.div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
-                  {[
-                    { step: '01', title: 'Join the Pack', desc: 'Sign up with your email. Instant signup bonus points.' },
-                    { step: '02', title: 'Upload Receipts', desc: 'Snap a photo of your purchase receipt. We verify and credit your points.' },
-                    { step: '03', title: 'Unlock Rewards', desc: 'Redeem points for exclusive Untamed merch, glassware, and stickers.' },
-                  ].map((item, idx) => (
-                    <motion.div
-                      key={idx}
-                      initial={{ opacity: 0, y: 20 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ duration: 0.6, delay: idx * 0.15 }}
-                      className="text-center"
-                    >
-                      <p
-                        className="font-condensed text-5xl md:text-6xl font-bold mb-3 opacity-30"
-                        style={{ color: theme.color }}
-                      >
-                        {item.step}
-                      </p>
-                      <h3
-                        className="font-condensed text-xl md:text-2xl font-bold uppercase tracking-wider mb-3"
-                        style={{ color: theme.color }}
-                      >
-                        {item.title}
-                      </h3>
-                      <p className="text-untamed-white-muted text-sm md:text-base">
-                        {item.desc}
-                      </p>
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
-            </section>
-
-            {/* Rewards Showcase Section */}
-            <section className="relative py-20 md:py-28">
-              <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-card-border to-transparent" />
-
-              <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.6 }}
-                  className="text-center mb-12"
-                >
-                  <p
-                    className="text-sm tracking-[0.3em] uppercase mb-3"
-                    style={{ color: theme.color }}
-                  >
-                    Earn &amp; Redeem
-                  </p>
-                  <h2 className="font-condensed text-3xl md:text-4xl lg:text-5xl font-bold uppercase tracking-wider text-untamed-white">
-                    Available Rewards
-                  </h2>
-                </motion.div>
-
-                <RewardsShowcase
-                  accentColor={theme.color}
-                />
-              </div>
-            </section>
-          </>
-        )}
-
-        {view === 'lookup' && (
-          <section className="relative py-20 md:py-28">
-            <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-card-border to-transparent" />
-
-            <div className="max-w-md mx-auto px-4 sm:px-6 text-center space-y-6">
+          <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6 }}
               >
-                <Trophy className="w-12 h-12 mx-auto mb-4" style={{ color: theme.color }} />
-                <h2 className="font-condensed text-3xl md:text-4xl font-bold uppercase tracking-wider text-untamed-white mb-2">
-                  Welcome Back
+                <Sparkles className="w-10 h-10 mb-4" style={{ color: theme.color }} />
+                <h2 className="font-condensed text-3xl md:text-4xl lg:text-5xl font-bold uppercase tracking-wider text-untamed-white mb-4">
+                  Get Started
                 </h2>
-                <p className="text-untamed-white-muted text-base mb-8">
-                  Enter your email to view your rewards.
+                <p className="text-untamed-white-muted text-base md:text-lg leading-relaxed mb-6">
+                  Enter your name and email to join. We&apos;ll send a quick 6-digit code to confirm &mdash; no password needed &mdash; and you&apos;ll earn {POINTS.SIGNUP_BONUS} points just for signing up.
                 </p>
-
-                <form onSubmit={handleLookup} className="space-y-4">
-                  <div className="relative">
-                    <Mail
-                      className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5"
-                      style={{ color: theme.color }}
-                    />
-                    <input
-                      type="email"
-                      placeholder="Email address"
-                      value={lookupEmail}
-                      onChange={(e) => setLookupEmail(e.target.value)}
-                      required
-                      className="w-full pl-12 pr-4 py-3.5 bg-untamed-black-light border border-card-border rounded-xl text-white placeholder:text-muted focus:outline-none"
-                    />
-                  </div>
-
-                  {lookupError && <p className="text-red-400 text-sm">{lookupError}</p>}
-
-                  <button
-                    type="submit"
-                    disabled={lookupLoading}
-                    className="w-full py-3.5 rounded-full font-bold text-black uppercase tracking-wider transition-all duration-300 hover:scale-[1.02] disabled:opacity-50"
-                    style={{ backgroundColor: theme.color }}
-                  >
-                    {lookupLoading ? (
-                      <Loader2 className="w-5 h-5 animate-spin mx-auto" />
-                    ) : (
-                      'View My Rewards'
-                    )}
-                  </button>
-                </form>
-
-                <button
-                  onClick={() => setView('landing')}
-                  className="text-untamed-white-muted text-sm hover:text-untamed-white transition-colors underline underline-offset-4 mt-4"
+                <Link
+                  href="/portal/login?returnTo=%2Fportal"
+                  className="text-untamed-white-muted text-sm hover:text-untamed-white transition-colors underline underline-offset-4"
                 >
-                  New here? Join the Pack
-                </button>
+                  Already a member? Sign in
+                </Link>
               </motion.div>
-            </div>
-          </section>
-        )}
 
-        {view === 'dashboard' && member && (
-          <section className="relative py-20 md:py-28">
-            <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-card-border to-transparent" />
-
-            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: 0.15 }}
+                className="flex justify-center"
               >
-                <MemberDashboard
+                <JoinForm
                   drink={drink || drinks[0]}
-                  member={member}
-                  transactions={transactions}
-                  receipts={receipts}
-                  onRefresh={handleRefresh}
+                  visitorId={visitorId}
                   accentColor={theme.color}
                   accentGlow={theme.colorGlow}
                 />
               </motion.div>
             </div>
-          </section>
-        )}
+          </div>
+        </section>
+
+        {/* ============================================
+            HOW IT WORKS SECTION
+            ============================================ */}
+        <section className="relative py-20 md:py-28 overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-card-border to-transparent" />
+
+          <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+            >
+              <h2 className="font-condensed text-3xl md:text-4xl font-bold uppercase tracking-wider text-untamed-white mb-12">
+                How It Works
+              </h2>
+            </motion.div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
+              {[
+                { step: '01', title: 'Join the Pack', desc: 'Sign up with your email and a 6-digit code. Instant signup bonus points.' },
+                { step: '02', title: 'Upload Receipts', desc: 'Snap a photo of your purchase receipt. We verify and credit your points.' },
+                { step: '03', title: 'Unlock Rewards', desc: 'Redeem points for exclusive Untamed merch, glassware, and stickers.' },
+              ].map((item, idx) => (
+                <motion.div
+                  key={idx}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.6, delay: idx * 0.15 }}
+                  className="text-center"
+                >
+                  <p
+                    className="font-condensed text-5xl md:text-6xl font-bold mb-3 opacity-30"
+                    style={{ color: theme.color }}
+                  >
+                    {item.step}
+                  </p>
+                  <h3
+                    className="font-condensed text-xl md:text-2xl font-bold uppercase tracking-wider mb-3"
+                    style={{ color: theme.color }}
+                  >
+                    {item.title}
+                  </h3>
+                  <p className="text-untamed-white-muted text-sm md:text-base">
+                    {item.desc}
+                  </p>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ============================================
+            REWARDS SHOWCASE SECTION
+            ============================================ */}
+        <section className="relative py-20 md:py-28">
+          <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-card-border to-transparent" />
+
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="text-center mb-12"
+            >
+              <p
+                className="text-sm tracking-[0.3em] uppercase mb-3"
+                style={{ color: theme.color }}
+              >
+                Earn &amp; Redeem
+              </p>
+              <h2 className="font-condensed text-3xl md:text-4xl lg:text-5xl font-bold uppercase tracking-wider text-untamed-white">
+                Available Rewards
+              </h2>
+            </motion.div>
+
+            <RewardsShowcase accentColor={theme.color} />
+          </div>
+        </section>
+
         {/* ============================================
             QR CODE CALLOUT SECTION
             ============================================ */}
