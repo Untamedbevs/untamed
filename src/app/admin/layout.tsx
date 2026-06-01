@@ -31,6 +31,8 @@ import {
   Building2,
   MessageSquare,
   Send,
+  Palette,
+  BookOpen,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { LucideIcon } from 'lucide-react'
@@ -72,6 +74,8 @@ const ALL_NAV_ITEMS: NavItem[] = [
       { href: '/admin/financial/competitive-pricing', label: 'Competitive Pricing', icon: Target },
     ],
   },
+  { href: '/brand-kit', label: 'Brand Kit', icon: Palette },
+  { href: '/admin/handbook', label: 'Handbook', icon: BookOpen },
 ]
 
 const SUPER_ADMIN_ITEMS: NavItem[] = [

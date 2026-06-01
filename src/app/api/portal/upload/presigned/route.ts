@@ -6,7 +6,11 @@ import { buildUserUploadKey, getS3Client, s3PublicUrl } from '@/lib/storage/s3'
 
 export const dynamic = 'force-dynamic'
 
-const ALLOWED_FOLDERS = new Set(['ugc/uploads', 'ugc/recordings'])
+const ALLOWED_FOLDERS = new Set([
+  'ugc/uploads',
+  'ugc/recordings',
+  'receipts/uploads',
+])
 
 export async function POST(request: NextRequest) {
   try {

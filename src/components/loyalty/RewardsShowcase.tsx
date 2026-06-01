@@ -19,9 +19,10 @@ export function RewardsShowcase({ accentColor = '#FFD700', currentPoints = 0 }: 
             key={reward.id}
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
+            whileHover={{ y: -4 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: idx * 0.1 }}
-            className="relative p-6 rounded-2xl border bg-untamed-black-card transition-all duration-300 hover:-translate-y-1"
+            className="relative p-6 rounded-2xl border bg-untamed-black-card"
             style={{
               borderColor: canRedeem ? `${accentColor}60` : 'var(--card-border)',
             }}

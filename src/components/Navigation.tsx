@@ -11,14 +11,14 @@ import {
   ShoppingCart,
   Share2,
   User,
-  Palette,
 } from 'lucide-react'
 import { drinks } from '@/lib/drinks'
 import { useCartCount } from '@/lib/shop/accelpay'
 import { createClient } from '@/lib/supabase/client'
 import { siteAssetAbsoluteUrl } from '@/lib/site-assets'
+import { PresaleBanner } from '@/components/PresaleBanner'
 
-type DropdownId = 'drinks' | 'more' | null
+type DropdownId = 'drinks' | null
 
 // Single shared style so every primary nav link reads as one consistent system
 // instead of the previous rainbow. White at rest, slightly dimmed on hover --
@@ -59,9 +59,10 @@ export function Navigation() {
 
   return (
     <>
-      <nav className="absolute top-0 left-0 right-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16 md:h-20">
+      <header className="absolute top-0 left-0 right-0 z-50">
+        <nav>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16 md:h-20">
             {/* Logo */}
             <Link href="/" className="flex items-center gap-2 group">
               <Image
@@ -109,16 +110,9 @@ export function Navigation() {
                 Retail
               </Link>
 
-              {/* More dropdown */}
-              <NavDropdown
-                id="more"
-                label="More"
-                openDropdown={openDropdown}
-                setOpenDropdown={setOpenDropdown}
-                widthClass="w-64"
-              >
-                <MoreDropdownContent />
-              </NavDropdown>
+              <Link href="/referral" className={NAV_LINK_CLASSES}>
+                Refer
+              </Link>
 
               {/* Right cluster: account + cart */}
               <div className="flex items-center gap-4 pl-2 border-l border-untamed-white/10">
@@ -176,7 +170,9 @@ export function Navigation() {
             </div>
           </div>
         </div>
-      </nav>
+        </nav>
+        <PresaleBanner />
+      </header>
 
       {/* Mobile Menu */}
       {mobileOpen && (
@@ -232,13 +228,6 @@ export function Navigation() {
             >
               Retail
             </Link>
-            <Link
-              href="/brand-kit"
-              onClick={() => setMobileOpen(false)}
-              className={MOBILE_LINK_CLASSES}
-            >
-              Brand Kit
-            </Link>
             <div className="w-16 h-px bg-card-border my-2" />
             <Link
               href={portalHref}
@@ -271,7 +260,7 @@ export function Navigation() {
 // when the cursor crosses the gap between trigger and panel.
 // ---------------------------------------------------------------------------
 interface NavDropdownProps {
-  id: 'drinks' | 'more'
+  id: 'drinks'
   label: string
   openDropdown: DropdownId
   setOpenDropdown: (id: DropdownId) => void
@@ -392,45 +381,3 @@ function DrinksDropdownContent() {
   )
 }
 
-// ---------------------------------------------------------------------------
-// "More" dropdown body
-// ---------------------------------------------------------------------------
-function MoreDropdownContent() {
-  const items = [
-    {
-      href: '/referral',
-      label: 'Refer a Friend',
-      description: 'Share & earn',
-      Icon: Share2,
-      color: 'text-[#22c55e]',
-    },
-    {
-      href: '/brand-kit',
-      label: 'Brand Kit',
-      description: 'Logos & assets',
-      Icon: Palette,
-      color: 'text-untamed-white-muted',
-    },
-  ]
-  return (
-    <div className="p-2">
-      {items.map(({ href, label, description, Icon, color }) => (
-        <Link
-          key={href}
-          href={href}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-untamed-white/5 transition-colors group"
-        >
-          <Icon className={`w-4 h-4 shrink-0 ${color}`} />
-          <div className="flex-1 min-w-0">
-            <div className={`text-sm font-medium tracking-wider uppercase ${color}`}>
-              {label}
-            </div>
-            <div className="text-xs text-untamed-white-muted truncate">
-              {description}
-            </div>
-          </div>
-        </Link>
-      ))}
-    </div>
-  )
-}

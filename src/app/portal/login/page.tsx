@@ -99,6 +99,8 @@ function PortalLoginForm() {
       return
     }
 
+    await fetch('/api/portal/link-identities', { method: 'POST' }).catch(() => {})
+
     router.push(returnTo)
     router.refresh()
   }
@@ -152,6 +154,8 @@ function PortalLoginForm() {
       setLoading(false)
       return
     }
+
+    await fetch('/api/portal/link-identities', { method: 'POST' }).catch(() => {})
 
     router.push(returnTo)
     router.refresh()

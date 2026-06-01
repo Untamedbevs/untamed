@@ -8,7 +8,11 @@ export const runtime = 'nodejs'
 
 const MAX_API_ROUTE_SIZE = 1 * 1024 * 1024 // 1MB safety cap (Vercel limits FormData)
 
-const ALLOWED_FOLDERS = new Set(['ugc/uploads', 'ugc/recordings'])
+const ALLOWED_FOLDERS = new Set([
+  'ugc/uploads',
+  'ugc/recordings',
+  'receipts/uploads',
+])
 
 export async function POST(request: NextRequest) {
   try {

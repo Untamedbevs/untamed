@@ -51,7 +51,16 @@ const helveticaCondensed = localFont({
   display: 'swap',
 })
 
+const siteUrl = 'https://untamedbevs.com'
+const ogImage = {
+  url: '/images/logo-mark.png',
+  width: 1025,
+  height: 1024,
+  alt: 'Untamed Beverages logo',
+}
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: 'Untamed Beverages | Get In Touch With Your Wild Side',
   description:
     'Premium ready-to-drink vodka martinis. 2 martinis per can, 15% ALC/VOL. Black Panther Espresso, Cheetah Lemon Drop, Cougar Dirty Martini, Lioness Peach & Rosemary. Chill it. Shake it. Unleash it!',
@@ -67,20 +76,26 @@ export const metadata: Metadata = {
     'premium cocktails',
   ],
   authors: [{ name: 'Untamed Beverages, LLC' }],
+  icons: {
+    icon: '/images/logo-mark.png',
+    apple: '/images/logo-mark.png',
+  },
   openGraph: {
     title: 'Untamed Beverages | Get In Touch With Your Wild Side',
     description:
       'Premium ready-to-drink vodka martinis. 2 martinis per can. Chill it. Shake it. Unleash it!',
-    url: 'https://untamedbevs.com',
+    url: siteUrl,
     siteName: 'Untamed Beverages',
     type: 'website',
     locale: 'en_US',
+    images: [ogImage],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Untamed Beverages | Get In Touch With Your Wild Side',
     description:
       'Premium ready-to-drink vodka martinis. 2 martinis per can. Chill it. Shake it. Unleash it!',
+    images: [ogImage.url],
   },
   robots: {
     index: true,

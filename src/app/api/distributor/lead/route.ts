@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { randomUUID } from 'crypto'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resolveReferralCode, checkAndGrantRewards, generateUniqueCode } from '@/lib/referral/helpers'
 import { REF_COOKIE_NAME } from '@/lib/referral/constants'
@@ -131,7 +132,7 @@ export async function POST(request: NextRequest) {
           .insert({
             email: normalizedEmail,
             first_name: data.contactName,
-            visitor_id: 'retailer-lead',
+            visitor_id: randomUUID(),
             points_balance: POINTS.SIGNUP_BONUS,
           })
           .select('id')
@@ -161,7 +162,8 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ success: true, leadId: lead.id })
-  } catch {
+  } catch (err) {
+    console.error('[distributor/lead] Failed:', err)
     return NextResponse.json({ error: 'Failed to submit inquiry' }, { status: 500 })
   }
 }

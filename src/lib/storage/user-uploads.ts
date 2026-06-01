@@ -13,6 +13,7 @@
 export const UGC_FOLDERS = {
   ugc: 'ugc/uploads',
   ugcRecordings: 'ugc/recordings',
+  receipts: 'receipts/uploads',
 } as const
 
 export type UgcFolder = keyof typeof UGC_FOLDERS

@@ -56,7 +56,25 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Receipt already reviewed' }, { status: 400 })
     }
 
-    const pointsToAward = action === 'approve' ? (customPoints || POINTS.PER_RECEIPT) : 0
+    // Default points: sum of self-declared pack quantities × per-receipt rate.
+    // Falls back to the flat per-receipt rate when no items were claimed
+    // (legacy single-image uploads).
+    const claimedItems = Array.isArray(receipt.claimed_items)
+      ? (receipt.claimed_items as { drinkSlug: string; quantity: number }[])
+      : []
+    const totalUnits = claimedItems.reduce(
+      (sum, item) => sum + (Number(item.quantity) || 0),
+      0
+    )
+    const defaultPoints =
+      totalUnits > 0 ? totalUnits * POINTS.PER_RECEIPT : POINTS.PER_RECEIPT
+
+    const pointsToAward =
+      action === 'approve'
+        ? typeof customPoints === 'number'
+          ? customPoints
+          : defaultPoints
+        : 0
 
     await supabase
       .from('loyalty_receipts')

@@ -80,7 +80,7 @@ export function PortalReferralsClient({
   )
 
   return (
-    <div className="space-y-8 max-w-5xl">
+    <div className="space-y-8">
       <div>
         <h1 className="font-headline text-2xl text-white mb-1">Referrals</h1>
         <p className="text-sm text-[#A0A0A0]">

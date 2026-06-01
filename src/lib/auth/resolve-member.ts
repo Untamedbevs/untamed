@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { linkAuthUserToIdentitiesByEmail } from '@/lib/auth/link-identities'
 
 export interface PortalLoyaltyMember {
   id: string
@@ -53,18 +54,26 @@ export async function resolveMember(): Promise<PortalMember | null> {
 
     const admin = createAdminClient()
 
-    const [loyaltyRes, distributorRes] = await Promise.all([
-      admin
+    let loyaltyRes = await admin
+      .from('loyalty_members')
+      .select('id, email, first_name, points_balance, favorite_drink_slug, created_at')
+      .eq('auth_user_id', user.id)
+      .maybeSingle()
+
+    if (!loyaltyRes.data) {
+      await linkAuthUserToIdentitiesByEmail(admin, user.id, user.email)
+      loyaltyRes = await admin
         .from('loyalty_members')
         .select('id, email, first_name, points_balance, favorite_drink_slug, created_at')
         .eq('auth_user_id', user.id)
-        .maybeSingle(),
-      admin
-        .from('distributor_leads')
-        .select('id, email, business_name, contact_name, status, created_at')
-        .eq('auth_user_id', user.id)
-        .order('created_at', { ascending: false }),
-    ])
+        .maybeSingle()
+    }
+
+    const distributorRes = await admin
+      .from('distributor_leads')
+      .select('id, email, business_name, contact_name, status, created_at')
+      .eq('auth_user_id', user.id)
+      .order('created_at', { ascending: false })
 
     let referralParticipant: PortalReferralParticipant | null = null
     if (loyaltyRes.data?.id) {

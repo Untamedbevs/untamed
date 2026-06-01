@@ -18,10 +18,13 @@ export function isValidReferralCode(code: string): { valid: boolean; error?: str
 }
 
 function generateCodeFromName(name: string): string {
+  // CODE_MAX_LENGTH is 20; reserve 4 chars for the collision suffix
+  // (`Math.random()*9000 + 1000` → always 4 digits) so the suffixed code
+  // still fits inside the validation bounds.
   return name
     .toLowerCase()
     .replace(/[^a-z0-9]/g, '')
-    .substring(0, 15) || 'untamed'
+    .substring(0, 16) || 'untamed'
 }
 
 export async function generateUniqueCode(

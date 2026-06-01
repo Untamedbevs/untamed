@@ -166,10 +166,36 @@ export async function POST(request: NextRequest) {
     })
   } catch (sendErr) {
     console.error('[portal/referrals/send] SES send failed:', sendErr)
+
+    // Detect AWS SES sandbox: when the account has not been moved to
+    // production, SES rejects any recipient that hasn't been verified
+    // in the console with `MessageRejected` + an "is not verified" message.
+    const errMessage =
+      sendErr instanceof Error ? sendErr.message : String(sendErr || '')
+    const errCode =
+      (sendErr as { name?: string } | null)?.name ||
+      (sendErr as { Code?: string } | null)?.Code ||
+      ''
+    const isSandboxRejection =
+      errCode === 'MessageRejected' && /is not verified/i.test(errMessage)
+
+    if (isSandboxRejection) {
+      return NextResponse.json(
+        {
+          error:
+            "We couldn't deliver the warm intro to that address right now. Copy your referral link below and share it directly — they'll still get full credit when they sign up.",
+          code: 'RECIPIENT_NOT_DELIVERABLE',
+          invite,
+        },
+        { status: 502 }
+      )
+    }
+
     return NextResponse.json(
       {
         error:
-          'Invite saved but email delivery failed. Our team will retry shortly.',
+          'Invite saved but email delivery failed. Try again in a few minutes, or share your referral link directly.',
+        code: 'EMAIL_SEND_FAILED',
         invite,
       },
       { status: 502 }
