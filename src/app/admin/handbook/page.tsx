@@ -88,10 +88,10 @@ export default function HandbookPage() {
           </h1>
           <p className="text-[#A0A0A0] leading-relaxed">
             This is the plain-English walkthrough of everything connected to the
-            member portal: how someone becomes a referral (&ldquo;Ring&rdquo;)
-            agent, signs up for loyalty, logs a purchase, logs in, and redeems
-            rewards &mdash; plus exactly what you do on the admin side at each
-            step. Hand this to anyone who needs to understand the system.
+            member portal: how someone becomes a referral agent, signs up for
+            loyalty, logs a purchase, logs in, and redeems rewards &mdash; plus
+            exactly what you do on the admin side at each step. Hand this to
+            anyone who needs to understand the system.
           </p>
         </header>
 
@@ -313,7 +313,7 @@ function Referrals() {
       <h3 className="text-white font-semibold text-lg pt-2">
         Referral reward tiers
       </h3>
-      <p>These are the milestone rewards a Ring agent unlocks automatically:</p>
+      <p>These are the milestone rewards a referral agent unlocks automatically:</p>
       <div className="rounded-xl border border-[#2A2A2A] overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-[#1A1A1A] text-[#A0A0A0]">
@@ -556,15 +556,16 @@ function Login() {
   return (
     <SectionShell id="login" icon={LogIn} title="Log in to the portal">
       <p>
-        To see a personal dashboard, a member logs in at{' '}
-        <Path>/portal/login</Path>. This is a real authenticated account
-        (Supabase), separate from the email-only public pages.
+        Returning members log in at <Path>/portal/login</Path> &mdash; the same
+        account they created when they signed up. New customers don&apos;t come
+        here first; they sign up on the rewards page, which creates this account
+        for them.
       </p>
       <Steps
         items={[
           <>
-            They enter their email and either set a password or request a
-            one-time magic link / code.
+            They enter their email and either use their password or request a
+            one-time magic link / 6-digit code.
           </>,
           <>
             On successful login, the system <strong>links</strong> any existing

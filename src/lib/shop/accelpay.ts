@@ -47,6 +47,34 @@ export function addToCart(listingId: string, variantId: string, qty = 1) {
 }
 
 /**
+ * Open the AccelPay cart sidebar.
+ * AccelPay responds to ?open=true on the URL, or we can trigger
+ * a click on their rendered cart icon if present.
+ */
+export function openCart() {
+  // Method 1: Try clicking AccelPay's rendered cart element
+  const cartEl = document.querySelector<HTMLElement>('[data-bccart], .bc-cart-icon, .accelpay-cart')
+  if (cartEl) {
+    cartEl.click()
+    return
+  }
+
+  // Method 2: Append ?open=true to current URL (AccelPay listens for this)
+  const url = new URL(window.location.href)
+  url.searchParams.set('open', 'true')
+  window.history.replaceState({}, '', url.toString())
+  window.dispatchEvent(new PopStateEvent('popstate'))
+
+  // Method 3: Fallback - try window-level open function
+  const w = window as unknown as { apOpenCart?: () => void; BevCart?: { open?: () => void } }
+  if (typeof w.apOpenCart === 'function') {
+    w.apOpenCart()
+  } else if (w.BevCart && typeof w.BevCart.open === 'function') {
+    w.BevCart.open()
+  }
+}
+
+/**
  * Track cart item count by listening to AccelPay postMessage events.
  */
 export function useCartCount() {

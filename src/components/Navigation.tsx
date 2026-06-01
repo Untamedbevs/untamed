@@ -8,15 +8,14 @@ import {
   Menu,
   X,
   Trophy,
-  ShoppingCart,
   Share2,
   User,
 } from 'lucide-react'
 import { drinks } from '@/lib/drinks'
-import { useCartCount } from '@/lib/shop/accelpay'
 import { createClient } from '@/lib/supabase/client'
 import { siteAssetAbsoluteUrl } from '@/lib/site-assets'
 import { PresaleBanner } from '@/components/PresaleBanner'
+import { NavCartButton } from '@/components/NavCartButton'
 
 type DropdownId = 'drinks' | null
 
@@ -33,7 +32,6 @@ export function Navigation() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [openDropdown, setOpenDropdown] = useState<DropdownId>(null)
   const [isAuthed, setIsAuthed] = useState<boolean | null>(null)
-  const cartCount = useCartCount()
 
   // Auth state for the Sign In / My Portal toggle
   useEffect(() => {
@@ -124,18 +122,10 @@ export function Navigation() {
                 >
                   <User className="w-5 h-5" />
                 </Link>
-                <a
-                  href="/shop"
-                  className="relative text-untamed-white-muted hover:text-untamed-white transition-colors duration-300"
-                  aria-label="Shop"
-                >
-                  <ShoppingCart className="w-5 h-5" />
-                  {cartCount > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 w-4 h-4 flex items-center justify-center rounded-full bg-panther-light text-[10px] font-bold text-white">
-                      {cartCount}
-                    </span>
-                  )}
-                </a>
+                <NavCartButton
+                  className="relative text-untamed-white-muted hover:text-untamed-white transition-colors duration-300 cursor-pointer"
+                  badgeClassName="absolute -top-1.5 -right-1.5 w-4 h-4 flex items-center justify-center rounded-full bg-panther-light text-[10px] font-bold text-white"
+                />
               </div>
             </div>
 
@@ -148,18 +138,10 @@ export function Navigation() {
               >
                 <User className="w-5 h-5" />
               </Link>
-              <a
-                href="/shop"
-                className="relative text-untamed-white p-2"
-                aria-label="Shop"
-              >
-                <ShoppingCart className="w-5 h-5" />
-                {cartCount > 0 && (
-                  <span className="absolute top-0.5 right-0.5 w-4 h-4 flex items-center justify-center rounded-full bg-panther-light text-[10px] font-bold text-white">
-                    {cartCount}
-                  </span>
-                )}
-              </a>
+              <NavCartButton
+                className="relative text-untamed-white p-2 cursor-pointer"
+                badgeClassName="absolute top-0.5 right-0.5 w-4 h-4 flex items-center justify-center rounded-full bg-panther-light text-[10px] font-bold text-white"
+              />
               <button
                 onClick={() => setMobileOpen(!mobileOpen)}
                 className="text-untamed-white p-2"
