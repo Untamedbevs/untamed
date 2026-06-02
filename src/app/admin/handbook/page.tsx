@@ -275,8 +275,10 @@ function Referrals() {
             Every loyalty member <strong>already has a referral link</strong>
             &mdash; a personal code (e.g. <Path>jordanbuckingham</Path>) is
             created automatically at signup. The public <Path>/referral</Path>{' '}
-            page explains the program and sends people to sign in at{' '}
-            <Path>/portal/login</Path>.
+            page explains the program and lets someone{' '}
+            <strong>sign up right there</strong> (the same inline name/email
+            &rarr; link-or-code flow as the rewards page), or sign in if they
+            already have an account.
           </>,
           <>
             On <Path>/portal/referrals</Path> they see their shareable link
@@ -305,9 +307,10 @@ function Referrals() {
       <Callout tone="info" title="Referrals live in the portal">
         Managing a referral link &mdash; your code, share tools, and dashboard
         &mdash; happens only at <Path>/portal/referrals</Path> behind login. The
-        public <Path>/referral</Path> page is just a marketing explainer that
-        routes people into the portal. The <Path>?ref=</Path> tracking that
-        credits a referrer still works for anonymous visitors.
+        public <Path>/referral</Path> page is a marketing explainer with an
+        inline signup that creates the portal account and drops the new member
+        straight onto their referral dashboard. The <Path>?ref=</Path> tracking
+        that credits a referrer still works for anonymous visitors.
       </Callout>
 
       <h3 className="text-white font-semibold text-lg pt-2">
@@ -423,30 +426,36 @@ function Loyalty() {
           <>
             A customer enters their <strong>name and email</strong> on the
             rewards page (<Path>/rewards</Path> or a drink&apos;s rewards page,
-            reached by the can QR code).
+            reached by the can QR code) &mdash; or on the public{' '}
+            <Path>/referral</Path> page, which now has the same inline signup.
           </>,
           <>
-            They get a <strong>6-digit code</strong> by email and type it right
-            on the page &mdash; no password to create.
+            They get a <strong>branded Untamed email</strong> with a one-tap{' '}
+            <strong>sign-in link</strong> (and a <strong>6-digit code</strong> as
+            a backup). Clicking the link &mdash; or entering the code on the
+            page &mdash; confirms them. <strong>No password required.</strong>
           </>,
           <>
             That instantly creates their <strong>portal account</strong> +{' '}
             <strong>loyalty member</strong> with a{' '}
             <strong>{POINTS.SIGNUP_BONUS}-point signup bonus</strong>, a referral
             link, and (if they arrived via a <Path>?ref=</Path> link) credit to
-            their referrer. They land in the portal.
+            their referrer.
           </>,
           <>
-            From then on they accrue points for purchases and content (see the
-            next two sections).
+            The first time in, they&apos;re offered the option to{' '}
+            <strong>set a password</strong> (<Path>/portal/setup-password</Path>)
+            so future logins are one step &mdash; they can skip it and keep using
+            the email link. Then they land in the portal.
           </>,
         ]}
       />
       <Callout tone="tip" title="One kind of member">
         Because signup always provisions a portal account, there are no
         &ldquo;email-only&rdquo; members anymore. Returning customers use{' '}
-        <Path>/portal/login</Path>; anyone who joined under an old email gets
-        linked automatically the first time they sign in with that email.
+        <Path>/portal/login</Path> (password, magic link, or code); anyone who
+        joined under an old email gets linked automatically the first time they
+        sign in with that email.
       </Callout>
       <h3 className="text-white font-semibold text-lg pt-2">
         How points are earned
@@ -561,16 +570,38 @@ function Login() {
         here first; they sign up on the rewards page, which creates this account
         for them.
       </p>
+      <p>There are three ways to sign in, all on the same screen:</p>
+      <ul className="space-y-2 list-disc pl-5">
+        <li>
+          <strong>Password</strong> &mdash; if they set one (offered on first
+          sign-in). Fastest for return visits.
+        </li>
+        <li>
+          <strong>Magic link</strong> &mdash; we email a one-tap sign-in link
+          (the branded Untamed email).
+        </li>
+        <li>
+          <strong>6-digit code</strong> &mdash; the same email includes a code
+          they can type in if they can&apos;t click the link (e.g. a different
+          device).
+        </li>
+      </ul>
       <Steps
         items={[
           <>
-            They enter their email and either use their password or request a
-            one-time magic link / 6-digit code.
+            They enter their email and pick a method (password, or
+            &ldquo;email me a link&rdquo; for the magic link / code).
           </>,
           <>
             On successful login, the system <strong>links</strong> any existing
             loyalty member and distributor lead records that share their email
             (see next section).
+          </>,
+          <>
+            If they haven&apos;t set a password yet (and didn&apos;t skip it),
+            they&apos;re offered the one-time{' '}
+            <Path>/portal/setup-password</Path> step. Otherwise they go straight
+            in.
           </>,
           <>
             They land in the portal with the sidebar: Dashboard, My UGC,
@@ -658,8 +689,9 @@ function Linking() {
             Email-only
           </div>
           <p className="text-sm text-[#A0A0A0]">
-            Used <Path>/referral</Path> or bought a drink. Identified purely by
-            email. No password yet.
+            Bought a drink or clicked a <Path>?ref=</Path> link, but
+            hasn&apos;t signed up yet. Captured purely by email &mdash; no portal
+            account.
           </p>
         </div>
         <div className="rounded-xl border border-[#2A2A2A] bg-[#141414] p-4">
