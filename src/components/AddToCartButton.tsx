@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { renderAccelPay } from '@/lib/shop/accelpay'
+import { scheduleAccelPayRender, clearAccelPayRenderSchedule } from '@/lib/shop/accelpay'
 
 interface AddToCartButtonProps {
   listingId: string
@@ -30,14 +30,8 @@ export function AddToCartButton({
     // Clear any previous AccelPay button and insert fresh embed div
     el.innerHTML = `<div data-bclistingid="${listingId}" data-bcvariantid="${variantId}"></div>`
 
-    // Tell AccelPay to scan for new embed divs
-    const t1 = setTimeout(() => renderAccelPay(), 100)
-    const t2 = setTimeout(() => renderAccelPay(), 1000)
-
-    return () => {
-      clearTimeout(t1)
-      clearTimeout(t2)
-    }
+    const timers = scheduleAccelPayRender()
+    return () => clearAccelPayRenderSchedule(timers)
   }, [listingId, variantId])
 
   return (

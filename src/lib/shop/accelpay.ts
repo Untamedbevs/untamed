@@ -25,6 +25,20 @@ export function renderAccelPay() {
   }
 }
 
+/** Re-scan embed divs after client navigation — AccelPay only auto-attaches on full page load. */
+export function scheduleAccelPayRender(delaysMs = [0, 150, 400, 800, 1500, 2500]) {
+  return delaysMs.map((ms) => setTimeout(() => renderAccelPay(), ms))
+}
+
+export function clearAccelPayRenderSchedule(timers: ReturnType<typeof setTimeout>[]) {
+  timers.forEach(clearTimeout)
+}
+
+/** Pages that mount AccelPay buy-button embeds */
+export function isAccelPayPage(pathname: string) {
+  return pathname === '/shop' || pathname.startsWith('/drinks/')
+}
+
 /**
  * Build a URL that adds an item to the AccelPay cart and opens it.
  * Format: ?session=BASE64({listingId.variantId: qty})&open=true

@@ -7,6 +7,7 @@ import { Suspense } from 'react'
 import { AgeGate } from '@/components/AgeGate'
 import { TrackingProvider } from '@/components/TrackingProvider'
 import { ReferralBanner } from '@/components/ReferralBanner'
+import { AccelPayRouteSync } from '@/components/AccelPayRouteSync'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -119,6 +120,9 @@ export default function RootLayout({
       <body className="bg-untamed-black text-untamed-white antialiased">
         <TrackingProvider>
           <AgeGate />
+          <Suspense fallback={null}>
+            <AccelPayRouteSync />
+          </Suspense>
           <Suspense fallback={null}>
             <ReferralBanner />
           </Suspense>

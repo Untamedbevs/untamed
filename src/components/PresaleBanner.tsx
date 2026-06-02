@@ -1,4 +1,3 @@
-import Link from 'next/link'
 import { Megaphone } from 'lucide-react'
 
 export function PresaleBanner() {
@@ -12,12 +11,12 @@ export function PresaleBanner() {
           </span>
           <span>
             Visit our{' '}
-            <Link
+            <a
               href="/shop"
               className="text-untamed-white underline underline-offset-2 decoration-untamed-white/40 hover:text-[#FFD700] hover:decoration-[#FFD700] transition-colors"
             >
               shop page
-            </Link>{' '}
+            </a>{' '}
             or any drink page to Pre-Order Untamed Beverages.
           </span>
         </p>
