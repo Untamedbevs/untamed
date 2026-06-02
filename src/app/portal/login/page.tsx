@@ -143,7 +143,7 @@ function PortalLoginForm() {
     setInfo('')
 
     const cleanCode = code.replace(/\s+/g, '').trim()
-    const { error: verifyError } = await supabase.auth.verifyOtp({
+    const { data, error: verifyError } = await supabase.auth.verifyOtp({
       email: email.trim(),
       token: cleanCode,
       type: 'email',
@@ -157,7 +157,14 @@ function PortalLoginForm() {
 
     await fetch('/api/portal/link-identities', { method: 'POST' }).catch(() => {})
 
-    router.push(returnTo)
+    const meta = data.user?.user_metadata || {}
+    const needsPassword =
+      meta.has_password !== true && meta.password_setup_skipped !== true
+    router.push(
+      needsPassword
+        ? `/portal/setup-password?returnTo=${encodeURIComponent(returnTo)}`
+        : returnTo
+    )
     router.refresh()
   }
 

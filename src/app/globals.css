@@ -364,3 +364,28 @@ body {
   opacity: 0.6 !important;
 }
 
+/* AccelPay cart sidebar iframe — ensure it sits on top and is properly positioned */
+iframe[src*="accelpay"],
+iframe[src*="bevcart"],
+iframe[src*="cart."] {
+  position: fixed !important;
+  top: 0 !important;
+  right: 0 !important;
+  z-index: 99999 !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+}
+
+/* Hide AccelPay's native cart icon — we have our own in the nav.
+   Use clip instead of display:none so we can still .click() it from JS. */
+.accelpay-view-cart,
+.bc-cartcount-wrapper {
+  position: fixed !important;
+  top: -9999px !important;
+  left: -9999px !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+}
+

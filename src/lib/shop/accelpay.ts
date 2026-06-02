@@ -62,30 +62,30 @@ export function addToCart(listingId: string, variantId: string, qty = 1) {
 
 /**
  * Open the AccelPay cart sidebar.
- * AccelPay responds to ?open=true on the URL, or we can trigger
- * a click on their rendered cart icon if present.
+ * AccelPay renders a cart button with class "accelpay-view-cart" that,
+ * when clicked, triggers its internal iframe cart panel to open.
+ * We programmatically click that element from our own nav button.
  */
 export function openCart() {
-  // Method 1: Try clicking AccelPay's rendered cart element
-  const cartEl = document.querySelector<HTMLElement>('[data-bccart], .bc-cart-icon, .accelpay-cart')
-  if (cartEl) {
-    cartEl.click()
+  // Method 1: Click AccelPay's rendered "View Cart" button
+  const viewCartBtn = document.querySelector<HTMLElement>('.accelpay-view-cart')
+  if (viewCartBtn) {
+    viewCartBtn.click()
     return
   }
 
-  // Method 2: Append ?open=true to current URL (AccelPay listens for this)
-  const url = new URL(window.location.href)
-  url.searchParams.set('open', 'true')
-  window.history.replaceState({}, '', url.toString())
-  window.dispatchEvent(new PopStateEvent('popstate'))
-
-  // Method 3: Fallback - try window-level open function
-  const w = window as unknown as { apOpenCart?: () => void; BevCart?: { open?: () => void } }
-  if (typeof w.apOpenCart === 'function') {
-    w.apOpenCart()
-  } else if (w.BevCart && typeof w.BevCart.open === 'function') {
-    w.BevCart.open()
+  // Method 2: Try the bc-cartcount-wrapper (alternate AccelPay class)
+  const cartWrapper = document.querySelector<HTMLElement>('.bc-cartcount-wrapper')
+  if (cartWrapper) {
+    cartWrapper.click()
+    return
   }
+
+  // Method 3: Navigate with ?open=true — AccelPay reads this on page load
+  const url = new URL(window.location.href)
+  url.searchParams.delete('session')
+  url.searchParams.set('open', 'true')
+  window.location.href = url.toString()
 }
 
 /**

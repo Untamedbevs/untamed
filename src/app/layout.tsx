@@ -112,10 +112,10 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${oswald.variable} ${cyberBrush.variable} ${dirtyHeadline.variable} ${helveticaCondensed.variable}`}>
       <head>
-        <Script src="https://cart.accelpay.io/scripts/brand.js" strategy="afterInteractive" />
-        <Script id="accelpay-brand" strategy="afterInteractive">
-          {`apbrand = { id: 5008728 };`}
+        <Script id="accelpay-brand" strategy="beforeInteractive">
+          {`window.apbrand = { id: 5008728 };`}
         </Script>
+        <Script src="https://cart.accelpay.io/scripts/brand.js" strategy="afterInteractive" />
       </head>
       <body className="bg-untamed-black text-untamed-white antialiased">
         <TrackingProvider>

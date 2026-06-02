@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
+import Image from 'next/image'
 import Link from 'next/link'
 import {
   ArrowRight,
@@ -9,11 +10,14 @@ import {
   TrendingUp,
   Users,
   Building2,
-  LogIn,
   Sparkles,
 } from 'lucide-react'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
+import { JoinForm } from '@/components/loyalty/JoinForm'
+import { useTracking } from '@/components/TrackingProvider'
+import { drinks } from '@/lib/drinks'
+import { siteAssetAbsoluteUrl } from '@/lib/site-assets'
 import type { ReferralRewardTier } from '@/lib/referral/types'
 
 const GOLD = '#FFD700'
@@ -22,53 +26,154 @@ const GOLD_GLOW = 'rgba(255, 215, 0, 0.3)'
 const PORTAL_REFERRALS = '/portal/login?returnTo=%2Fportal%2Freferrals'
 
 export default function ReferralPage() {
+  const { visitorId } = useTracking()
+
   return (
     <div className="min-h-screen bg-untamed-black">
       <Navigation />
 
-      <div className="pt-8 pb-16 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-          >
-            <div
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium mb-6"
-              style={{ backgroundColor: '#FFD7001A', color: GOLD }}
+      <div className="relative pt-12 pb-16 px-4 sm:px-6 lg:px-8 overflow-hidden">
+        {/* Ambient glows */}
+        <div
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-[36rem] h-[36rem] rounded-full blur-[160px] opacity-20 pointer-events-none"
+          style={{ backgroundColor: GOLD }}
+        />
+        <div
+          className="absolute -top-10 right-0 w-72 h-72 rounded-full blur-[140px] opacity-10 pointer-events-none"
+          style={{ backgroundColor: '#FF8C2A' }}
+        />
+
+        <div className="relative z-10 max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-center">
+            {/* Left: headline + cans + quick stats */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="text-center lg:text-left"
             >
-              <Share2 className="w-4 h-4" />
-              Referral Program
-            </div>
-
-            <h1 className="font-condensed text-4xl sm:text-5xl font-bold text-white uppercase mb-4">
-              Spread the <span style={{ color: GOLD }}>Wild</span>
-            </h1>
-            <p className="text-lg text-untamed-white-muted mb-10 max-w-2xl mx-auto">
-              Share Untamed with friends and businesses. Earn rewards for every
-              signup and retailer lead you bring to the pack. Your personal link
-              and live dashboard live in your member portal.
-            </p>
-
-            {/* Primary CTA into the portal */}
-            <div className="flex flex-col sm:flex-row gap-3 justify-center mb-12">
-              <Link
-                href={PORTAL_REFERRALS}
-                className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full font-bold text-black uppercase tracking-wider text-sm transition-all duration-300 hover:scale-[1.02] hover:shadow-lg"
-                style={{ backgroundColor: GOLD, boxShadow: `0 0 20px ${GOLD_GLOW}` }}
+              <div
+                className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium tracking-[0.25em] uppercase mb-5 border"
+                style={{
+                  backgroundColor: '#FFD7000D',
+                  color: GOLD,
+                  borderColor: `${GOLD}40`,
+                }}
               >
-                <LogIn className="w-5 h-5" />
-                Sign In to Get My Link
-              </Link>
-              <Link
-                href={PORTAL_REFERRALS}
-                className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full font-bold text-white uppercase tracking-wider text-sm border border-card-border transition-all duration-300 hover:border-white/40"
-              >
-                Create an Account
-                <ArrowRight className="w-5 h-5" />
-              </Link>
-            </div>
+                <Share2 className="w-3.5 h-3.5" />
+                Referral Program
+              </div>
 
+              <h1
+                className="font-condensed text-5xl sm:text-6xl md:text-7xl font-bold uppercase tracking-wider leading-none mb-4"
+                style={{ color: GOLD }}
+              >
+                Spread the Wild
+              </h1>
+              <p className="text-base md:text-lg text-untamed-white-muted mb-8 max-w-xl mx-auto lg:mx-0 leading-relaxed">
+                Share Untamed with friends and businesses. Earn rewards for every
+                signup and retailer lead you bring to the pack &mdash; then watch
+                it all in your member portal.
+              </p>
+
+              {/* Fanned cans */}
+              <div className="relative flex items-end justify-center lg:justify-start gap-2 sm:gap-4 mb-8">
+                <div
+                  className="absolute bottom-0 left-1/2 lg:left-1/3 -translate-x-1/2 w-80 h-48 rounded-full blur-[120px] opacity-30 pointer-events-none"
+                  style={{ backgroundColor: GOLD }}
+                />
+                {drinks.map((d, i) => (
+                  <motion.div
+                    key={d.slug}
+                    initial={{ opacity: 0, y: 40 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.3 + i * 0.1 }}
+                    className="relative w-20 h-[160px] sm:w-24 sm:h-[190px] md:w-28 md:h-[220px] lg:w-32 lg:h-[250px]"
+                    style={{ transform: `rotate(${(i - 1.5) * 4}deg)` }}
+                  >
+                    <Image
+                      src={siteAssetAbsoluteUrl(d.canImage)}
+                      alt={d.name}
+                      fill
+                      className="object-contain drop-shadow-[0_0_30px_rgba(0,0,0,0.5)]"
+                      priority={i < 2}
+                      unoptimized
+                    />
+                  </motion.div>
+                ))}
+              </div>
+
+              {/* Quick stats */}
+              <div className="flex flex-wrap gap-3 justify-center lg:justify-start">
+                <div
+                  className="flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-medium"
+                  style={{ borderColor: `${GOLD}40`, color: GOLD }}
+                >
+                  <Users className="w-4 h-4" />
+                  Earn on every signup
+                </div>
+                <div
+                  className="flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-medium"
+                  style={{ borderColor: `${GOLD}40`, color: GOLD }}
+                >
+                  <Building2 className="w-4 h-4" />
+                  Bigger rewards for retailers
+                </div>
+                <div
+                  className="flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-medium"
+                  style={{ borderColor: `${GOLD}40`, color: GOLD }}
+                >
+                  <TrendingUp className="w-4 h-4" />
+                  Unlock tier rewards
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Right: inline join (above the fold) */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.7, delay: 0.2 }}
+              className="w-full max-w-md mx-auto"
+            >
+              <div className="rounded-2xl border border-card-border bg-untamed-black-card p-6 sm:p-8 text-left">
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles className="w-5 h-5" style={{ color: GOLD }} />
+                  <h2 className="font-bold text-white text-xl">
+                    Get your referral link
+                  </h2>
+                </div>
+                <p className="text-sm text-untamed-white-muted mb-6">
+                  Enter your name and email. We&apos;ll send a 6-digit code
+                  &mdash; no password needed &mdash; and drop you straight into
+                  your referral dashboard.
+                </p>
+                <JoinForm
+                  visitorId={visitorId}
+                  accentColor={GOLD}
+                  accentGlow={GOLD_GLOW}
+                  redirectTo="/portal/referrals"
+                />
+                <Link
+                  href={PORTAL_REFERRALS}
+                  className="inline-block mt-4 text-untamed-white-muted text-sm hover:text-untamed-white transition-colors underline underline-offset-4"
+                >
+                  Already a member? Sign in
+                </Link>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </div>
+
+      {/* Below-hero content */}
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 text-center">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+        >
             {/* Two referral paths explanation */}
             <div className="grid sm:grid-cols-2 gap-5 mb-12 text-left">
               <div className="rounded-2xl border border-card-border bg-untamed-black-card p-6">
@@ -142,9 +247,9 @@ export default function ReferralPage() {
               <div className="grid sm:grid-cols-3 gap-5">
                 {[
                   {
-                    icon: LogIn,
-                    title: 'Sign in',
-                    body: 'Log into your member portal to activate your personal referral code and dashboard.',
+                    icon: Sparkles,
+                    title: 'Join',
+                    body: 'Sign up with your name and email above to activate your personal referral code and dashboard.',
                   },
                   {
                     icon: Share2,
@@ -160,13 +265,15 @@ export default function ReferralPage() {
                   const Icon = step.icon
                   return (
                     <div key={i} className="flex flex-col">
-                      <div
-                        className="w-10 h-10 rounded-xl flex items-center justify-center mb-3"
-                        style={{ backgroundColor: '#FFD7001A' }}
-                      >
-                        <Icon className="w-5 h-5" style={{ color: GOLD }} />
+                      <div className="flex items-center gap-3 mb-3">
+                        <div
+                          className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+                          style={{ backgroundColor: '#FFD7001A' }}
+                        >
+                          <Icon className="w-5 h-5" style={{ color: GOLD }} />
+                        </div>
+                        <h4 className="font-bold text-white text-lg">{step.title}</h4>
                       </div>
-                      <h4 className="font-bold text-white mb-1">{step.title}</h4>
                       <p className="text-sm text-untamed-white-muted leading-relaxed">
                         {step.body}
                       </p>
@@ -190,8 +297,7 @@ export default function ReferralPage() {
                 Get My Referral Link
               </Link>
             </div>
-          </motion.div>
-        </div>
+        </motion.div>
       </div>
 
       <Footer />

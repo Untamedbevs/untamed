@@ -7,17 +7,29 @@ import { createClient } from '@/lib/supabase/client'
 import type { Drink } from '@/lib/drinks'
 
 interface JoinFormProps {
-  drink: Drink
-  visitorId: string
+  /** Optional drink context (sets favorite drink + default theming). */
+  drink?: Drink
+  visitorId?: string
   accentColor?: string
   accentGlow?: string
+  /** Where to send the new member after they verify. Defaults to /portal. */
+  redirectTo?: string
 }
 
 type Step = 'details' | 'code'
 
-export function JoinForm({ drink, visitorId, accentColor, accentGlow }: JoinFormProps) {
-  const color = accentColor || drink.color
-  const glow = accentGlow || drink.colorGlow
+const DEFAULT_COLOR = '#FFD700'
+const DEFAULT_GLOW = 'rgba(255, 215, 0, 0.3)'
+
+export function JoinForm({
+  drink,
+  visitorId,
+  accentColor,
+  accentGlow,
+  redirectTo = '/portal',
+}: JoinFormProps) {
+  const color = accentColor || drink?.color || DEFAULT_COLOR
+  const glow = accentGlow || drink?.colorGlow || DEFAULT_GLOW
   const router = useRouter()
   const supabase = createClient()
 
@@ -47,13 +59,20 @@ export function JoinForm({ drink, visitorId, accentColor, accentGlow }: JoinForm
     setError('')
     setInfo('')
 
+    const origin =
+      typeof window !== 'undefined' ? window.location.origin : ''
+    const emailRedirectTo = `${origin}/portal/auth/callback?returnTo=${encodeURIComponent(
+      redirectTo
+    )}`
+
     const { error: otpError } = await supabase.auth.signInWithOtp({
       email: email.trim(),
       options: {
         shouldCreateUser: true,
+        emailRedirectTo,
         data: {
           first_name: firstName.trim() || null,
-          favorite_drink_slug: drink.slug || null,
+          favorite_drink_slug: drink?.slug || null,
           visitor_id: visitorId || null,
         },
       },
@@ -65,7 +84,9 @@ export function JoinForm({ drink, visitorId, accentColor, accentGlow }: JoinForm
       return
     }
 
-    setInfo(`We sent a 6-digit code to ${email.trim()}. Enter it below.`)
+    setInfo(
+      `Check ${email.trim()} — tap the sign-in link to finish. If your email also included a 6-digit code, you can enter it below instead.`
+    )
     setStep('code')
     setLoading(false)
   }
@@ -76,7 +97,7 @@ export function JoinForm({ drink, visitorId, accentColor, accentGlow }: JoinForm
     setError('')
 
     const cleanCode = code.replace(/\s+/g, '').trim()
-    const { error: verifyError } = await supabase.auth.verifyOtp({
+    const { data, error: verifyError } = await supabase.auth.verifyOtp({
       email: email.trim(),
       token: cleanCode,
       type: 'email',
@@ -91,7 +112,14 @@ export function JoinForm({ drink, visitorId, accentColor, accentGlow }: JoinForm
     // Provision the loyalty member + referral link + credit any referrer.
     await fetch('/api/portal/link-identities', { method: 'POST' }).catch(() => {})
 
-    router.push('/portal')
+    const meta = data.user?.user_metadata || {}
+    const needsPassword =
+      meta.has_password !== true && meta.password_setup_skipped !== true
+    router.push(
+      needsPassword
+        ? `/portal/setup-password?returnTo=${encodeURIComponent(redirectTo)}`
+        : redirectTo
+    )
     router.refresh()
   }
 
@@ -211,7 +239,7 @@ export function JoinForm({ drink, visitorId, accentColor, accentGlow }: JoinForm
       </button>
 
       <p className="text-xs text-muted text-center">
-        We&apos;ll email you a 6-digit code to confirm. No password needed.
+        We&apos;ll email you a secure sign-in link to confirm. No password needed.
       </p>
     </form>
   )
