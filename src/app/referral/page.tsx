@@ -26,7 +26,7 @@ export default function ReferralPage() {
     <div className="min-h-screen bg-untamed-black">
       <Navigation />
 
-      <div className="pt-24 pb-16 px-4 sm:px-6 lg:px-8">
+      <div className="pt-8 pb-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}

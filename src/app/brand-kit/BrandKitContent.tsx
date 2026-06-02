@@ -253,7 +253,7 @@ export function BrandKitContent() {
     <>
       <Navigation />
 
-      <main className="pt-24 md:pt-28 pb-20">
+      <main className="pt-8 md:pt-10 pb-20">
         {/* Ambient glow */}
         <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
           <div className="absolute -top-40 -left-40 w-[480px] h-[480px] rounded-full bg-panther/20 blur-[150px] animate-pulse-glow" />

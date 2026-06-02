@@ -25,7 +25,7 @@ export default function AboutPage() {
         {/* ============================================
             HERO
             ============================================ */}
-        <section className="relative pt-32 md:pt-40 pb-20 md:pb-28 overflow-hidden">
+        <section className="relative pt-10 md:pt-14 pb-20 md:pb-28 overflow-hidden">
           <div className="absolute inset-0">
             <div className="absolute top-1/4 right-0 w-96 h-96 rounded-full blur-[180px] opacity-8 bg-cougar" />
             <div className="absolute bottom-1/3 left-0 w-96 h-96 rounded-full blur-[180px] opacity-8 bg-cheetah" />

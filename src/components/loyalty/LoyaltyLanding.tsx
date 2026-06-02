@@ -67,7 +67,7 @@ export function LoyaltyLanding({ drink }: LoyaltyLandingProps) {
           <div className="absolute inset-0 bg-gradient-to-b from-untamed-black/80 via-untamed-black/60 to-untamed-black" />
           <div className="absolute inset-0 bg-gradient-to-r from-untamed-black/70 to-transparent" />
 
-          <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-16 md:pt-32 md:pb-20">
+          <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-16 md:pt-10 md:pb-20">
             {drink && (
               <motion.div
                 initial={{ opacity: 0, x: -20 }}

@@ -49,7 +49,7 @@ export default function HomePage() {
             <div className="absolute top-2/3 left-1/2 w-64 h-64 rounded-full blur-[120px] opacity-10 bg-cheetah animate-pulse-glow" style={{ animationDelay: '3s' }} />
           </div>
 
-          <div className="relative z-10 text-center px-4 sm:px-6 max-w-5xl mx-auto pt-20">
+          <div className="relative z-10 text-center px-4 sm:px-6 max-w-5xl mx-auto">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}

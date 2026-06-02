@@ -252,7 +252,7 @@ function DistributeContent() {
       <Navigation />
       <InquiryModal open={modalOpen} onClose={closeModal} referrerName={referrerName} />
 
-      <div className="pt-24 pb-16">
+      <div className="pt-8 pb-16">
         {/* ============================================
             HERO
             ============================================ */}

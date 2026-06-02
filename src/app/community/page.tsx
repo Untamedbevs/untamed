@@ -18,7 +18,7 @@ export default function CommunityPage() {
     <>
       <Navigation />
       <main className="min-h-screen">
-        <section className="relative pt-32 md:pt-40 pb-12 md:pb-16 overflow-hidden">
+        <section className="relative pt-10 md:pt-14 pb-12 md:pb-16 overflow-hidden">
           <div className="absolute inset-0 pointer-events-none">
             <div className="absolute top-1/4 right-0 w-96 h-96 rounded-full blur-[180px] opacity-10 bg-cougar" />
             <div className="absolute bottom-1/3 left-0 w-96 h-96 rounded-full blur-[180px] opacity-10 bg-cheetah" />

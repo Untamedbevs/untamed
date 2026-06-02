@@ -96,16 +96,16 @@ export function Navigation() {
                 Shop
               </a>
 
-              <Link href="/rewards" className={NAV_LINK_CLASSES}>
-                Rewards
-              </Link>
-
               <Link href="/about" className={NAV_LINK_CLASSES}>
                 About
               </Link>
 
               <Link href="/retail" className={NAV_LINK_CLASSES}>
                 Retail
+              </Link>
+
+              <Link href="/rewards" className={NAV_LINK_CLASSES}>
+                Rewards
               </Link>
 
               <Link href="/referral" className={NAV_LINK_CLASSES}>
@@ -156,9 +156,12 @@ export function Navigation() {
         <PresaleBanner />
       </header>
 
+      {/* Reserve space for the absolute header (nav + banner) so content isn't covered */}
+      <div className="h-[var(--site-header-offset)] shrink-0" aria-hidden="true" />
+
       {/* Mobile Menu */}
       {mobileOpen && (
-        <div className="fixed inset-0 z-40 bg-untamed-black/98 pt-20 px-6 overflow-y-auto">
+        <div className="fixed inset-0 z-40 bg-untamed-black/98 pt-[var(--site-header-offset)] px-6 overflow-y-auto">
           <div className="flex flex-col items-center gap-7 pt-12 pb-12">
             {drinks.map((drink) => (
               <a
@@ -180,6 +183,20 @@ export function Navigation() {
             </a>
             <div className="w-16 h-px bg-card-border my-2" />
             <Link
+              href="/about"
+              onClick={() => setMobileOpen(false)}
+              className={MOBILE_LINK_CLASSES}
+            >
+              About
+            </Link>
+            <Link
+              href="/retail"
+              onClick={() => setMobileOpen(false)}
+              className={MOBILE_LINK_CLASSES}
+            >
+              Retail
+            </Link>
+            <Link
               href="/rewards"
               onClick={() => setMobileOpen(false)}
               className={`flex items-center gap-2 ${MOBILE_LINK_CLASSES}`}
@@ -194,21 +211,6 @@ export function Navigation() {
             >
               <Share2 className="w-5 h-5" />
               Refer
-            </Link>
-            <div className="w-16 h-px bg-card-border my-2" />
-            <Link
-              href="/about"
-              onClick={() => setMobileOpen(false)}
-              className={MOBILE_LINK_CLASSES}
-            >
-              About
-            </Link>
-            <Link
-              href="/retail"
-              onClick={() => setMobileOpen(false)}
-              className={MOBILE_LINK_CLASSES}
-            >
-              Retail
             </Link>
             <div className="w-16 h-px bg-card-border my-2" />
             <Link

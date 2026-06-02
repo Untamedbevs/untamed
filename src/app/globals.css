@@ -44,6 +44,15 @@
   --card-border: #2A2A2A;
   --muted: #666666;
   --muted-foreground: #999999;
+
+  /* Nav bar + presale banner — used for layout offset where Navigation is rendered */
+  --site-header-offset: calc(4rem + 3.5rem);
+}
+
+@media (min-width: 768px) {
+  :root {
+    --site-header-offset: calc(5rem + 2.75rem);
+  }
 }
 
 @theme inline {

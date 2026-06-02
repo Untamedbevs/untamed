@@ -117,7 +117,7 @@ export default function DesignSystemPage() {
     <>
       <Navigation />
 
-      <main className="pt-24 pb-20">
+      <main className="pt-8 pb-20">
         <div className="max-w-screen-2xl mx-auto px-6 sm:px-8 lg:px-12">
 
           {/* ============================================
