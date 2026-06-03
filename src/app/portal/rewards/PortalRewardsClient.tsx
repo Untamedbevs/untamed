@@ -500,6 +500,10 @@ function labelForType(type: PortalLoyaltyTransaction['type']): string {
       return 'Redemption'
     case 'adjustment':
       return 'Manual adjustment'
+    case 'ugc_approved':
+      return 'Content approved'
+    case 'online_order':
+      return 'Online order'
     default:
       return 'Activity'
   }

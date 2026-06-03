@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { POINTS } from '@/lib/loyalty/constants'
+import { claimPendingOrdersForMember } from '@/lib/loyalty/orders'
 import { ensureReferralParticipant } from '@/lib/referral/helpers'
 
 const UUID_REGEX =
@@ -80,6 +81,12 @@ export async function ensureMemberForAuthUser(
     .maybeSingle()
 
   if (linked?.id) {
+    // Bank any online-order points that arrived before this account existed.
+    try {
+      await claimPendingOrdersForMember(admin, linked.id, normalized)
+    } catch (err) {
+      console.error('[ensureMemberForAuthUser] claim pending orders failed:', err)
+    }
     return { loyaltyMemberId: linked.id, created: false }
   }
 
@@ -148,6 +155,11 @@ export async function ensureMemberForAuthUser(
         .eq('email', normalized)
         .maybeSingle()
       if (existing?.id) {
+        try {
+          await claimPendingOrdersForMember(admin, existing.id, normalized)
+        } catch (err) {
+          console.error('[ensureMemberForAuthUser] claim pending orders failed:', err)
+        }
         return { loyaltyMemberId: existing.id, created: false }
       }
     }
@@ -180,6 +192,13 @@ export async function ensureMemberForAuthUser(
     })
   } catch (err) {
     console.error('[ensureMemberForAuthUser] referral participant failed:', err)
+  }
+
+  // 7. Claim any online-order points banked against this email pre-signup.
+  try {
+    await claimPendingOrdersForMember(admin, created.id, normalized)
+  } catch (err) {
+    console.error('[ensureMemberForAuthUser] claim pending orders failed:', err)
   }
 
   return { loyaltyMemberId: created.id, created: true }

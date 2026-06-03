@@ -465,7 +465,8 @@ function Loyalty() {
           <tbody className="divide-y divide-[#2A2A2A]">
             {[
               ['Signup bonus', `${POINTS.SIGNUP_BONUS} pts`],
-              ['Approved receipt', `${POINTS.PER_RECEIPT} pts (per item, you set the final amount)`],
+              ['Online order (automatic)', `${POINTS.PER_PACK} pts per pack \u2014 no upload needed`],
+              ['Approved in-store receipt', `${POINTS.PER_RECEIPT} pts (per pack, you set the final amount)`],
               ['Approved UGC submission', `${POINTS.PER_UGC_APPROVED} pts`],
               ['Featured UGC', `${POINTS.PER_UGC_FEATURED} pts`],
             ].map(([label, val]) => (
@@ -491,11 +492,19 @@ function Loyalty() {
 
 function Receipts() {
   return (
-    <SectionShell id="receipts" icon={Receipt} title="Upload a purchase (receipts)">
+    <SectionShell id="receipts" icon={Receipt} title="Logging a purchase (online vs in-store)">
+      <Callout tone="tip" title="Online orders credit automatically">
+        <strong>Online orders are credited automatically.</strong> When a member
+        buys through our shop (AccelPay), a webhook records the order and awards{' '}
+        {POINTS.PER_PACK} points per pack with no receipt upload. If the buyer
+        isn&apos;t a member yet, the points are held and auto-applied the moment
+        they sign up with that email. Receipts below are only for{' '}
+        <strong>in-store / on-premise</strong> purchases.
+      </Callout>
       <p>
-        Customers prove a purchase by uploading receipt photos. One submission
-        can include multiple receipts (e.g. they bought from three different
-        stores) and a declaration of what they bought.
+        For in-store purchases, customers prove the buy by uploading receipt
+        photos. One submission can include multiple receipts (e.g. they bought
+        from three different stores) and a declaration of what they bought.
       </p>
       <Steps
         items={[

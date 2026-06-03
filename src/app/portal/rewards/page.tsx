@@ -10,7 +10,13 @@ export interface PortalLoyaltyTransaction {
   id: string
   member_id: string
   points: number
-  type: 'receipt_approved' | 'signup_bonus' | 'redemption' | 'adjustment'
+  type:
+    | 'receipt_approved'
+    | 'signup_bonus'
+    | 'redemption'
+    | 'adjustment'
+    | 'ugc_approved'
+    | 'online_order'
   description: string | null
   created_at: string
 }

@@ -192,7 +192,8 @@ export default function NewReceiptPage() {
 
       if (!res.ok) {
         const errBody = await res.json().catch(() => ({}))
-        throw new Error(errBody.error || 'Submission failed')
+        const detail = errBody.details ? ` (${errBody.details})` : ''
+        throw new Error(`${errBody.error || 'Submission failed'}${detail}`)
       }
 
       router.push('/portal/receipts?submitted=1')
@@ -210,10 +211,11 @@ export default function NewReceiptPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-headline text-2xl text-white">Upload receipt</h1>
+          <h1 className="font-headline text-2xl text-white">Upload in-store receipt</h1>
           <p className="text-sm text-[#A0A0A0]">
-            Earn {POINTS.PER_RECEIPT} loyalty points per pack. Add multiple
-            photos if your purchase spans more than one receipt.
+            Bought Untamed in a store or at an event? Earn {POINTS.PER_RECEIPT}{' '}
+            points per pack. Add multiple photos if your purchase spans more than
+            one receipt. (Online shop orders are credited automatically.)
           </p>
         </div>
         <Link

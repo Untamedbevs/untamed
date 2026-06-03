@@ -1,6 +1,9 @@
 export const POINTS = {
   SIGNUP_BONUS: 10,
   PER_RECEIPT: 25,
+  // Online orders through the AccelPay storefront earn the same per-pack rate
+  // as an approved in-store receipt, credited automatically (no upload).
+  PER_PACK: 25,
   PER_UGC_APPROVED: 50,
   PER_UGC_FEATURED: 150,
 } as const

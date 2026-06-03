@@ -1,16 +1,36 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
+import { LayoutDashboard, Receipt, Sparkles } from 'lucide-react'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
 import { AddToCartButton } from '@/components/AddToCartButton'
 import { ProductGallery } from '@/components/ProductGallery'
 import { drinks } from '@/lib/drinks'
 import { siteAssetAbsoluteUrl } from '@/lib/site-assets'
+import { createClient } from '@/lib/supabase/client'
 
 export default function ShopPage() {
+  const [isAuthed, setIsAuthed] = useState(false)
+
+  useEffect(() => {
+    const supabase = createClient()
+    let cancelled = false
+    supabase.auth.getSession().then(({ data }) => {
+      if (!cancelled) setIsAuthed(!!data.session)
+    })
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      setIsAuthed(!!session)
+    })
+    return () => {
+      cancelled = true
+      sub.subscription.unsubscribe()
+    }
+  }, [])
+
   return (
     <div className="min-h-screen bg-untamed-black">
       <Navigation />
@@ -34,6 +54,35 @@ export default function ShopPage() {
               $24 per pack &bull; 4 cans &bull; 8 cocktails &bull; Ships direct
             </p>
           </motion.div>
+
+          {/* Member earn-points banner (logged in only) */}
+          {isAuthed && (
+            <div className="mb-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-[#9B30FF]/30 bg-[#9B30FF]/10 px-5 py-4">
+              <div className="flex items-start gap-3">
+                <Sparkles className="w-5 h-5 text-[#C68BFF] shrink-0 mt-0.5" />
+                <p className="text-sm text-untamed-white">
+                  You&apos;re a member &mdash; orders you place here earn loyalty
+                  points automatically. (Buying in a store? Upload that receipt.)
+                </p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Link
+                  href="/portal/receipts/new"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[#9B30FF]/40 px-3 py-1.5 text-xs font-medium uppercase tracking-wider text-[#C68BFF] transition-colors hover:bg-[#9B30FF]/15"
+                >
+                  <Receipt className="w-4 h-4" />
+                  In-store receipt
+                </Link>
+                <Link
+                  href="/portal"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-[#9B30FF] px-3 py-1.5 text-xs font-medium uppercase tracking-wider text-white transition-colors hover:bg-[#8526DE]"
+                >
+                  <LayoutDashboard className="w-4 h-4" />
+                  My Portal
+                </Link>
+              </div>
+            </div>
+          )}
 
           {/* Product Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">

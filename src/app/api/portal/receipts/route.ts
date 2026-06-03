@@ -203,7 +203,10 @@ export async function POST(request: NextRequest) {
 
     if (receiptError || !receipt) {
       console.error('[portal/receipts POST] Insert receipt failed:', receiptError)
-      return NextResponse.json({ error: 'Failed to save receipt' }, { status: 500 })
+      return NextResponse.json(
+        { error: 'Failed to save receipt', details: receiptError?.message },
+        { status: 500 }
+      )
     }
 
     const assetRows = orderedAssets.map((a, i) => ({
@@ -226,7 +229,14 @@ export async function POST(request: NextRequest) {
       console.error('[portal/receipts POST] Insert assets failed:', assetError)
       // Rollback the parent receipt so we don't leave an empty row.
       await admin.from('loyalty_receipts').delete().eq('id', receipt.id)
-      return NextResponse.json({ error: 'Failed to save receipt images' }, { status: 500 })
+      return NextResponse.json(
+        {
+          error: 'Failed to save receipt images',
+          details: assetError.message,
+          code: assetError.code,
+        },
+        { status: 500 }
+      )
     }
 
     return NextResponse.json({

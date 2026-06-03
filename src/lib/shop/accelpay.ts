@@ -36,7 +36,10 @@ export function clearAccelPayRenderSchedule(timers: ReturnType<typeof setTimeout
 
 /** Pages that mount AccelPay buy-button embeds */
 export function isAccelPayPage(pathname: string) {
-  return pathname === '/shop' || pathname.startsWith('/drinks/')
+  return (
+    pathname === '/shop' ||
+    pathname.startsWith('/drinks/')
+  )
 }
 
 /**

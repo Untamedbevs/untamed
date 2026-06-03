@@ -16,15 +16,43 @@ export interface LoyaltyMember {
   updated_at: string
 }
 
+export type LoyaltyTransactionType =
+  | 'receipt_approved'
+  | 'signup_bonus'
+  | 'redemption'
+  | 'adjustment'
+  | 'ugc_approved'
+  | 'online_order'
+
 export interface LoyaltyTransaction {
   id: string
   member_id: string
   points: number
-  type: 'receipt_approved' | 'signup_bonus' | 'redemption' | 'adjustment'
+  type: LoyaltyTransactionType
   description: string | null
   receipt_id: string | null
+  order_id: string | null
   created_by_staff_id: string | null
   created_at: string
+}
+
+export interface LoyaltyOrder {
+  id: string
+  accelpay_sale_id: number
+  member_id: string | null
+  email: string
+  status: string | null
+  subtotal_cents: number
+  total_cents: number
+  tax_cents: number
+  delivery_cents: number
+  discount_cents: number
+  pack_count: number
+  points_awarded: number
+  points_claimed: boolean
+  items: { listingId?: number; variantId?: number; title?: string; quantity: number; priceCents?: number }[] | null
+  created_at: string
+  updated_at: string
 }
 
 export interface LoyaltyReceipt {

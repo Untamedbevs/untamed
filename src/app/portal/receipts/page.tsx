@@ -44,9 +44,10 @@ export default function PortalReceiptsListPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="font-headline text-2xl text-white">My Receipts</h1>
+          <h1 className="font-headline text-2xl text-white">In-Store Receipts</h1>
           <p className="text-sm text-[#A0A0A0]">
-            Earn points for every Untamed bottle you buy.
+            Bought Untamed in a store or at an event? Upload the receipt to earn
+            points. Orders placed on our shop are credited automatically.
           </p>
         </div>
         <div className="bg-[#141414] border border-[#2A2A2A] rounded-2xl p-12 text-center">
@@ -74,9 +75,10 @@ export default function PortalReceiptsListPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-headline text-2xl text-white">My Receipts</h1>
+          <h1 className="font-headline text-2xl text-white">In-Store Receipts</h1>
           <p className="text-sm text-[#A0A0A0]">
-            Upload receipts to earn 25 points per bottle.
+            In-store or on-premise purchase? Upload the receipt for 25 points per
+            pack. Online orders earn points automatically.
           </p>
         </div>
         <Link
@@ -104,8 +106,10 @@ export default function PortalReceiptsListPage() {
           </div>
           <h3 className="text-white font-semibold mb-1">No receipts yet</h3>
           <p className="text-sm text-[#A0A0A0] mb-6 max-w-md mx-auto">
-            Snap a photo of your Untamed receipt and we&apos;ll add 25 points to
-            your balance once it&apos;s reviewed.
+            Bought Untamed in a store or at an event? Snap a photo of the receipt
+            and we&apos;ll add 25 points per pack once it&apos;s reviewed. Orders
+            from our online shop are credited automatically &mdash; no upload
+            needed.
           </p>
           <Link
             href="/portal/receipts/new"

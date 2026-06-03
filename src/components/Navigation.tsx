@@ -116,11 +116,18 @@ export function Navigation() {
               <div className="flex items-center gap-4 pl-2 border-l border-untamed-white/10">
                 <Link
                   href={portalHref}
-                  className="text-untamed-white-muted hover:text-untamed-white transition-colors duration-300"
+                  className={
+                    isAuthed
+                      ? 'inline-flex items-center gap-1.5 rounded-full border border-[#9B30FF]/40 bg-[#9B30FF]/10 px-3 py-1.5 text-xs font-medium uppercase tracking-wider text-untamed-white transition-colors duration-300 hover:bg-[#9B30FF]/20'
+                      : 'inline-flex items-center gap-1.5 text-untamed-white-muted hover:text-untamed-white transition-colors duration-300'
+                  }
                   title={portalLabel}
                   aria-label={portalLabel}
                 >
-                  <User className="w-5 h-5" />
+                  <User className="w-4 h-4" />
+                  <span className={isAuthed ? '' : 'sr-only md:not-sr-only'}>
+                    {portalLabel}
+                  </span>
                 </Link>
                 <NavCartButton
                   className="relative text-untamed-white-muted hover:text-untamed-white transition-colors duration-300 cursor-pointer"

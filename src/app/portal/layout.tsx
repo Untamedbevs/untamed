@@ -14,6 +14,7 @@ import {
   Receipt,
   Settings,
   Share2,
+  ShoppingBag,
   Trophy,
   User as UserIcon,
   X,
@@ -25,10 +26,13 @@ type NavItem = {
   href: string
   label: string
   icon: LucideIcon
+  /** Links out to the public storefront rather than a portal-chrome page. */
+  external?: boolean
 }
 
 const NAV_ITEMS: NavItem[] = [
   { href: '/portal', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/shop', label: 'Shop', icon: ShoppingBag, external: true },
   { href: '/portal/ugc', label: 'My UGC', icon: Camera },
   { href: '/portal/receipts', label: 'Receipts', icon: Receipt },
   { href: '/portal/rewards', label: 'Rewards', icon: Trophy },
@@ -141,22 +145,46 @@ export default function PortalLayout({
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon
             const active = isActive(item.href)
+            const className = cn(
+              'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
+              active
+                ? 'bg-[#9B30FF]/15 text-[#9B30FF] border border-[#9B30FF]/30'
+                : 'text-[#A0A0A0] hover:text-white hover:bg-[#1A1A1A]',
+              collapsed && 'justify-center px-0'
+            )
+            const content = (
+              <>
+                <Icon className="w-5 h-5 shrink-0" />
+                {!collapsed && item.label}
+              </>
+            )
+
+            // External items (e.g. the storefront) must do a full page load so
+            // the AccelPay buy-button embeds attach — they only render on a
+            // hard navigation, not Next.js client-side routing.
+            if (item.external) {
+              return (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMobileOpen(false)}
+                  className={className}
+                  title={collapsed ? item.label : undefined}
+                >
+                  {content}
+                </a>
+              )
+            }
+
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 onClick={() => setMobileOpen(false)}
-                className={cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
-                  active
-                    ? 'bg-[#9B30FF]/15 text-[#9B30FF] border border-[#9B30FF]/30'
-                    : 'text-[#A0A0A0] hover:text-white hover:bg-[#1A1A1A]',
-                  collapsed && 'justify-center px-0'
-                )}
+                className={className}
                 title={collapsed ? item.label : undefined}
               >
-                <Icon className="w-5 h-5 shrink-0" />
-                {!collapsed && item.label}
+                {content}
               </Link>
             )
           })}
