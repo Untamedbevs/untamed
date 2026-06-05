@@ -85,7 +85,7 @@ export default function HomePage() {
               {/* CTA Buttons */}
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <a
-                  href="#drinks"
+                  href="/shop"
                   className="px-8 py-3 bg-untamed-white text-untamed-black font-semibold text-base rounded-full
                     hover:bg-panther-light hover:text-white transition-all duration-300
                     hover:shadow-[0_0_30px_rgba(155,48,255,0.4)] active:scale-95"
@@ -246,6 +246,27 @@ export default function HomePage() {
                 <DrinkCard key={drink.slug} drink={drink} index={index} />
               ))}
             </div>
+
+            {/* Shop All CTA */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+              className="text-center mt-12"
+            >
+              <a
+                href="/shop"
+                className="inline-flex items-center gap-2 px-8 py-3 bg-untamed-white text-untamed-black font-semibold text-base rounded-full
+                  hover:bg-panther-light hover:text-white transition-all duration-300
+                  hover:shadow-[0_0_30px_rgba(155,48,255,0.4)] active:scale-95"
+              >
+                Shop All Flavors
+              </a>
+              <p className="text-untamed-white-muted text-sm mt-3">
+                Mix and match from the full lineup &bull; $24 per pack
+              </p>
+            </motion.div>
           </div>
         </section>
 
@@ -322,6 +343,22 @@ export default function HomePage() {
               Luxury meets logic. At just $0.50/oz, <span className="font-headline">Untamed</span> outperforms the market average by 45% on every pour.
               While others compromise on scale or strength, we lead the industry in delivering maximum impact and exceptional value in a single, superior package.
             </motion.p>
+
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+              className="mt-10"
+            >
+              <a
+                href="/shop"
+                className="inline-flex items-center gap-2 px-8 py-3 border border-panther-light/40 text-panther-light font-medium text-base rounded-full
+                  hover:bg-panther-light/10 hover:border-panther-light transition-all duration-300 active:scale-95"
+              >
+                Shop All Packs &rarr;
+              </a>
+            </motion.div>
           </div>
         </section>
 
@@ -544,6 +581,23 @@ export default function HomePage() {
                 </motion.div>
               ))}
             </div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.5 }}
+              className="text-center mt-10"
+            >
+              <a
+                href="/shop"
+                className="inline-flex items-center gap-2 px-8 py-3 bg-untamed-white text-untamed-black font-semibold text-base rounded-full
+                  hover:bg-lioness hover:text-white transition-all duration-300
+                  hover:shadow-[0_0_30px_rgba(255,133,195,0.3)] active:scale-95"
+              >
+                Shop All Flavors
+              </a>
+            </motion.div>
           </div>
         </section>
 
@@ -579,13 +633,13 @@ export default function HomePage() {
 
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
                 <a
-                  href="#drinks"
+                  href="/shop"
                   className="px-8 py-3 bg-untamed-white text-untamed-black font-semibold text-base rounded-full
                     hover:bg-panther-light hover:text-white transition-all duration-300
                     hover:shadow-[0_0_30px_rgba(155,48,255,0.4)] active:scale-95
                     inline-flex items-center gap-2"
                 >
-                  Shop Now
+                  Shop All Flavors
                 </a>
                 <a
                   href="/retail"

@@ -525,6 +525,16 @@ export function DrinkDetailPage({ drink }: DrinkDetailPageProps) {
                 </motion.div>
               ))}
             </div>
+
+            <div className="text-center mt-10">
+              <a
+                href="/shop"
+                className="inline-flex items-center gap-2 px-7 py-2.5 border border-untamed-white/20 text-untamed-white font-medium text-sm rounded-full
+                  hover:bg-untamed-white/10 hover:border-untamed-white/40 transition-all duration-300 active:scale-95 uppercase tracking-wider"
+              >
+                Shop All Flavors &rarr;
+              </a>
+            </div>
           </div>
         </section>
       </main>

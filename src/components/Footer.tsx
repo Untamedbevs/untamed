@@ -48,6 +48,12 @@ export function Footer() {
               Shop
             </h3>
             <div className="flex flex-col gap-3">
+              <a
+                href="/shop"
+                className="text-sm text-untamed-white font-medium hover:text-panther-light transition-colors duration-300 uppercase tracking-wider"
+              >
+                Shop All Flavors
+              </a>
               {drinks.map((drink) => (
                 <a
                   key={drink.slug}
