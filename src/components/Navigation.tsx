@@ -219,6 +219,13 @@ export function Navigation() {
               <Share2 className="w-5 h-5" />
               Refer
             </Link>
+            <Link
+              href="/contact"
+              onClick={() => setMobileOpen(false)}
+              className={MOBILE_LINK_CLASSES}
+            >
+              Contact
+            </Link>
             <div className="w-16 h-px bg-card-border my-2" />
             <Link
               href={portalHref}

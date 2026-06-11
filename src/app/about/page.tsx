@@ -241,7 +241,7 @@ export default function AboutPage() {
                 className="p-8 md:p-10 rounded-2xl border border-panther-light/20 bg-untamed-black-card text-center"
               >
                 <p className="font-[var(--font-oswald)] text-5xl md:text-6xl font-bold text-untamed-white mb-2">$24</p>
-                <p className="text-untamed-white-muted text-base mb-6">for a four-pack</p>
+                <p className="text-untamed-white-muted text-base mb-6">for a box of four</p>
                 <div className="flex justify-center gap-8 mb-6">
                   <div>
                     <p className="font-[var(--font-oswald)] text-3xl font-bold text-panther-light">8</p>
@@ -417,7 +417,7 @@ export default function AboutPage() {
                 {
                   number: '04',
                   title: 'The 1-2-3 Advantage',
-                  desc: 'One can. Two full martinis. Three dollars per cocktail. At $24 for a four-pack, the math is effortless: four cans, eight total cocktails, premium quality, and a price consumers can justify instantly.',
+                  desc: 'One can. Two full martinis. Three dollars per cocktail. At $24 for a box of four, the math is effortless: four cans, eight total cocktails, premium quality, and a price consumers can justify instantly.',
                   color: 'var(--lioness)',
                 },
               ].map((pillar, idx) => (
@@ -549,7 +549,7 @@ export default function AboutPage() {
               </p>
 
               <p className="text-untamed-white font-medium text-center text-xl md:text-2xl">
-                $24 for a four-pack. Eight total cocktails. $3 per cocktail.
+                $24 for a box of four. Eight total cocktails. $3 per cocktail.
               </p>
 
               <p className="text-center max-w-3xl mx-auto">

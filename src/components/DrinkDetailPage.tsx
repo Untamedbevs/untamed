@@ -9,6 +9,7 @@ import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
 import { AddToCartButton } from '@/components/AddToCartButton'
 import { ProductGallery } from '@/components/ProductGallery'
+import { ShippingRates } from '@/components/ShippingRates'
 import { drinks } from '@/lib/drinks'
 import { siteAssetAbsoluteUrl } from '@/lib/site-assets'
 
@@ -105,18 +106,19 @@ export function DrinkDetailPage({ drink }: DrinkDetailPageProps) {
                 {/* Add to Cart */}
                 <div className="mt-8">
                   <p className="text-untamed-white text-2xl md:text-3xl font-bold mb-4">
-                    $24.00 <span className="text-untamed-white-muted text-base font-normal">/ Pack</span>
+                    $24.00 <span className="text-untamed-white-muted text-base font-normal">/ Box</span>
                   </p>
                   <AddToCartButton
                     listingId={drink.bevCartListingId}
                     variantId={drink.bevCartVariantId}
                   />
                   <p className="text-untamed-white-muted text-sm mt-3">
-                    2 martinis per can &bull; $3 per cocktail &bull; 4 cans per pack &bull; Ships direct
+                    2 martinis per can &bull; $3 per cocktail &bull; 4 cans per box &bull; Ships direct
                   </p>
                   <p className="text-untamed-white-muted/60 text-xs mt-2">
-                    Click the button to add to cart, then adjust quantity in cart.
+                    Minimum order: 2 boxes. Add to cart, then adjust quantity.
                   </p>
+                  <ShippingRates compact accentColor={drink.color} />
                 </div>
               </motion.div>
 
@@ -316,7 +318,7 @@ export function DrinkDetailPage({ drink }: DrinkDetailPageProps) {
               style={{ borderColor: `${drink.color}30` }}
             >
               <p className="font-[var(--font-oswald)] text-6xl md:text-7xl font-bold text-untamed-white mb-2">$24</p>
-              <p className="text-untamed-white-muted text-lg mb-8">for a four-pack</p>
+              <p className="text-untamed-white-muted text-lg mb-8">for a box of four</p>
 
               <div className="flex justify-center gap-12 mb-8">
                 <div>

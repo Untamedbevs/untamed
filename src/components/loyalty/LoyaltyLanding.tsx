@@ -335,7 +335,7 @@ export function LoyaltyLanding({ drink }: LoyaltyLandingProps) {
                 Scan to Join
               </h2>
               <p className="text-untamed-white-muted text-base md:text-lg max-w-lg mb-8">
-                Scan the QR code on any <span className="font-headline">Untamed</span> can or pack to come straight here and start earning rewards!
+                Scan the QR code on any <span className="font-headline">Untamed</span> can or box to come straight here and start earning rewards!
               </p>
 
               <div

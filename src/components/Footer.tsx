@@ -109,6 +109,9 @@ export function Footer() {
               <Link href="/brand-kit" className="hover:text-untamed-white transition-colors duration-300">
                 Brand Kit
               </Link>
+              <Link href="/contact" className="hover:text-untamed-white transition-colors duration-300">
+                Contact Us
+              </Link>
               <p className="mt-4 text-untamed-white-muted/60">Must be 21+ to purchase.</p>
               <p className="text-untamed-white-muted/60">15% ALC./VOL.</p>
               <p className="text-untamed-white-muted/60">Always drink responsibly.</p>

@@ -9,6 +9,7 @@ import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
 import { AddToCartButton } from '@/components/AddToCartButton'
 import { ProductGallery } from '@/components/ProductGallery'
+import { ShippingRates } from '@/components/ShippingRates'
 import { drinks } from '@/lib/drinks'
 import { siteAssetAbsoluteUrl } from '@/lib/site-assets'
 import { createClient } from '@/lib/supabase/client'
@@ -51,7 +52,7 @@ export default function ShopPage() {
               Martinis with an attitude. Mix and match your favorites — add any combination to your cart from right here.
             </p>
             <p className="text-untamed-white-muted/60 text-sm">
-              $24 per pack &bull; 4 cans &bull; 8 cocktails &bull; Ships direct
+              $24 per box &bull; 4 cans &bull; 8 cocktails &bull; Ships direct
             </p>
           </motion.div>
 
@@ -140,7 +141,7 @@ export default function ShopPage() {
                   </Link>
                   <p className="text-untamed-white font-medium text-base mb-1">{drink.flavor}</p>
                   <p className="text-untamed-white-muted text-sm mb-1">{drink.subtitle}</p>
-                  <p className="text-untamed-white font-bold text-lg mb-4">$24.00 <span className="text-untamed-white-muted text-sm font-normal">/ Pack</span></p>
+                  <p className="text-untamed-white font-bold text-lg mb-4">$24.00 <span className="text-untamed-white-muted text-sm font-normal">/ Box</span></p>
 
                   {/* Add to Cart */}
                   <div className="w-full">
@@ -157,6 +158,19 @@ export default function ShopPage() {
               </motion.div>
             ))}
           </div>
+
+          {/* ============================================
+              SHIPPING RATES
+              ============================================ */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="mt-14 max-w-2xl mx-auto"
+          >
+            <ShippingRates />
+          </motion.div>
 
           {/* ============================================
               DETAILED SYNOPSIS SECTIONS
@@ -193,7 +207,7 @@ export default function ShopPage() {
                     </p>
 
                     <p className="text-untamed-white font-bold text-xl mb-5">
-                      $24.00 <span className="text-untamed-white-muted text-sm font-normal">/ Pack of 4</span>
+                      $24.00 <span className="text-untamed-white-muted text-sm font-normal">/ Box of 4</span>
                     </p>
 
                     {/* Actions */}

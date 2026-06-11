@@ -1,22 +1,18 @@
 'use client'
 
 // Untamed Beverages
-import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { ArrowDown, Mail, Building2 } from 'lucide-react'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
-import { ContactModal } from '@/components/ContactModal'
 import { DrinkCard } from '@/components/DrinkCard'
 import { HomeCommunityStrip } from '@/components/community/HomeCommunityStrip'
 import { drinks } from '@/lib/drinks'
 import { siteAssetAbsoluteUrl } from '@/lib/site-assets'
 
 export default function HomePage() {
-  const [contactOpen, setContactOpen] = useState(false)
-
   return (
     <>
       <Navigation />
@@ -264,7 +260,7 @@ export default function HomePage() {
                 Shop All Flavors
               </a>
               <p className="text-untamed-white-muted text-sm mt-3">
-                Mix and match from the full lineup &bull; $24 per pack
+                Mix and match from the full lineup &bull; $24 per box
               </p>
             </motion.div>
           </div>
@@ -356,7 +352,7 @@ export default function HomePage() {
                 className="inline-flex items-center gap-2 px-8 py-3 border border-panther-light/40 text-panther-light font-medium text-base rounded-full
                   hover:bg-panther-light/10 hover:border-panther-light transition-all duration-300 active:scale-95"
               >
-                Shop All Packs &rarr;
+                Shop All Boxes &rarr;
               </a>
             </motion.div>
           </div>
@@ -553,7 +549,7 @@ export default function HomePage() {
                 },
                 {
                   title: 'Smart Bundles',
-                  desc: 'Curated packs for hosting, gifting, and discovering — buy with confidence.',
+                  desc: 'Curated boxes for hosting, gifting, and discovering — buy with confidence.',
                 },
                 {
                   title: 'Gifting Made Easy',
@@ -561,7 +557,7 @@ export default function HomePage() {
                 },
                 {
                   title: 'Earn Rewards',
-                  desc: 'Join the loyalty program. Every purchase earns points toward exclusive merch and packs.',
+                  desc: 'Join the loyalty program. Every purchase earns points toward exclusive merch and boxes.',
                 },
                 {
                   title: 'Limited Drops',
@@ -650,15 +646,15 @@ export default function HomePage() {
                   <Building2 className="w-4 h-4" />
                   Carry <span className="font-headline">Untamed</span>
                 </a>
-                <button
-                  onClick={() => setContactOpen(true)}
+                <a
+                  href="/contact"
                   className="px-8 py-3 border border-untamed-white-muted/30 text-untamed-white-muted font-medium text-base rounded-full
                     hover:border-untamed-white hover:text-untamed-white transition-all duration-300 active:scale-95
-                    inline-flex items-center gap-2 cursor-pointer"
+                    inline-flex items-center gap-2"
                 >
                   <Mail className="w-4 h-4" />
                   Contact Us
-                </button>
+                </a>
               </div>
 
               {/* Stats */}
@@ -682,8 +678,6 @@ export default function HomePage() {
       </main>
 
       <Footer />
-
-      <ContactModal open={contactOpen} onClose={() => setContactOpen(false)} />
     </>
   )
 }
