@@ -14,7 +14,6 @@ import {
 import { drinks } from '@/lib/drinks'
 import { createClient } from '@/lib/supabase/client'
 import { siteAssetAbsoluteUrl } from '@/lib/site-assets'
-import { PresaleBanner } from '@/components/PresaleBanner'
 import { NavCartButton } from '@/components/NavCartButton'
 
 type DropdownId = 'drinks' | null
@@ -160,7 +159,6 @@ export function Navigation() {
           </div>
         </div>
         </nav>
-        <PresaleBanner />
       </header>
 
       {/* Reserve space for the absolute header (nav + banner) so content isn't covered */}
