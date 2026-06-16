@@ -8,6 +8,7 @@ import { AgeGate } from '@/components/AgeGate'
 import { TrackingProvider } from '@/components/TrackingProvider'
 import { ReferralBanner } from '@/components/ReferralBanner'
 import { AccelPayRouteSync } from '@/components/AccelPayRouteSync'
+import { AccelPaySaleTracker } from '@/components/AccelPaySaleTracker'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -123,6 +124,7 @@ export default function RootLayout({
           <Suspense fallback={null}>
             <AccelPayRouteSync />
           </Suspense>
+          <AccelPaySaleTracker />
           <Suspense fallback={null}>
             <ReferralBanner />
           </Suspense>

@@ -512,13 +512,13 @@ export default function NewUgcSubmissionPage() {
               role="switch"
               aria-checked={isPublic}
               onClick={() => setIsPublic(!isPublic)}
-              className={`relative w-11 h-6 rounded-full transition-colors ${
+              className={`relative inline-flex items-center w-11 h-6 p-0.5 rounded-full transition-colors shrink-0 ${
                 isPublic ? 'bg-[#9B30FF]' : 'bg-[#2A2A2A]'
               }`}
             >
               <span
-                className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
-                  isPublic ? 'translate-x-5' : 'translate-x-0.5'
+                className={`block w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${
+                  isPublic ? 'translate-x-5' : 'translate-x-0'
                 }`}
               />
             </button>

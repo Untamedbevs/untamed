@@ -11,6 +11,7 @@ interface CommunityAsset {
   asset_type: 'image' | 'video'
   url: string
   processed_urls: Record<string, string> | null
+  processing_status: 'uploaded' | 'processing' | 'ready' | 'failed'
 }
 
 interface CommunityPost {
@@ -98,13 +99,15 @@ export function HomeCommunityStrip() {
                   <UgcVideo
                     src={primary.url}
                     processedUrls={primary.processed_urls}
+                    processingStatus={primary.processing_status}
                     context="list"
+                    fit="cover"
                     controls={false}
                     autoplay
                     muted
                     loop
                     lazy
-                    className="w-full h-full"
+                    className="absolute inset-0 w-full h-full"
                   />
                 ) : (
                   // eslint-disable-next-line @next/next/no-img-element

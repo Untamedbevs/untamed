@@ -228,6 +228,97 @@ export async function creditConsumerReferral(
   }
 }
 
+/**
+ * Credit a referrer for a paid AccelPay order. Resolves the order + its stored
+ * attribution (ref code), then logs a `paid_conversion` event for the buyer
+ * (always, for conversion tracking) and -- unless it's a self-referral --
+ * increments the referrer's paid_conversions and grants any newly earned tier
+ * rewards. Idempotent: an atomic claim on `conversion_credited` guarantees a
+ * sale is only ever credited once, no matter how many times this runs.
+ * Best-effort: never throws.
+ */
+export async function creditPaidConversion(
+  supabase: SupabaseClient,
+  accelPaySaleId: number
+): Promise<void> {
+  try {
+    if (!accelPaySaleId) return
+
+    const { data: order } = await supabase
+      .from('loyalty_orders')
+      .select('id, email')
+      .eq('accelpay_sale_id', accelPaySaleId)
+      .maybeSingle()
+    if (!order) return // Order row not created yet; the other path will retry.
+
+    const { data: attribution } = await supabase
+      .from('loyalty_order_attributions')
+      .select('ref_code, conversion_credited')
+      .eq('accelpay_sale_id', accelPaySaleId)
+      .maybeSingle()
+    if (!attribution || attribution.conversion_credited) return
+
+    const refCode = (attribution.ref_code as string | null)?.trim()
+    if (!refCode) return
+
+    const referrer = await resolveReferralCode(supabase, refCode)
+    if (!referrer) return
+
+    // Atomic claim -- only one caller wins, guaranteeing once-per-sale.
+    const { data: claimed } = await supabase
+      .from('loyalty_order_attributions')
+      .update({ conversion_credited: true })
+      .eq('accelpay_sale_id', accelPaySaleId)
+      .eq('conversion_credited', false)
+      .select('id')
+      .maybeSingle()
+    if (!claimed) return
+
+    const buyerEmail = (order.email as string | null)?.toLowerCase().trim() || null
+    const isSelfReferral =
+      !!buyerEmail && buyerEmail === referrer.email.toLowerCase().trim()
+
+    // Always log the conversion event (for tracking), even for self-referrals.
+    await supabase.from('referral_events').insert({
+      participant_id: referrer.id,
+      event_type: 'paid_conversion',
+      referred_email: buyerEmail,
+      metadata: {
+        accelpay_sale_id: accelPaySaleId,
+        loyalty_order_id: order.id,
+        self_referral: isSelfReferral,
+      },
+    })
+
+    // Self-referrals are tracked but earn no referral reward points.
+    if (isSelfReferral) return
+
+    const { data: refParticipant } = await supabase
+      .from('referral_participants')
+      .select('consumer_signups, distributor_leads, paid_conversions')
+      .eq('id', referrer.id)
+      .single()
+    if (!refParticipant) return
+
+    const newPaidConversions = (refParticipant.paid_conversions || 0) + 1
+
+    await supabase
+      .from('referral_participants')
+      .update({ paid_conversions: newPaidConversions })
+      .eq('id', referrer.id)
+
+    await checkAndGrantRewards(
+      supabase,
+      referrer.id,
+      refParticipant.consumer_signups || 0,
+      refParticipant.distributor_leads || 0,
+      newPaidConversions
+    )
+  } catch {
+    // Paid-conversion crediting is best-effort; never throw to the caller.
+  }
+}
+
 export async function checkAndGrantRewards(
   supabase: SupabaseClient,
   participantId: string,

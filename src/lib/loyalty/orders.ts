@@ -10,8 +10,11 @@
  * Receipt uploads are now reserved for IN-STORE / ON-PREMISE purchases.
  */
 
+import { randomUUID } from 'crypto'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { POINTS } from './constants'
+import { ensureReferralParticipant } from '@/lib/referral/helpers'
+import { applyOrderAttribution } from '@/lib/tracking/order-attribution'
 
 export interface ParsedSaleItem {
   listingId?: number
@@ -24,6 +27,7 @@ export interface ParsedSaleItem {
 export interface ParsedSale {
   saleId: number
   email: string | null
+  name: string | null
   status?: string | null
   subtotalCents: number
   totalCents: number
@@ -111,9 +115,19 @@ export function parseAccelPaySale(body: unknown): ParsedSale | null {
     str(root?.address?.email) ??
     str(b.email)
 
+  const name =
+    str(sale?.buyerDetail?.name) ??
+    str(sale?.shippingDetail?.name) ??
+    str(sale?.customer?.name) ??
+    str(sale?.name) ??
+    str(root?.buyerDetail?.name) ??
+    str(root?.customer?.name) ??
+    str(root?.address?.name)
+
   return {
     saleId,
     email: email ? email.toLowerCase() : null,
+    name,
     status: str(sale?.status) ?? str(root?.status),
     subtotalCents: toCents(sale?.subtotal),
     totalCents: toCents(sale?.total),
@@ -124,6 +138,125 @@ export function parseAccelPaySale(body: unknown): ParsedSale | null {
     packCount: packCountFromItems(items),
     raw: body,
   }
+}
+
+// ---------------------------------------------------------------------------
+// Customer provisioning
+// ---------------------------------------------------------------------------
+interface OrderMember {
+  id: string
+  balance: number
+}
+
+/**
+ * Find or create a customer (loyalty_member) for an online order. Unlike the
+ * portal front door, this provisions a member WITHOUT a signup bonus (that
+ * remains an incentive for creating an actual portal account -- see
+ * `ensureMemberForAuthUser`). When the buyer's visitor fingerprint is known,
+ * the member inherits the visitor's first-touch UTM attribution and the visitor
+ * is linked back to the new member. Idempotent on the unique email.
+ */
+async function ensureMemberForOrder(
+  admin: SupabaseClient,
+  args: { email: string; firstName: string | null; visitorFingerprint: string | null }
+): Promise<OrderMember | null> {
+  const normalized = args.email.toLowerCase().trim()
+  if (!normalized) return null
+
+  const existing = await admin
+    .from('loyalty_members')
+    .select('id, points_balance')
+    .eq('email', normalized)
+    .maybeSingle()
+  if (existing.data) {
+    return {
+      id: existing.data.id as string,
+      balance: (existing.data.points_balance as number) ?? 0,
+    }
+  }
+
+  // First-touch attribution waterfall when we know the visitor.
+  let visitor:
+    | {
+        id: string
+        first_utm_source: string | null
+        first_utm_medium: string | null
+        first_utm_campaign: string | null
+        first_landing_page: string | null
+        first_referrer: string | null
+        first_seen_at: string | null
+      }
+    | null = null
+  if (args.visitorFingerprint) {
+    const { data } = await admin
+      .from('visitors')
+      .select(
+        'id, first_utm_source, first_utm_medium, first_utm_campaign, first_landing_page, first_referrer, first_seen_at'
+      )
+      .eq('fingerprint', args.visitorFingerprint)
+      .maybeSingle()
+    visitor = data || null
+  }
+
+  const insertData: Record<string, unknown> = {
+    email: normalized,
+    first_name: args.firstName,
+    visitor_id: (visitor && args.visitorFingerprint) || randomUUID(),
+    points_balance: 0,
+  }
+  if (visitor) {
+    insertData.first_utm_source = visitor.first_utm_source
+    insertData.first_utm_medium = visitor.first_utm_medium
+    insertData.first_utm_campaign = visitor.first_utm_campaign
+    insertData.first_landing_page = visitor.first_landing_page
+    insertData.first_referrer = visitor.first_referrer
+    insertData.first_seen_at = visitor.first_seen_at
+  }
+
+  const { data: created, error } = await admin
+    .from('loyalty_members')
+    .insert(insertData)
+    .select('id, points_balance')
+    .single()
+
+  if (error) {
+    // Unique-email race: another request created it first. Re-fetch.
+    if ((error as { code?: string }).code === '23505') {
+      const { data: raced } = await admin
+        .from('loyalty_members')
+        .select('id, points_balance')
+        .eq('email', normalized)
+        .maybeSingle()
+      if (raced) {
+        return { id: raced.id as string, balance: (raced.points_balance as number) ?? 0 }
+      }
+    }
+    console.error('[ensureMemberForOrder] insert failed:', error)
+    return null
+  }
+
+  const memberId = created.id as string
+
+  if (visitor) {
+    await admin
+      .from('visitors')
+      .update({ loyalty_member_id: memberId })
+      .eq('id', visitor.id)
+      .is('loyalty_member_id', null)
+  }
+
+  // Every customer gets a referral link. Best-effort so it never blocks crediting.
+  try {
+    await ensureReferralParticipant(admin, {
+      loyaltyMemberId: memberId,
+      email: normalized,
+      displayName: args.firstName,
+    })
+  } catch (err) {
+    console.error('[ensureMemberForOrder] referral participant failed:', err)
+  }
+
+  return { id: memberId, balance: (created.points_balance as number) ?? 0 }
 }
 
 // ---------------------------------------------------------------------------
@@ -157,8 +290,10 @@ async function awardOrderPoints(
 
 /**
  * Record an AccelPay sale and credit points. Idempotent: a sale id we've
- * already stored is a no-op (`duplicate`). Returns `pending` when no member
- * matches the order email yet.
+ * already stored is a no-op (`duplicate`). For any order with an email we now
+ * provision a customer immediately (no more "pending until signup"); `pending`
+ * is only returned for the rare sale with no buyer email. Always applies order
+ * attribution (UTM/visitor + referral) before returning.
  */
 export async function creditOnlineOrder(
   admin: SupabaseClient,
@@ -167,18 +302,31 @@ export async function creditOnlineOrder(
   const email = sale.email ? sale.email.toLowerCase().trim() : null
   const packCount = sale.packCount || packCountFromItems(sale.items)
   const points = pointsForPacks(packCount)
+  const firstName = sale.name ? sale.name.trim().split(/\s+/)[0] || null : null
+
+  // The visitor fingerprint may already be stashed (client posted before the
+  // webhook); use it so the new customer inherits first-touch UTM at creation.
+  let visitorFingerprint: string | null = null
+  const { data: priorAttribution } = await admin
+    .from('loyalty_order_attributions')
+    .select('visitor_fingerprint')
+    .eq('accelpay_sale_id', sale.saleId)
+    .maybeSingle()
+  if (priorAttribution?.visitor_fingerprint) {
+    visitorFingerprint = priorAttribution.visitor_fingerprint as string
+  }
 
   let memberId: string | null = null
   let memberBalance = 0
   if (email) {
-    const { data: member } = await admin
-      .from('loyalty_members')
-      .select('id, points_balance')
-      .eq('email', email)
-      .maybeSingle()
+    const member = await ensureMemberForOrder(admin, {
+      email,
+      firstName,
+      visitorFingerprint,
+    })
     if (member) {
-      memberId = member.id as string
-      memberBalance = (member.points_balance as number) ?? 0
+      memberId = member.id
+      memberBalance = member.balance
     }
   }
 
@@ -205,7 +353,10 @@ export async function creditOnlineOrder(
 
   if (error) {
     // Unique violation on accelpay_sale_id => we've already processed this sale.
+    // Still (idempotently) apply attribution in case it arrived after the
+    // original processing run.
     if ((error as { code?: string }).code === '23505') {
+      await applyOrderAttribution(admin, sale.saleId)
       return { status: 'duplicate' }
     }
     throw error
@@ -215,9 +366,11 @@ export async function creditOnlineOrder(
 
   if (memberId && points > 0) {
     await awardOrderPoints(admin, orderId, memberId, memberBalance, points)
+    await applyOrderAttribution(admin, sale.saleId)
     return { status: 'credited', orderId, memberId, points }
   }
 
+  await applyOrderAttribution(admin, sale.saleId)
   return { status: 'pending', orderId, points }
 }
 

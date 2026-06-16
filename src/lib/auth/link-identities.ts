@@ -35,6 +35,45 @@ export async function linkAuthUserToIdentitiesByEmail(
     .is('auth_user_id', null)
 }
 
+/**
+ * Grants the signup bonus once if a member has never received one. Members
+ * auto-created at order time (online orders) are provisioned WITHOUT a signup
+ * bonus, so this preserves the welcome-bonus incentive for when they later
+ * create a real portal account -- without ever double-granting.
+ */
+async function grantSignupBonusIfMissing(
+  admin: SupabaseClient,
+  memberId: string
+): Promise<void> {
+  const { data: existingBonus } = await admin
+    .from('loyalty_transactions')
+    .select('id')
+    .eq('member_id', memberId)
+    .eq('type', 'signup_bonus')
+    .limit(1)
+    .maybeSingle()
+  if (existingBonus) return
+
+  const { data: member } = await admin
+    .from('loyalty_members')
+    .select('points_balance')
+    .eq('id', memberId)
+    .maybeSingle()
+  if (!member) return
+
+  await admin.from('loyalty_transactions').insert({
+    member_id: memberId,
+    points: POINTS.SIGNUP_BONUS,
+    type: 'signup_bonus',
+    description: 'Welcome to the Pack! Signup bonus.',
+  })
+
+  await admin
+    .from('loyalty_members')
+    .update({ points_balance: ((member.points_balance as number) ?? 0) + POINTS.SIGNUP_BONUS })
+    .eq('id', memberId)
+}
+
 export interface EnsureMemberResult {
   loyaltyMemberId: string
   created: boolean
@@ -81,6 +120,13 @@ export async function ensureMemberForAuthUser(
     .maybeSingle()
 
   if (linked?.id) {
+    // An order-created member (or any member that never got one) gets the
+    // signup bonus now that they've created a real portal account.
+    try {
+      await grantSignupBonusIfMissing(admin, linked.id)
+    } catch (err) {
+      console.error('[ensureMemberForAuthUser] signup bonus grant failed:', err)
+    }
     // Bank any online-order points that arrived before this account existed.
     try {
       await claimPendingOrdersForMember(admin, linked.id, normalized)
@@ -155,6 +201,11 @@ export async function ensureMemberForAuthUser(
         .eq('email', normalized)
         .maybeSingle()
       if (existing?.id) {
+        try {
+          await grantSignupBonusIfMissing(admin, existing.id)
+        } catch (err) {
+          console.error('[ensureMemberForAuthUser] signup bonus grant failed:', err)
+        }
         try {
           await claimPendingOrdersForMember(admin, existing.id, normalized)
         } catch (err) {

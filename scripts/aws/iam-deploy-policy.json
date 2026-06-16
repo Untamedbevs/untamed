@@ -1,0 +1,73 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "LambdaDeploy",
+      "Effect": "Allow",
+      "Action": [
+        "lambda:GetFunction",
+        "lambda:CreateFunction",
+        "lambda:UpdateFunctionCode",
+        "lambda:UpdateFunctionConfiguration",
+        "lambda:AddPermission",
+        "lambda:GetPolicy",
+        "lambda:GetFunctionConfiguration",
+        "lambda:ListFunctions",
+        "lambda:InvokeFunction"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "IamRoleManagement",
+      "Effect": "Allow",
+      "Action": [
+        "iam:GetRole",
+        "iam:CreateRole",
+        "iam:PassRole",
+        "iam:PutRolePolicy",
+        "iam:AttachRolePolicy",
+        "iam:ListAttachedRolePolicies",
+        "iam:ListRolePolicies",
+        "iam:GetRolePolicy"
+      ],
+      "Resource": [
+        "arn:aws:iam::*:role/untamed-video-processor-role",
+        "arn:aws:iam::*:role/MediaConvertRole"
+      ]
+    },
+    {
+      "Sid": "MediaConvertSetup",
+      "Effect": "Allow",
+      "Action": [
+        "mediaconvert:DescribeEndpoints",
+        "mediaconvert:CreateJob",
+        "mediaconvert:GetJob",
+        "mediaconvert:ListJobs"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "S3NotificationSetup",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetBucketNotification",
+        "s3:GetBucketNotificationConfiguration",
+        "s3:PutBucketNotification",
+        "s3:PutBucketNotificationConfiguration"
+      ],
+      "Resource": "arn:aws:s3:::untamed-media"
+    },
+    {
+      "Sid": "CloudWatchLogsForLambda",
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:DescribeLogGroups",
+        "logs:DescribeLogStreams",
+        "logs:GetLogEvents",
+        "logs:FilterLogEvents"
+      ],
+      "Resource": "*"
+    }
+  ]
+}

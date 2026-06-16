@@ -70,6 +70,13 @@ interface UgcVideoProps {
   autoplay?: boolean
   muted?: boolean
   loop?: boolean
+  /** How the video fills its container.
+   *  - `cover`: fill the box, cropping if needed (default for list/hero -- gallery cards)
+   *  - `contain`: letterbox to show the full video (default for single -- detail views)
+   *  - `natural`: use the video's intrinsic aspect ratio, no container constraint */
+  fit?: 'cover' | 'contain' | 'natural'
+  /** Processing status from `ugc_submission_assets.processing_status`. Drives the placeholder. */
+  processingStatus?: 'uploaded' | 'processing' | 'ready' | 'failed' | null
   /** Optional pre-resolved processed URLs (skips heuristics). */
   processedUrls?: {
     '1080p'?: string
@@ -98,6 +105,8 @@ export function UgcVideo({
   autoplay = false,
   muted = false,
   loop = false,
+  fit,
+  processingStatus = null,
   processedUrls,
 }: UgcVideoProps) {
   const [mounted, setMounted] = useState(false)
@@ -203,8 +212,66 @@ export function UgcVideo({
   const resolvedPoster =
     poster || processedUrls?.thumb || getVideoThumbnailUrl(primarySrc) || undefined
 
+  // Default fit: cards/lists/hero want to fill, detail views want to letterbox
+  const effectiveFit: 'cover' | 'contain' | 'natural' =
+    fit ?? (context === 'single' ? 'contain' : 'cover')
+
+  const objectFitClass =
+    effectiveFit === 'cover'
+      ? 'object-cover'
+      : effectiveFit === 'contain'
+        ? 'object-contain'
+        : ''
+
+  // When we know the video is mid-pipeline, render a clean processing placeholder
+  // instead of trying to play a transcode-in-progress file (which often fails on
+  // desktop browsers when the source is .mov).
+  const isProcessing =
+    processingStatus === 'uploaded' || processingStatus === 'processing'
+  const isFailed = processingStatus === 'failed'
+
+  if (isProcessing || isFailed) {
+    return (
+      <div
+        ref={containerRef}
+        className={`relative bg-[#0A0A0A] border border-[#2A2A2A] rounded-xl overflow-hidden ${className}`}
+      >
+        {resolvedPoster && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={resolvedPoster}
+            alt=""
+            className={`w-full h-full ${objectFitClass} opacity-40`}
+          />
+        )}
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-center px-4">
+          {isFailed ? (
+            <>
+              <span className="inline-flex w-8 h-8 items-center justify-center rounded-full bg-[#FF0040]/20 text-[#FF0040] text-lg">!</span>
+              <span className="text-xs uppercase tracking-wider text-[#FF0040]">
+                Video failed to process
+              </span>
+            </>
+          ) : (
+            <>
+              <span className="inline-block w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              <span className="text-xs uppercase tracking-wider text-untamed-white-muted">
+                Processing video...
+              </span>
+            </>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  // For `natural` fit we don't enforce a wrapper aspect; for the others we let
+  // the parent's box drive sizing and make the video fill it.
+  const videoFillClass =
+    effectiveFit === 'natural' ? 'w-full' : `w-full h-full ${objectFitClass}`
+
   return (
-    <div ref={containerRef} className={className}>
+    <div ref={containerRef} className={`relative bg-black overflow-hidden ${className}`}>
       {isVisible ? (
         <video
           key={activeSrc}
@@ -217,19 +284,16 @@ export function UgcVideo({
           loop={effectiveLoop}
           playsInline
           onError={handleError}
-          className="w-full bg-black rounded-xl"
+          className={`${videoFillClass} bg-black`}
         />
       ) : (
-        <div
-          className="w-full aspect-video bg-[#0A0A0A] border border-[#2A2A2A] rounded-xl flex items-center justify-center overflow-hidden"
-          style={{ minHeight: '200px' }}
-        >
+        <div className="w-full h-full min-h-[200px] flex items-center justify-center">
           {resolvedPoster ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={resolvedPoster}
               alt="Video thumbnail"
-              className="w-full h-full object-cover"
+              className={`w-full h-full ${objectFitClass || 'object-cover'}`}
             />
           ) : (
             <span className="text-[#A0A0A0] text-sm">Loading video...</span>

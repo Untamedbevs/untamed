@@ -1,0 +1,19 @@
+{
+  "LambdaFunctionConfigurations": [
+    {
+      "Id": "UntamedVideoProcessorUgcUploads",
+      "LambdaFunctionArn": "REPLACE_WITH_LAMBDA_ARN",
+      "Events": ["s3:ObjectCreated:*"],
+      "Filter": {
+        "Key": {
+          "FilterRules": [
+            {
+              "Name": "prefix",
+              "Value": "user-uploads/"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

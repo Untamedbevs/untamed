@@ -10,6 +10,7 @@ interface CommunityAsset {
   asset_type: 'image' | 'video'
   url: string
   processed_urls: Record<string, string> | null
+  processing_status: 'uploaded' | 'processing' | 'ready' | 'failed'
   width: number | null
   height: number | null
 }
@@ -189,10 +190,12 @@ function CommunityCard({ post }: { post: CommunityPost }) {
           <UgcVideo
             src={primary.url}
             processedUrls={primary.processed_urls}
+            processingStatus={primary.processing_status}
             context="list"
+            fit="cover"
             controls
             lazy
-            className="w-full h-full"
+            className="absolute inset-0 w-full h-full"
           />
         ) : (
           // eslint-disable-next-line @next/next/no-img-element

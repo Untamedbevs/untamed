@@ -179,7 +179,9 @@ export default function PortalUgcDetailPage({
                         }
                       | null) || null
                   }
+                  processingStatus={asset.processing_status}
                   context="single"
+                  fit="cover"
                   className="w-full h-full"
                 />
               ) : (

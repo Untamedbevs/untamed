@@ -177,7 +177,7 @@ export default function AdminUgcDetailPage({
             {submission.assets.map((asset: UgcSubmissionAsset) => (
               <div
                 key={asset.id}
-                className="bg-[#0A0A0A] border border-[#2A2A2A] rounded-xl overflow-hidden"
+                className="bg-[#0A0A0A] border border-[#2A2A2A] rounded-xl overflow-hidden aspect-video"
               >
                 {asset.asset_type === 'video' ? (
                   <UgcVideo
@@ -192,8 +192,10 @@ export default function AdminUgcDetailPage({
                           }
                         | null) || null
                     }
+                    processingStatus={asset.processing_status}
                     context="single"
-                    className="w-full"
+                    fit="contain"
+                    className="w-full h-full"
                   />
                 ) : (
                   // eslint-disable-next-line @next/next/no-img-element

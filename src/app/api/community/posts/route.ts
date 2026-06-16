@@ -9,6 +9,7 @@ interface CommunityAsset {
   asset_type: 'image' | 'video'
   url: string
   processed_urls: Record<string, string> | null
+  processing_status: 'uploaded' | 'processing' | 'ready' | 'failed'
   width: number | null
   height: number | null
 }
@@ -103,6 +104,7 @@ export async function GET(request: Request) {
           asset_type: a.asset_type,
           url: a.url,
           processed_urls: a.processed_urls,
+          processing_status: a.processing_status,
           width: a.width,
           height: a.height,
         })),
