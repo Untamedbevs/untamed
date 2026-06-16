@@ -90,26 +90,46 @@ export function parseAccelPaySale(body: unknown): ParsedSale | null {
   const saleId = num(sale?.id ?? root?.id ?? b.id ?? b.saleId)
   if (!saleId) return null
 
-  const rawItems: any[] = Array.isArray(root?.items)
-    ? root.items
-    : Array.isArray(sale?.items)
-      ? sale.items
-      : Array.isArray(b.items)
-        ? b.items
-        : []
+  // The live webhook uses AccelPay's `brandsale` shape, where line items live in
+  // `saleListings` (and prices are integer cents). The documented `bc-sale`
+  // client event uses `items` (dollar prices). Support both.
+  let rawItems: any[] = []
+  let priceIsCents = false
+  if (Array.isArray(sale?.saleListings)) {
+    rawItems = sale.saleListings
+    priceIsCents = true
+  } else if (Array.isArray(root?.saleListings)) {
+    rawItems = root.saleListings
+    priceIsCents = true
+  } else if (Array.isArray(root?.items)) {
+    rawItems = root.items
+  } else if (Array.isArray(sale?.items)) {
+    rawItems = sale.items
+  } else if (Array.isArray(b.items)) {
+    rawItems = b.items
+  }
 
   const items: ParsedSaleItem[] = rawItems.map((it) => ({
-    listingId: num(it?.variant?.listingId ?? it?.listingId) || undefined,
-    variantId: num(it?.variant?.id ?? it?.variantId) || undefined,
-    title: str(it?.title) ?? undefined,
+    listingId: num(it?.listingId ?? it?.variant?.listingId) || undefined,
+    variantId: num(it?.variantId ?? it?.variant?.id) || undefined,
+    title:
+      str(it?.title) ??
+      str(it?.variantTitle) ??
+      str(it?.listingTitle) ??
+      undefined,
     quantity: num(it?.quantity),
-    priceCents: toCents(it?.price),
+    priceCents: priceIsCents ? Math.round(num(it?.price)) : toCents(it?.price),
   }))
 
+  // Buyer email lives in `buyerDetail` (brandsale) -- fall back to shipping and
+  // the older flat/`customer` shapes.
   const email =
+    str(sale?.buyerDetail?.email) ??
+    str(sale?.shippingDetail?.email) ??
     str(sale?.email) ??
     str(sale?.customerEmail) ??
     str(sale?.customer?.email) ??
+    str(root?.buyerDetail?.email) ??
     str(root?.email) ??
     str(root?.customer?.email) ??
     str(root?.address?.email) ??
@@ -124,13 +144,22 @@ export function parseAccelPaySale(body: unknown): ParsedSale | null {
     str(root?.customer?.name) ??
     str(root?.address?.name)
 
+  // The brandsale webhook omits order totals, so fall back to the line-item sum
+  // (merchandise subtotal) when an explicit subtotal/total isn't provided.
+  const lineItemsSubtotalCents = items.reduce(
+    (sum, it) => sum + (it.priceCents || 0) * (it.quantity || 0),
+    0
+  )
+  const subtotalCents = toCents(sale?.subtotal) || lineItemsSubtotalCents
+  const totalCents = toCents(sale?.total) || subtotalCents
+
   return {
     saleId,
     email: email ? email.toLowerCase() : null,
     name,
     status: str(sale?.status) ?? str(root?.status),
-    subtotalCents: toCents(sale?.subtotal),
-    totalCents: toCents(sale?.total),
+    subtotalCents,
+    totalCents,
     taxCents: toCents(sale?.tax),
     deliveryCents: toCents(sale?.deliveryFee ?? sale?.delivery_fee),
     discountCents: toCents(sale?.discountAmount ?? sale?.discount_amount),
