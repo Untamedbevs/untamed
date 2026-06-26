@@ -5,9 +5,11 @@ import Link from 'next/link'
 import {
   CheckCircle,
   Clock,
+  FileImage,
   Loader2,
   Search,
   Sparkles,
+  Video,
   XCircle,
 } from 'lucide-react'
 import type {
@@ -35,11 +37,11 @@ interface AdminUgcSubmission extends UgcSubmissionWithAssets {
 }
 
 const STATUS_TABS: { value: UgcStatus | 'all'; label: string }[] = [
+  { value: 'all', label: 'All' },
   { value: 'pending', label: 'Pending' },
   { value: 'approved', label: 'Approved' },
   { value: 'featured', label: 'Featured' },
   { value: 'rejected', label: 'Rejected' },
-  { value: 'all', label: 'All' },
 ]
 
 const STATUS_BADGES: Record<UgcStatus, { cls: string; Icon: React.ComponentType<{ className?: string }>; label: string }> = {
@@ -51,7 +53,10 @@ const STATUS_BADGES: Record<UgcStatus, { cls: string; Icon: React.ComponentType<
 
 export default function AdminUgcPage() {
   const [submissions, setSubmissions] = useState<AdminUgcSubmission[]>([])
-  const [tab, setTab] = useState<UgcStatus | 'all'>('pending')
+  // Default to "All" so staff see every submission. Previously defaulted to
+  // "Pending" which made the page look empty when older items had already
+  // been approved or featured.
+  const [tab, setTab] = useState<UgcStatus | 'all'>('all')
   const [contributorFilter, setContributorFilter] = useState<
     UgcContributorType | ''
   >('')
@@ -73,6 +78,20 @@ export default function AdminUgcPage() {
   useEffect(() => {
     load()
   }, [load])
+
+  // Per-status counts (when the active tab is "all" the API returns every
+  // submission, so we can derive counts client-side without an extra request).
+  const counts = (() => {
+    if (tab !== 'all') return null
+    const out: Record<UgcStatus, number> = {
+      pending: 0,
+      approved: 0,
+      featured: 0,
+      rejected: 0,
+    }
+    for (const s of submissions) out[s.status]++
+    return out
+  })()
 
   const filtered = submissions.filter((s) => {
     if (!search.trim()) return true
@@ -97,20 +116,41 @@ export default function AdminUgcPage() {
         </div>
       </div>
 
-      <div className="flex items-center gap-1 border-b border-[#2A2A2A]">
-        {STATUS_TABS.map((t) => (
-          <button
-            key={t.value}
-            onClick={() => setTab(t.value)}
-            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
-              tab === t.value
-                ? 'text-[#9B30FF] border-[#9B30FF]'
-                : 'text-[#A0A0A0] border-transparent hover:text-white'
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
+      <div className="flex items-center gap-1 border-b border-[#2A2A2A] overflow-x-auto">
+        {STATUS_TABS.map((t) => {
+          // When viewing "All", show a count next to each status tab so it's
+          // obvious how the data is distributed without clicking through.
+          const count =
+            t.value === 'all'
+              ? submissions.length
+              : counts
+                ? counts[t.value]
+                : null
+          return (
+            <button
+              key={t.value}
+              onClick={() => setTab(t.value)}
+              className={`shrink-0 px-4 py-2 text-sm font-medium transition-colors border-b-2 inline-flex items-center gap-2 ${
+                tab === t.value
+                  ? 'text-[#9B30FF] border-[#9B30FF]'
+                  : 'text-[#A0A0A0] border-transparent hover:text-white'
+              }`}
+            >
+              {t.label}
+              {count !== null && (
+                <span
+                  className={`inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-bold ${
+                    tab === t.value
+                      ? 'bg-[#9B30FF]/20 text-[#9B30FF]'
+                      : 'bg-[#1A1A1A] text-[#A0A0A0]'
+                  }`}
+                >
+                  {count}
+                </span>
+              )}
+            </button>
+          )
+        })}
       </div>
 
       <div className="flex flex-wrap gap-3">
@@ -169,15 +209,42 @@ export default function AdminUgcPage() {
   )
 }
 
+/**
+ * HEIC files have MIME type `image/heic` (or sometimes `image/heif`). No
+ * desktop browser can render them, so showing them in an <img> tag produces
+ * a broken-image icon. Detect those upfront so we can render a friendly
+ * placeholder instead.
+ */
+function isHeicImage(asset: UgcSubmissionAsset): boolean {
+  if (asset.asset_type !== 'image') return false
+  const mime = (asset.mime_type || '').toLowerCase()
+  if (mime.includes('heic') || mime.includes('heif')) return true
+  return /\.(heic|heif)(\?|$)/i.test(asset.url)
+}
+
 function AdminUgcCard({ submission }: { submission: AdminUgcSubmission }) {
   const status = STATUS_BADGES[submission.status]
   const StatusIcon = status.Icon
   const firstAsset: UgcSubmissionAsset | undefined = submission.assets[0]
+
+  // Pull the processing status off the first video, if any -- drives the
+  // "Awaiting processing" badge below.
+  const firstVideo = submission.assets.find((a) => a.asset_type === 'video')
+  const videoNotReady =
+    firstVideo &&
+    (firstVideo.processing_status === 'uploaded' ||
+      firstVideo.processing_status === 'processing')
+  const videoFailed = firstVideo?.processing_status === 'failed'
+
+  const isHeic = firstAsset ? isHeicImage(firstAsset) : false
+
   const thumb =
     firstAsset?.processed_urls?.thumb ||
     (firstAsset?.asset_type === 'video'
       ? getVideoThumbnailUrl(firstAsset.url) || ''
-      : firstAsset?.url || '')
+      : !isHeic
+        ? firstAsset?.url || ''
+        : '')
 
   return (
     <Link
@@ -192,14 +259,53 @@ function AdminUgcCard({ submission }: { submission: AdminUgcSubmission }) {
             alt={submission.caption || 'UGC'}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
+        ) : isHeic ? (
+          <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-[#A0A0A0] p-3">
+            <FileImage className="w-8 h-8" />
+            <span className="text-[10px] uppercase tracking-wider">
+              HEIC photo
+            </span>
+            <span className="text-[10px] text-[#666] text-center leading-tight">
+              Open to view in full quality
+            </span>
+          </div>
+        ) : firstAsset?.asset_type === 'video' ? (
+          <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-[#A0A0A0] p-3">
+            <Video className="w-8 h-8" />
+            <span className="text-[10px] uppercase tracking-wider">
+              Video
+            </span>
+          </div>
         ) : (
           <div className="w-full h-full flex items-center justify-center text-[#666] text-xs">
-            Processing...
+            No preview
           </div>
         )}
-        {firstAsset?.asset_type === 'video' && (
-          <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
-            Video
+
+        {/* Top-left: video / heic badges so staff can see at a glance */}
+        {firstAsset?.asset_type === 'video' && thumb && (
+          <div className="absolute top-2 left-2 bg-black/70 text-white text-[10px] px-2 py-0.5 rounded inline-flex items-center gap-1">
+            <Video className="w-3 h-3" /> Video
+          </div>
+        )}
+
+        {/* Bottom-right: processing badge when applicable */}
+        {videoNotReady && (
+          <div className="absolute bottom-2 right-2 bg-[#FFFF00]/90 text-black text-[10px] font-bold px-2 py-0.5 rounded inline-flex items-center gap-1">
+            <Loader2 className="w-3 h-3 animate-spin" />
+            Awaiting processing
+          </div>
+        )}
+        {videoFailed && (
+          <div className="absolute bottom-2 right-2 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded">
+            Processing failed
+          </div>
+        )}
+
+        {/* Asset count chip if more than one */}
+        {submission.assets.length > 1 && (
+          <div className="absolute top-2 right-2 bg-black/70 text-white text-[10px] px-2 py-0.5 rounded">
+            +{submission.assets.length - 1}
           </div>
         )}
       </div>

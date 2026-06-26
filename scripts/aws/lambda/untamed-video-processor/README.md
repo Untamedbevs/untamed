@@ -1,5 +1,15 @@
 # untamed-video-processor
 
+> **DEPRECATED — not used by the active flow.**
+>
+> The production UGC video pipeline now matches VibrationFit: files upload
+> to S3 via presigned URL, then `POST /api/portal/ugc` directly submits a
+> MediaConvert job via the AWS SDK. See `src/lib/video/mediaconvert.ts`.
+>
+> This Lambda is kept as reference for the alternate "S3 event triggers
+> Lambda triggers MediaConvert" architecture. Use the VF-style flow above
+> unless you have a specific reason to switch back.
+
 AWS Lambda that watches the Untamed S3 bucket for new UGC video uploads,
 submits a MediaConvert job, and notifies the Next.js app when each output
 appears.

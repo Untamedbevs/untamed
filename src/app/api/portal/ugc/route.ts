@@ -5,6 +5,7 @@ import type {
   UgcAssetType,
   UgcContributorType,
 } from '@/lib/ugc/types'
+import { triggerMediaConvertForVideoAssets } from '@/lib/video/mediaconvert'
 
 export const dynamic = 'force-dynamic'
 
@@ -226,6 +227,30 @@ export async function POST(request: NextRequest) {
       console.error('[portal/ugc] Insert assets failed:', assetError)
       await admin.from('ugc_submissions').delete().eq('id', submission.id)
       return NextResponse.json({ error: 'Failed to save assets' }, { status: 500 })
+    }
+
+    // Fire MediaConvert transcoding jobs for any video assets. This mirrors
+    // the VibrationFit flow: file lands in S3 via presigned upload, then the
+    // app submits the MediaConvert job directly from this route. We update
+    // the asset rows with mediaconvert_job_id + processing_status='processing'
+    // inside the helper so the admin UI reflects state immediately.
+    const videoAssets = (assets || []).filter(
+      (a): a is { id: string; s3_key: string; asset_type: string } =>
+        a?.asset_type === 'video' && typeof a?.s3_key === 'string'
+    )
+    if (videoAssets.length > 0) {
+      try {
+        const results = await triggerMediaConvertForVideoAssets(videoAssets)
+        const submitted = results.filter((r) => r.ok).length
+        console.log(
+          `[portal/ugc] MediaConvert: ${submitted}/${videoAssets.length} jobs submitted`,
+          results.filter((r) => !r.ok).map((r) => r.reason)
+        )
+      } catch (err) {
+        // Never break the user-facing submission flow because of a transcoding
+        // failure -- staff can re-trigger from /admin/ugc/[id].
+        console.error('[portal/ugc] MediaConvert trigger threw', err)
+      }
     }
 
     return NextResponse.json({

@@ -34,7 +34,9 @@ interface QueueItem {
 }
 
 const MAX_FILES = 10
-const MAX_FILE_SIZE_MB = 500
+// Bumped to 1.5GB to accommodate iPhone 4K videos. Multipart upload kicks in
+// automatically above 100MB so large files still ship reliably.
+const MAX_FILE_SIZE_MB = 1500
 
 export default function NewUgcSubmissionPage() {
   const router = useRouter()
@@ -65,29 +67,52 @@ export default function NewUgcSubmissionPage() {
     const remaining = MAX_FILES - queue.length
     const accepted = files.slice(0, remaining)
 
-    const newItems: QueueItem[] = accepted
-      .filter((f) => {
-        const isImage = f.type.startsWith('image/')
-        const isVideo = f.type.startsWith('video/')
-        return isImage || isVideo
-      })
-      .filter((f) => f.size <= MAX_FILE_SIZE_MB * 1024 * 1024)
-      .map((file) => ({
-        id: `${file.name}-${file.size}-${Math.random().toString(36).slice(2, 8)}`,
-        file,
-        previewUrl: URL.createObjectURL(file),
-        assetType: file.type.startsWith('video/') ? 'video' : 'image',
+    // Categorize so we can give users a clear "why your file got skipped"
+    // message instead of silently dropping it.
+    const sizeMb = (b: number) => Math.round(b / (1024 * 1024))
+    const tooBig: string[] = []
+    const wrongType: string[] = []
+    const newItems: QueueItem[] = []
+
+    for (const f of accepted) {
+      const isImage = f.type.startsWith('image/')
+      const isVideo = f.type.startsWith('video/')
+      if (!isImage && !isVideo) {
+        wrongType.push(f.name)
+        continue
+      }
+      if (f.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+        tooBig.push(`${f.name} (${sizeMb(f.size)}MB)`)
+        continue
+      }
+      newItems.push({
+        id: `${f.name}-${f.size}-${Math.random().toString(36).slice(2, 8)}`,
+        file: f,
+        previewUrl: URL.createObjectURL(f),
+        assetType: isVideo ? 'video' : 'image',
         status: 'pending',
         progress: 0,
-      }))
-
-    if (newItems.length === 0 && accepted.length > 0) {
-      setError(
-        `Some files were skipped (only images/videos under ${MAX_FILE_SIZE_MB}MB are accepted).`
-      )
-    } else {
-      setError('')
+      })
     }
+
+    const messages: string[] = []
+    if (tooBig.length) {
+      messages.push(
+        `Too large (limit ${MAX_FILE_SIZE_MB}MB): ${tooBig.join(', ')}`
+      )
+    }
+    if (wrongType.length) {
+      messages.push(
+        `Wrong type (only photos/videos): ${wrongType.join(', ')}`
+      )
+    }
+    if (files.length > remaining) {
+      messages.push(
+        `Only ${MAX_FILES} files per submission \u2014 some files were not added.`
+      )
+    }
+
+    setError(messages.join(' \u2014 '))
 
     setQueue((prev) => [...prev, ...newItems])
   }
@@ -310,8 +335,12 @@ export default function NewUgcSubmissionPage() {
           />
           <UploadIcon className="w-10 h-10 text-[#9B30FF] mx-auto mb-3" />
           <p className="text-white font-medium mb-1">Drag & drop or click to add</p>
-          <p className="text-xs text-[#A0A0A0] mb-4">
-            Photos and videos · up to {MAX_FILE_SIZE_MB}MB each · {MAX_FILES} max
+          <p className="text-xs text-[#A0A0A0] mb-1">
+            Photos and videos · up to {(MAX_FILE_SIZE_MB / 1000).toFixed(1)}GB each · {MAX_FILES} max
+          </p>
+          <p className="text-[10px] text-[#666] mb-4 max-w-md mx-auto">
+            iPhone tip: if your photos upload as HEIC and won&apos;t preview, set
+            Settings &rarr; Camera &rarr; Formats to <em>Most Compatible</em>.
           </p>
           <button
             type="button"
