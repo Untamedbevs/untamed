@@ -129,6 +129,20 @@ export function Footer() {
 
         {/* Bottom Bar */}
         <div className="mt-12 pt-8 border-t border-card-border">
+          <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-5 gap-y-2 mb-6 text-xs text-untamed-white-muted/70">
+            <Link href="/privacy" className="hover:text-untamed-white transition-colors duration-300">
+              Privacy Policy
+            </Link>
+            <Link href="/terms" className="hover:text-untamed-white transition-colors duration-300">
+              Terms of Service
+            </Link>
+            <Link href="/unsubscribe" className="hover:text-untamed-white transition-colors duration-300">
+              Email Preferences
+            </Link>
+            <Link href="/contact" className="hover:text-untamed-white transition-colors duration-300">
+              Contact
+            </Link>
+          </div>
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-untamed-white-muted/60 text-xs text-center md:text-left">
               &copy; {new Date().getFullYear()} Untamed Beverages, LLC &bull; Parrish, FL 34219 &bull; USA
