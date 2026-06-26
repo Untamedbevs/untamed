@@ -21,6 +21,8 @@ import {
   MediaConvertClient,
   CreateJobCommand,
 } from '@aws-sdk/client-mediaconvert'
+import { HeadObjectCommand } from '@aws-sdk/client-s3'
+import { getS3Client } from '@/lib/storage/s3'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 export interface TriggerInput {
@@ -37,6 +39,32 @@ export interface TriggerResult {
 }
 
 const VIDEO_EXT_REGEX = /\.(mp4|mov|m4v|webm|mkv|avi)$/i
+
+/**
+ * Confirm the source object actually exists in S3 before we push a job.
+ * "Make sure it hits S3, THEN process." S3 is read-after-write consistent for
+ * new objects, but multipart completes / proxied uploads can lag a beat, so we
+ * retry a few times with a short backoff before giving up.
+ */
+async function confirmObjectInS3(
+  bucket: string,
+  key: string,
+  attempts = 5
+): Promise<boolean> {
+  const s3 = getS3Client()
+  for (let i = 0; i < attempts; i++) {
+    try {
+      await s3.send(new HeadObjectCommand({ Bucket: bucket, Key: key }))
+      return true
+    } catch {
+      // Not there yet -- wait and retry (250ms, 500ms, 750ms, ...)
+      if (i < attempts - 1) {
+        await new Promise((r) => setTimeout(r, 250 * (i + 1)))
+      }
+    }
+  }
+  return false
+}
 
 function mediaConvertClient() {
   const endpoint = process.env.MEDIACONVERT_ENDPOINT
@@ -71,6 +99,18 @@ export async function triggerMediaConvertForAsset(
       { hasBucket: !!bucket, hasRoleArn: !!roleArn, hasEndpoint: !!mc }
     )
     return { ok: false, reason: 'not_configured' }
+  }
+
+  // Gate: only push the MediaConvert job once the source file is actually in
+  // S3. If it isn't there after a few retries, bail -- staff can re-trigger
+  // later from /admin/ugc/[id] once the upload settles.
+  const present = await confirmObjectInS3(bucket, input.s3Key)
+  if (!present) {
+    console.warn('[mediaconvert] source not found in S3, skipping', {
+      bucket,
+      key: input.s3Key,
+    })
+    return { ok: false, reason: 's3_object_not_found' }
   }
 
   const settings = buildJobSettings(bucket, input.s3Key)
@@ -148,10 +188,11 @@ export async function triggerMediaConvertForVideoAssets(
 export function buildJobSettings(bucket: string, s3Key: string) {
   if (!VIDEO_EXT_REGEX.test(s3Key)) return null
 
+  // MediaConvert FILE_GROUP_SETTINGS automatically prepends the input file's
+  // base name to each output, so NameModifier is ONLY the suffix (e.g.
+  // "-1080p"). Producing "{base}-1080p.mp4", "{base}-thumb.0000000.jpg", etc.
   const lastSlash = s3Key.lastIndexOf('/')
   const dir = s3Key.substring(0, lastSlash)
-  const filename = s3Key.substring(lastSlash + 1)
-  const base = filename.replace(VIDEO_EXT_REGEX, '')
   const destinationDir = `s3://${bucket}/${dir}/processed/`
 
   return {
@@ -175,7 +216,7 @@ export function buildJobSettings(bucket: string, s3Key: string) {
         },
         Outputs: [
           {
-            NameModifier: `${base}-thumb`,
+            NameModifier: '-thumb',
             ContainerSettings: { Container: 'RAW' as const },
             VideoDescription: {
               Width: 1920,
@@ -202,7 +243,7 @@ export function buildJobSettings(bucket: string, s3Key: string) {
         },
         Outputs: [
           {
-            NameModifier: `${base}-original`,
+            NameModifier: '-original',
             ContainerSettings: {
               Container: 'MP4' as const,
               Mp4Settings: { MoovPlacement: 'PROGRESSIVE_DOWNLOAD' as const },
@@ -242,7 +283,7 @@ export function buildJobSettings(bucket: string, s3Key: string) {
         },
         Outputs: [
           {
-            NameModifier: `${base}-1080p`,
+            NameModifier: '-1080p',
             ContainerSettings: {
               Container: 'MP4' as const,
               Mp4Settings: { MoovPlacement: 'PROGRESSIVE_DOWNLOAD' as const },
@@ -285,7 +326,7 @@ export function buildJobSettings(bucket: string, s3Key: string) {
         },
         Outputs: [
           {
-            NameModifier: `${base}-720p`,
+            NameModifier: '-720p',
             ContainerSettings: {
               Container: 'MP4' as const,
               Mp4Settings: { MoovPlacement: 'PROGRESSIVE_DOWNLOAD' as const },
