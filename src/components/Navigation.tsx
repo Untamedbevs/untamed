@@ -104,7 +104,7 @@ export function Navigation() {
               </Link>
 
               <Link href="/rewards" className={NAV_LINK_CLASSES}>
-                Rewards
+                Join the Pack
               </Link>
 
               <Link href="/referral" className={NAV_LINK_CLASSES}>
@@ -207,7 +207,7 @@ export function Navigation() {
               className={`flex items-center gap-2 ${MOBILE_LINK_CLASSES}`}
             >
               <Trophy className="w-5 h-5" />
-              Rewards
+              Join the Pack
             </Link>
             <Link
               href="/referral"

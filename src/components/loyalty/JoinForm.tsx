@@ -209,7 +209,7 @@ export function JoinForm({
         />
         <input
           type="email"
-          placeholder="Email address"
+          placeholder="Email (the one you order with)"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required

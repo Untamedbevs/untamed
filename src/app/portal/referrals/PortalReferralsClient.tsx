@@ -10,28 +10,22 @@ import {
   Edit3,
   Link as LinkIcon,
   Loader2,
-  Lock,
   Mail,
   MessageCircle,
   MousePointerClick,
   Send,
   Sparkles,
   TrendingUp,
-  Trophy,
   Users,
 } from 'lucide-react'
 import type {
   ReferralInvite,
   ReferralParticipant,
-  ReferralRewardEarned,
-  ReferralRewardTier,
 } from '@/lib/referral/types'
 import { CUSTOM_MESSAGE_MAX_LENGTH } from '@/lib/referral/constants'
 
 interface Props {
   initialParticipant: ReferralParticipant
-  initialTiers: ReferralRewardTier[]
-  initialRewards: ReferralRewardEarned[]
   initialInvites: ReferralInvite[]
   initialConsumerLink: string
   initialDistributorLink: string
@@ -39,16 +33,12 @@ interface Props {
 
 export function PortalReferralsClient({
   initialParticipant,
-  initialTiers,
-  initialRewards,
   initialInvites,
   initialConsumerLink,
   initialDistributorLink,
 }: Props) {
   const [participant, setParticipant] =
     useState<ReferralParticipant>(initialParticipant)
-  const [tiers] = useState<ReferralRewardTier[]>(initialTiers)
-  const [rewards] = useState<ReferralRewardEarned[]>(initialRewards)
   const [invites, setInvites] = useState<ReferralInvite[]>(initialInvites)
   const [consumerLink, setConsumerLink] = useState(initialConsumerLink)
   const [distributorLink, setDistributorLink] = useState(initialDistributorLink)
@@ -56,22 +46,22 @@ export function PortalReferralsClient({
   const stats = useMemo(
     () => [
       {
-        label: 'Total clicks',
+        label: 'Link clicks',
         value: participant.total_clicks,
         icon: MousePointerClick,
       },
       {
-        label: 'Consumer signups',
+        label: 'Friends in the pack',
         value: participant.consumer_signups,
         icon: Users,
       },
       {
-        label: 'Distributor leads',
+        label: 'Retailer intros',
         value: participant.distributor_leads,
         icon: Building2,
       },
       {
-        label: 'Paid conversions',
+        label: 'First purchases',
         value: participant.paid_conversions,
         icon: TrendingUp,
       },
@@ -82,10 +72,11 @@ export function PortalReferralsClient({
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="font-headline text-2xl text-white mb-1">Referrals</h1>
+        <h1 className="font-headline text-2xl text-white mb-1">
+          Spread the Wild
+        </h1>
         <p className="text-sm text-[#A0A0A0]">
-          Share Untamed with friends and businesses. Earn rewards for every
-          signup and retailer lead you bring in.
+          Share Untamed with friends and businesses and watch the pack grow.
         </p>
       </div>
 
@@ -121,13 +112,6 @@ export function PortalReferralsClient({
       <WarmIntroSection
         invites={invites}
         onSent={(invite) => setInvites((prev) => [invite, ...prev])}
-      />
-
-      <TierSection
-        tiers={tiers}
-        rewards={rewards}
-        consumerSignups={participant.consumer_signups}
-        distributorLeads={participant.distributor_leads}
       />
     </div>
   )
@@ -712,157 +696,3 @@ function InviteRow({ invite }: { invite: ReferralInvite }) {
   )
 }
 
-// ---------------------------------------------------------------------------
-// Tier progress
-// ---------------------------------------------------------------------------
-
-function TierSection({
-  tiers,
-  rewards,
-  consumerSignups,
-  distributorLeads,
-}: {
-  tiers: ReferralRewardTier[]
-  rewards: ReferralRewardEarned[]
-  consumerSignups: number
-  distributorLeads: number
-}) {
-  if (tiers.length === 0) return null
-
-  const earnedTierIds = new Set(rewards.map((r) => r.tier_id))
-
-  return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2">
-        <Trophy className="w-4 h-4 text-[#9B30FF]" />
-        <h3 className="font-semibold text-white text-sm">Reward tiers</h3>
-      </div>
-      <div className="space-y-3">
-        {tiers.map((tier) => {
-          const earned = earnedTierIds.has(tier.id)
-          const reward = rewards.find((r) => r.tier_id === tier.id)
-          const signupProgress =
-            tier.min_consumer_signups > 0
-              ? Math.min(consumerSignups / tier.min_consumer_signups, 1)
-              : 1
-          const leadProgress =
-            tier.min_distributor_leads > 0
-              ? Math.min(distributorLeads / tier.min_distributor_leads, 1)
-              : 1
-
-          return (
-            <div
-              key={tier.id}
-              className="bg-[#141414] border rounded-2xl p-5 transition-colors"
-              style={{
-                borderColor: earned ? '#9B30FF66' : '#2A2A2A',
-                backgroundColor: earned ? '#9B30FF08' : '#141414',
-              }}
-            >
-              <div className="flex items-center gap-3 mb-3">
-                <div
-                  className="w-9 h-9 rounded-xl flex items-center justify-center"
-                  style={{
-                    backgroundColor: earned ? '#9B30FF1A' : '#1A1A1A',
-                  }}
-                >
-                  {earned ? (
-                    <CheckCircle className="w-4 h-4 text-[#9B30FF]" />
-                  ) : (
-                    <Lock className="w-4 h-4 text-[#666]" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-semibold text-white text-sm">
-                    {tier.tier_name}
-                  </h4>
-                  {tier.description && (
-                    <p className="text-xs text-[#A0A0A0]">
-                      {tier.description}
-                    </p>
-                  )}
-                </div>
-                {earned && reward && (
-                  <span
-                    className="text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider"
-                    style={{
-                      backgroundColor: reward.is_claimed
-                        ? '#39FF141A'
-                        : '#9B30FF1A',
-                      color: reward.is_claimed ? '#39FF14' : '#9B30FF',
-                    }}
-                  >
-                    {reward.is_claimed ? 'Claimed' : 'Earned'}
-                  </span>
-                )}
-              </div>
-
-              {!earned && (
-                <div className="space-y-2.5">
-                  {tier.min_consumer_signups > 0 && (
-                    <ProgressRow
-                      label="Consumer signups"
-                      value={Math.min(
-                        consumerSignups,
-                        tier.min_consumer_signups
-                      )}
-                      target={tier.min_consumer_signups}
-                      progress={signupProgress}
-                      color="#9B30FF"
-                    />
-                  )}
-                  {tier.min_distributor_leads > 0 && (
-                    <ProgressRow
-                      label="Retailer leads"
-                      value={Math.min(
-                        distributorLeads,
-                        tier.min_distributor_leads
-                      )}
-                      target={tier.min_distributor_leads}
-                      progress={leadProgress}
-                      color="#FF8C2A"
-                    />
-                  )}
-                </div>
-              )}
-            </div>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
-
-function ProgressRow({
-  label,
-  value,
-  target,
-  progress,
-  color,
-}: {
-  label: string
-  value: number
-  target: number
-  progress: number
-  color: string
-}) {
-  return (
-    <div>
-      <div className="flex items-center justify-between text-xs mb-1">
-        <span className="text-[#A0A0A0]">{label}</span>
-        <span className="text-white font-medium">
-          {value} / {target}
-        </span>
-      </div>
-      <div className="h-1.5 rounded-full bg-[#0A0A0A] overflow-hidden">
-        <div
-          className="h-full rounded-full transition-all duration-500"
-          style={{
-            width: `${progress * 100}%`,
-            backgroundColor: color,
-          }}
-        />
-      </div>
-    </div>
-  )
-}

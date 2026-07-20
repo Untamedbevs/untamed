@@ -44,24 +44,12 @@ export async function GET(request: NextRequest) {
     )
   }
 
-  const [tiersRes, rewardsRes, invitesRes] = await Promise.all([
-    supabase
-      .from('referral_reward_tiers')
-      .select('*')
-      .eq('is_active', true)
-      .order('tier_order', { ascending: true }),
-    supabase
-      .from('referral_rewards_earned')
-      .select('*, tier:referral_reward_tiers(*)')
-      .eq('participant_id', participant.id)
-      .order('earned_at', { ascending: false }),
-    supabase
-      .from('referral_invites')
-      .select('*')
-      .eq('participant_id', participant.id)
-      .order('sent_at', { ascending: false })
-      .limit(50),
-  ])
+  const { data: invites } = await supabase
+    .from('referral_invites')
+    .select('*')
+    .eq('participant_id', participant.id)
+    .order('sent_at', { ascending: false })
+    .limit(50)
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || request.nextUrl.origin
   const { consumerLink, distributorLink } = buildShareLinks(
@@ -71,9 +59,7 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json({
     participant,
-    tiers: tiersRes.data || [],
-    rewards: rewardsRes.data || [],
-    invites: invitesRes.data || [],
+    invites: invites || [],
     consumerLink,
     distributorLink,
   })

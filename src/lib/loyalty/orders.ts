@@ -12,7 +12,6 @@
 
 import { randomUUID } from 'crypto'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { POINTS } from './constants'
 import { ensureReferralParticipant } from '@/lib/referral/helpers'
 import { applyOrderAttribution } from '@/lib/tracking/order-attribution'
 
@@ -52,8 +51,12 @@ export function packCountFromItems(items: ParsedSaleItem[]): number {
   return items.reduce((sum, it) => sum + (Number(it.quantity) || 0), 0)
 }
 
-export function pointsForPacks(packCount: number): number {
-  return Math.max(0, packCount) * POINTS.PER_PACK
+/**
+ * Credit-card style earning: 100 points per $1 of merchandise subtotal,
+ * which conveniently means 1 point per cent.
+ */
+export function pointsForSubtotalCents(subtotalCents: number): number {
+  return Math.max(0, Math.round(subtotalCents))
 }
 
 // ---------------------------------------------------------------------------
@@ -109,17 +112,30 @@ export function parseAccelPaySale(body: unknown): ParsedSale | null {
     rawItems = b.items
   }
 
-  const items: ParsedSaleItem[] = rawItems.map((it) => ({
-    listingId: num(it?.listingId ?? it?.variant?.listingId) || undefined,
-    variantId: num(it?.variantId ?? it?.variant?.id) || undefined,
-    title:
-      str(it?.title) ??
-      str(it?.variantTitle) ??
-      str(it?.listingTitle) ??
-      undefined,
-    quantity: num(it?.quantity),
-    priceCents: priceIsCents ? Math.round(num(it?.price)) : toCents(it?.price),
-  }))
+  const items: ParsedSaleItem[] = rawItems.map((it) => {
+    const quantity = num(it?.quantity)
+    // brandsale `saleListings[].price` is the LINE TOTAL in integer cents
+    // (price 4800, qty 2 => two $24 packs) — divide by qty for the unit price.
+    // The documented `items` shape carries unit prices in dollars.
+    let priceCents: number
+    if (priceIsCents) {
+      const lineTotalCents = Math.round(num(it?.price))
+      priceCents = quantity > 0 ? Math.round(lineTotalCents / quantity) : lineTotalCents
+    } else {
+      priceCents = toCents(it?.price)
+    }
+    return {
+      listingId: num(it?.listingId ?? it?.variant?.listingId) || undefined,
+      variantId: num(it?.variantId ?? it?.variant?.id) || undefined,
+      title:
+        str(it?.title) ??
+        str(it?.variantTitle) ??
+        str(it?.listingTitle) ??
+        undefined,
+      quantity,
+      priceCents,
+    }
+  })
 
   // Buyer email lives in `buyerDetail` (brandsale) -- fall back to shipping and
   // the older flat/`customer` shapes.
@@ -330,7 +346,7 @@ export async function creditOnlineOrder(
 ): Promise<CreditResult> {
   const email = sale.email ? sale.email.toLowerCase().trim() : null
   const packCount = sale.packCount || packCountFromItems(sale.items)
-  const points = pointsForPacks(packCount)
+  const points = pointsForSubtotalCents(sale.subtotalCents)
   const firstName = sale.name ? sale.name.trim().split(/\s+/)[0] || null : null
 
   // The visitor fingerprint may already be stashed (client posted before the

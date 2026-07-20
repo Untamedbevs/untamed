@@ -55,16 +55,17 @@ export default function PortalReceiptsListPage() {
             <Receipt className="w-6 h-6 text-[#9B30FF]" />
           </div>
           <h3 className="text-white font-semibold mb-1">
-            Join the Loyalty Program
+            Join the Pack first
           </h3>
           <p className="text-sm text-[#A0A0A0] mb-6 max-w-md mx-auto">
-            Become a loyalty member to upload receipts and start earning points.
+            Membership takes a moment — then in-store purchases can be credited
+            to your account.
           </p>
           <Link
-            href="/loyalty"
+            href="/rewards"
             className="bg-[#9B30FF] text-white text-sm font-semibold rounded-full px-5 py-2.5 inline-flex items-center gap-2 hover:bg-[#7E22CE] transition-colors"
           >
-            Join Loyalty
+            Join now
           </Link>
         </div>
       </div>
@@ -77,8 +78,8 @@ export default function PortalReceiptsListPage() {
         <div>
           <h1 className="font-headline text-2xl text-white">In-Store Receipts</h1>
           <p className="text-sm text-[#A0A0A0]">
-            In-store or on-premise purchase? Upload the receipt for 25 points per
-            pack. Online orders earn points automatically.
+            In-store or on-premise purchase? Upload the receipt and we&apos;ll
+            credit your account. Online orders are credited automatically.
           </p>
         </div>
         <Link
@@ -106,10 +107,10 @@ export default function PortalReceiptsListPage() {
           </div>
           <h3 className="text-white font-semibold mb-1">No receipts yet</h3>
           <p className="text-sm text-[#A0A0A0] mb-6 max-w-md mx-auto">
-            Bought Untamed in a store or at an event? Snap a photo of the receipt
-            and we&apos;ll add 25 points per pack once it&apos;s reviewed. Orders
-            from our online shop are credited automatically &mdash; no upload
-            needed.
+            Bought Untamed in a store or at an event? Snap a photo of the
+            receipt and we&apos;ll credit your account once it&apos;s reviewed.
+            Orders from our online shop are credited automatically &mdash; no
+            upload needed.
           </p>
           <Link
             href="/portal/receipts/new"

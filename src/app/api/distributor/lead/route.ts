@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { randomUUID } from 'crypto'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { resolveReferralCode, checkAndGrantRewards, generateUniqueCode } from '@/lib/referral/helpers'
+import { resolveReferralCode, generateUniqueCode } from '@/lib/referral/helpers'
 import { REF_COOKIE_NAME } from '@/lib/referral/constants'
 import { POINTS } from '@/lib/loyalty/constants'
 import { z } from 'zod'
@@ -63,13 +63,27 @@ export async function POST(request: NextRequest) {
 
     if (leadError) throw leadError
 
-    // Credit referrer
+    // Credit referrer (counter + event only -- referral points are reserved
+    // for consumer signups and purchases). Deduped per referred email.
     if (referralParticipantId) {
-      const { data: participant } = await supabase
-        .from('referral_participants')
-        .select('distributor_leads, consumer_signups, paid_conversions')
-        .eq('id', referralParticipantId)
-        .single()
+      const normalizedLeadEmail = data.email.toLowerCase().trim()
+
+      const { data: priorLeadEvent } = await supabase
+        .from('referral_events')
+        .select('id')
+        .eq('participant_id', referralParticipantId)
+        .eq('event_type', 'distributor_lead')
+        .eq('referred_email', normalizedLeadEmail)
+        .limit(1)
+        .maybeSingle()
+
+      const { data: participant } = priorLeadEvent
+        ? { data: null }
+        : await supabase
+            .from('referral_participants')
+            .select('distributor_leads')
+            .eq('id', referralParticipantId)
+            .single()
 
       if (participant) {
         const newLeadCount = (participant.distributor_leads || 0) + 1
@@ -82,7 +96,7 @@ export async function POST(request: NextRequest) {
           supabase.from('referral_events').insert({
             participant_id: referralParticipantId,
             event_type: 'distributor_lead',
-            referred_email: data.email.toLowerCase().trim(),
+            referred_email: normalizedLeadEmail,
             metadata: { business_name: data.businessName, lead_id: lead.id },
           }),
         ])
@@ -92,17 +106,9 @@ export async function POST(request: NextRequest) {
           .from('referral_invites')
           .update({ status: 'converted', converted_at: new Date().toISOString() })
           .eq('participant_id', referralParticipantId)
-          .eq('referred_email', data.email.toLowerCase().trim())
+          .eq('referred_email', normalizedLeadEmail)
           .eq('invite_type', 'distributor')
           .neq('status', 'converted')
-
-        await checkAndGrantRewards(
-          supabase,
-          referralParticipantId,
-          participant.consumer_signups || 0,
-          newLeadCount,
-          participant.paid_conversions || 0
-        )
       }
     }
 

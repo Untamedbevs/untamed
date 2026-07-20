@@ -17,6 +17,8 @@ export interface PortalLoyaltyTransaction {
     | 'adjustment'
     | 'ugc_approved'
     | 'online_order'
+    | 'referral_signup'
+    | 'referral_purchase'
   description: string | null
   created_at: string
 }
@@ -33,17 +35,6 @@ export interface PortalLoyaltyRedemption {
   cancelled_at: string | null
   created_at: string
   updated_at: string
-}
-
-export interface PortalReferralRewardEarned {
-  id: string
-  earned_at: string
-  status: 'pending' | 'fulfilled' | 'cancelled'
-  tier?: {
-    id: string
-    label: string
-    description: string | null
-  } | null
 }
 
 export default async function PortalRewardsPage() {
@@ -67,8 +58,8 @@ export default async function PortalRewardsPage() {
         <div>
           <h1 className="font-headline text-2xl text-white mb-1">Rewards</h1>
           <p className="text-sm text-[#A0A0A0]">
-            Earn points for every receipt and submission, then trade them in
-            for swag.
+            A quiet perk for members — points build up on their own and trade
+            in for Untamed merch.
           </p>
         </div>
         <div className="bg-[#141414] border border-[#9B30FF]/30 rounded-2xl p-6">
@@ -78,11 +69,11 @@ export default async function PortalRewardsPage() {
             </div>
             <div className="flex-1">
               <h3 className="font-semibold text-white mb-1">
-                Join the Loyalty Program first
+                Join the Pack first
               </h3>
               <p className="text-sm text-[#A0A0A0] mb-4">
-                Loyalty members earn points on every Untamed bottle and unlock
-                merch through the rewards catalog.
+                Membership takes a moment — then points build up automatically
+                as you shop and share.
               </p>
               <Link
                 href="/rewards"
@@ -101,7 +92,7 @@ export default async function PortalRewardsPage() {
   const supabase = createAdminClient()
   const memberId = member.loyaltyMember.id
 
-  const [transactionsRes, redemptionsRes, referralRewardsRes] = await Promise.all([
+  const [transactionsRes, redemptionsRes] = await Promise.all([
     supabase
       .from('loyalty_transactions')
       .select('id, member_id, points, type, description, created_at')
@@ -114,14 +105,6 @@ export default async function PortalRewardsPage() {
       .eq('member_id', memberId)
       .order('created_at', { ascending: false })
       .limit(20),
-    member.referralParticipant
-      ? supabase
-          .from('referral_rewards_earned')
-          .select('id, earned_at, status, tier:referral_reward_tiers(id, label, description)')
-          .eq('participant_id', member.referralParticipant.id)
-          .order('earned_at', { ascending: false })
-          .limit(20)
-      : Promise.resolve({ data: [] as PortalReferralRewardEarned[] }),
   ])
 
   return (
@@ -133,9 +116,6 @@ export default async function PortalRewardsPage() {
       }
       initialRedemptions={
         (redemptionsRes.data || []) as PortalLoyaltyRedemption[]
-      }
-      initialReferralRewards={
-        (referralRewardsRes.data || []) as PortalReferralRewardEarned[]
       }
     />
   )

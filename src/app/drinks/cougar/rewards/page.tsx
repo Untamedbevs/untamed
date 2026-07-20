@@ -5,8 +5,8 @@ import { LoyaltyLanding } from '@/components/loyalty/LoyaltyLanding'
 const drink = getDrinkBySlug('cougar')!
 
 export const metadata: Metadata = {
-  title: `${drink.name} Rewards | Untamed Beverages`,
-  description: `Join the Pack! Earn points and unlock exclusive rewards with ${drink.name} ${drink.flavor}.`,
+  title: `Join the Pack | ${drink.name} | Untamed Beverages`,
+  description: `Join the pack with ${drink.name} ${drink.flavor}. Share your moments, bring your friends, and get first access to what is next.`,
 }
 
 export default function CougarRewardsPage() {

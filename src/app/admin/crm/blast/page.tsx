@@ -65,7 +65,7 @@ const TEMPLATES: BlastTemplate[] = [
       'We\'re collecting photos and videos from real Untamed moments — yours could be featured on our site, social, or even a future can.\n\n' +
       'Got a clip of you cracking open a Cougar at sunset, or a Cheetah on the boat? We want it.\n\n' +
       'Submit in 30 seconds:\n{{portal_login_url}}\n\n' +
-      'Approved photos earn 50 loyalty points. Featured ones earn 150.\n\n' +
+      'The best ones get featured on the site for the whole pack to see.\n\n' +
       'See what others are sharing: {{community_url}}\n\n' +
       'Stay wild,\nThe Untamed crew',
   },

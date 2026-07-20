@@ -59,6 +59,3 @@ export interface UgcSubmission {
 export interface UgcSubmissionWithAssets extends UgcSubmission {
   assets: UgcSubmissionAsset[]
 }
-
-export const POINTS_PER_UGC_APPROVED = 50
-export const POINTS_PER_UGC_FEATURED = 150

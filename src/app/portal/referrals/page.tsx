@@ -6,11 +6,7 @@ import {
   buildShareLinks,
   ensureReferralParticipant,
 } from '@/lib/referral/helpers'
-import type {
-  ReferralInvite,
-  ReferralRewardEarned,
-  ReferralRewardTier,
-} from '@/lib/referral/types'
+import type { ReferralInvite } from '@/lib/referral/types'
 import { PortalReferralsClient } from './PortalReferralsClient'
 
 export const dynamic = 'force-dynamic'
@@ -34,10 +30,11 @@ export default async function PortalReferralsPage() {
     return (
       <div className="max-w-2xl space-y-6">
         <div>
-          <h1 className="font-headline text-2xl text-white mb-1">Referrals</h1>
+          <h1 className="font-headline text-2xl text-white mb-1">
+            Spread the Wild
+          </h1>
           <p className="text-sm text-[#A0A0A0]">
-            Share Untamed with the people in your life and earn rewards for
-            every signup or retailer lead.
+            Share Untamed with the people in your life and grow the pack.
           </p>
         </div>
         <div className="bg-[#141414] border border-[#9B30FF]/30 rounded-2xl p-6">
@@ -47,11 +44,11 @@ export default async function PortalReferralsPage() {
             </div>
             <div className="flex-1">
               <h3 className="font-semibold text-white mb-1">
-                Join the Loyalty Program first
+                Join the Pack first
               </h3>
               <p className="text-sm text-[#A0A0A0] mb-4">
-                Loyalty members get a personal referral code, share links, and
-                progress toward tier rewards. It only takes a moment.
+                Members get a personal link to share with friends and
+                businesses. It only takes a moment.
               </p>
               <Link
                 href="/rewards"
@@ -75,24 +72,12 @@ export default async function PortalReferralsPage() {
     displayName: member.loyaltyMember.first_name,
   })
 
-  const [tiersRes, rewardsRes, invitesRes] = await Promise.all([
-    supabase
-      .from('referral_reward_tiers')
-      .select('*')
-      .eq('is_active', true)
-      .order('tier_order', { ascending: true }),
-    supabase
-      .from('referral_rewards_earned')
-      .select('*, tier:referral_reward_tiers(*)')
-      .eq('participant_id', participant.id)
-      .order('earned_at', { ascending: false }),
-    supabase
-      .from('referral_invites')
-      .select('*')
-      .eq('participant_id', participant.id)
-      .order('sent_at', { ascending: false })
-      .limit(50),
-  ])
+  const { data: invites } = await supabase
+    .from('referral_invites')
+    .select('*')
+    .eq('participant_id', participant.id)
+    .order('sent_at', { ascending: false })
+    .limit(50)
 
   const siteUrl =
     process.env.NEXT_PUBLIC_SITE_URL || 'https://untamedbeverages.com'
@@ -104,9 +89,7 @@ export default async function PortalReferralsPage() {
   return (
     <PortalReferralsClient
       initialParticipant={participant}
-      initialTiers={(tiersRes.data || []) as ReferralRewardTier[]}
-      initialRewards={(rewardsRes.data || []) as ReferralRewardEarned[]}
-      initialInvites={(invitesRes.data || []) as ReferralInvite[]}
+      initialInvites={(invites || []) as ReferralInvite[]}
       initialConsumerLink={consumerLink}
       initialDistributorLink={distributorLink}
     />

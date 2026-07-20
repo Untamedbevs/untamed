@@ -213,9 +213,10 @@ export default function NewReceiptPage() {
         <div>
           <h1 className="font-headline text-2xl text-white">Upload in-store receipt</h1>
           <p className="text-sm text-[#A0A0A0]">
-            Bought Untamed in a store or at an event? Earn {POINTS.PER_RECEIPT}{' '}
-            points per pack. Add multiple photos if your purchase spans more than
-            one receipt. (Online shop orders are credited automatically.)
+            Bought Untamed in a store or at an event? Upload the receipt and
+            we&apos;ll credit your account. Add multiple photos if your purchase
+            spans more than one receipt. (Online shop orders are credited
+            automatically.)
           </p>
         </div>
         <Link

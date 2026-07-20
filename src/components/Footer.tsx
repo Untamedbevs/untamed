@@ -101,7 +101,10 @@ export function Footer() {
                 Our Story
               </Link>
               <Link href="/rewards" className="hover:text-untamed-white transition-colors duration-300">
-                Rewards Program
+                Join the Pack
+              </Link>
+              <Link href="/rewards?intent=ugc" className="hover:text-untamed-white transition-colors duration-300">
+                Share a Moment
               </Link>
               <Link href="/referral" className="hover:text-untamed-white transition-colors duration-300">
                 Refer a Friend

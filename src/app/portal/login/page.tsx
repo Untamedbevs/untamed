@@ -13,6 +13,7 @@ import {
   Loader2,
   LogIn,
   Mail,
+  ShoppingBag,
 } from 'lucide-react'
 
 export default function PortalLoginPage() {
@@ -39,7 +40,9 @@ function PortalLoginForm() {
   const initialEmail = searchParams.get('email') || ''
   const returnTo = searchParams.get('returnTo') || '/portal'
 
-  const [mode, setMode] = useState<Mode>('password')
+  // Email-first by default: customers auto-enrolled at checkout have an
+  // account but no password yet, so the magic-link path works for everyone.
+  const [mode, setMode] = useState<Mode>('magic-link')
   const [email, setEmail] = useState(initialEmail)
   const [password, setPassword] = useState('')
   const [code, setCode] = useState('')
@@ -181,6 +184,16 @@ function PortalLoginForm() {
           <p className="text-[#A0A0A0] mt-2">Sign in to your member portal</p>
         </div>
 
+        <div className="flex items-start gap-3 bg-[#9B30FF]/10 border border-[#9B30FF]/30 rounded-2xl px-5 py-4 mb-4">
+          <ShoppingBag className="w-4 h-4 shrink-0 mt-0.5 text-[#C68BFF]" />
+          <p className="text-sm text-[#E5E5E5] leading-relaxed">
+            <strong className="text-white">Ordered from us before?</strong>{' '}
+            You already have an account — every order creates one, tied to
+            your checkout email. Enter that email below and we&apos;ll send
+            you a sign-in code. No signup, no password needed.
+          </p>
+        </div>
+
         <div className="bg-[#141414] border border-[#2A2A2A] rounded-2xl p-8 space-y-6">
           {error && (
             <div className="flex items-start gap-2 bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl px-4 py-3 text-sm">
@@ -265,8 +278,10 @@ function PortalLoginForm() {
             <form onSubmit={handleSendMagicLink} className="space-y-5">
               <EmailField email={email} setEmail={setEmail} />
               <p className="text-xs text-[#A0A0A0]">
-                We&apos;ll email you a sign-in link and a 6-digit code. New here?
-                We&apos;ll create your account automatically.
+                We&apos;ll email you a sign-in link and a 6-digit code. Ordered
+                before? Use your checkout email — your account and points are
+                already waiting. New here? We&apos;ll create your account
+                automatically.
               </p>
               <button
                 type="submit"

@@ -66,8 +66,8 @@ export default function PortalUgcListPage() {
           </div>
           <h3 className="text-white font-semibold mb-1">No submissions yet</h3>
           <p className="text-sm text-[#A0A0A0] mb-6 max-w-md mx-auto">
-            Share a photo or video with us. Approved submissions earn 50 loyalty
-            points and may be featured on our site.
+            Share a photo or video of your Untamed moment. Once approved, it
+            joins the community gallery — the best ones get featured.
           </p>
           <Link
             href="/portal/ugc/new"

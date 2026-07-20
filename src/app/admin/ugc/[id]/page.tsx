@@ -7,12 +7,14 @@ import {
   AlertCircle,
   ArrowLeft,
   CheckCircle,
+  Download,
   Globe,
   ImageDown,
   Loader2,
   Lock,
   Mail,
   MapPin,
+  Maximize2,
   RefreshCw,
   Sparkles,
   Tag,
@@ -25,6 +27,11 @@ import type {
   UgcSubmissionWithAssets,
 } from '@/lib/ugc/types'
 import { UgcVideo } from '@/components/ugc/UgcVideo'
+import {
+  UgcAssetLightbox,
+  assetDownloadHref,
+  bestAssetUrl,
+} from '@/components/ugc/UgcAssetLightbox'
 import { drinks } from '@/lib/drinks'
 
 interface AdminSubmission extends UgcSubmissionWithAssets {
@@ -40,6 +47,32 @@ interface AdminSubmission extends UgcSubmissionWithAssets {
     contact_name: string
     email: string
   } | null
+}
+
+/** Friendly filename for social use, e.g. untamed-ugc-1a2b3c4d-1.mp4 */
+function assetDownloadName(
+  submission: AdminSubmission,
+  asset: UgcSubmissionAsset,
+  index: number
+): string {
+  const shortId = submission.id.slice(0, 8)
+  const ext =
+    bestAssetUrl(asset).split('?')[0].split('.').pop()?.toLowerCase() ||
+    (asset.asset_type === 'video' ? 'mp4' : 'jpg')
+  return `untamed-ugc-${shortId}-${index + 1}.${ext}`
+}
+
+/** Trigger a browser download for every asset, staggered to avoid blocking. */
+function downloadAllAssets(submission: AdminSubmission) {
+  submission.assets.forEach((asset, i) => {
+    setTimeout(() => {
+      const a = document.createElement('a')
+      a.href = assetDownloadHref(asset, assetDownloadName(submission, asset, i))
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+    }, i * 600)
+  })
 }
 
 const STATUS_STYLES: Record<UgcStatus, { cls: string; Icon: React.ComponentType<{ className?: string }>; label: string }> = {
@@ -62,6 +95,7 @@ export default function AdminUgcDetailPage({
   const [busy, setBusy] = useState<string | null>(null)
   const [rejectionReason, setRejectionReason] = useState('')
   const [customPoints, setCustomPoints] = useState<string>('')
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -130,6 +164,7 @@ export default function AdminUgcDetailPage({
   const isPending = submission.status === 'pending'
   const isApproved = submission.status === 'approved'
   const isFeatured = submission.status === 'featured'
+  const isRejected = submission.status === 'rejected'
 
   return (
     <div className="space-y-6 max-w-6xl">
@@ -173,51 +208,99 @@ export default function AdminUgcDetailPage({
             )}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {submission.assets.map((asset: UgcSubmissionAsset) => (
+          {submission.assets.length > 1 && (
+            <div className="flex justify-end">
+              <button
+                onClick={() => downloadAllAssets(submission)}
+                className="inline-flex items-center gap-2 bg-[#0A0A0A] border border-[#2A2A2A] text-white text-sm rounded-full px-4 py-2 hover:border-[#9B30FF] transition-colors"
+              >
+                <Download className="w-4 h-4" />
+                Download all ({submission.assets.length})
+              </button>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
+            {submission.assets.map((asset: UgcSubmissionAsset, i: number) => (
               <div
                 key={asset.id}
-                className="bg-[#0A0A0A] border border-[#2A2A2A] rounded-xl overflow-hidden aspect-video"
+                className="bg-[#0A0A0A] border border-[#2A2A2A] rounded-xl overflow-hidden"
               >
-                {asset.asset_type === 'video' ? (
-                  <UgcVideo
-                    src={asset.url}
-                    processedUrls={
-                      (asset.processed_urls as
-                        | {
-                            '1080p'?: string
-                            '720p'?: string
-                            original?: string
-                            thumb?: string
-                          }
-                        | null) || null
-                    }
-                    processingStatus={asset.processing_status}
-                    context="single"
-                    fit="contain"
-                    className="w-full h-full"
-                  />
-                ) : (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={asset.url}
-                    alt={submission.caption || 'UGC'}
-                    className="w-full"
-                  />
-                )}
-                <div className="px-3 py-2 text-xs text-[#A0A0A0] flex items-center justify-between">
+                <div
+                  className="relative group"
+                  style={
+                    asset.width && asset.height
+                      ? { aspectRatio: `${asset.width} / ${asset.height}` }
+                      : asset.asset_type === 'video'
+                        ? { aspectRatio: '16 / 9' }
+                        : undefined
+                  }
+                >
+                  {asset.asset_type === 'video' ? (
+                    <UgcVideo
+                      src={asset.url}
+                      processedUrls={
+                        (asset.processed_urls as
+                          | {
+                              '1080p'?: string
+                              '720p'?: string
+                              original?: string
+                              thumb?: string
+                            }
+                          | null) || null
+                      }
+                      processingStatus={asset.processing_status}
+                      context="single"
+                      fit="contain"
+                      className="w-full h-full"
+                    />
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={asset.url}
+                      alt={submission.caption || 'UGC'}
+                      className="w-full h-auto cursor-zoom-in"
+                      onClick={() => setLightboxIndex(i)}
+                    />
+                  )}
+                  <button
+                    onClick={() => setLightboxIndex(i)}
+                    className="absolute top-2 right-2 p-2 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 hover:bg-black/80 transition-all"
+                    aria-label="Open in lightbox"
+                  >
+                    <Maximize2 className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="px-3 py-2 text-xs text-[#A0A0A0] flex items-center justify-between gap-2 border-t border-[#2A2A2A]">
                   <span>
                     {asset.asset_type} · {asset.processing_status}
+                    {asset.width && asset.height && (
+                      <span className="ml-2">
+                        {asset.width}&times;{asset.height}
+                      </span>
+                    )}
                   </span>
-                  {asset.width && asset.height && (
-                    <span>
-                      {asset.width}&times;{asset.height}
-                    </span>
-                  )}
+                  <a
+                    href={assetDownloadHref(asset, assetDownloadName(submission, asset, i))}
+                    className="inline-flex items-center gap-1 text-[#9B30FF] hover:text-white transition-colors shrink-0"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    Download
+                  </a>
                 </div>
               </div>
             ))}
           </div>
+
+          {lightboxIndex !== null && (
+            <UgcAssetLightbox
+              assets={submission.assets}
+              index={lightboxIndex}
+              onChange={setLightboxIndex}
+              onClose={() => setLightboxIndex(null)}
+              downloadFilename={(asset, i) => assetDownloadName(submission, asset, i)}
+            />
+          )}
 
           {submission.caption && (
             <div className="bg-[#141414] border border-[#2A2A2A] rounded-2xl p-4">
@@ -434,6 +517,30 @@ export default function AdminUgcDetailPage({
                   <Sparkles className="w-4 h-4" />
                 )}
                 Remove from featured
+              </button>
+            )}
+
+            {isRejected && (
+              <button
+                onClick={() =>
+                  performAction(
+                    {
+                      action: 'approve',
+                      customPoints: customPointsNum,
+                      promoteToLibrary: true,
+                    },
+                    'approve'
+                  )
+                }
+                disabled={!!busy}
+                className="w-full bg-[#39FF14] text-black font-semibold rounded-full px-4 py-2.5 inline-flex items-center justify-center gap-2 hover:bg-[#2FD90F] transition-colors disabled:opacity-50"
+              >
+                {busy === 'approve' ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <CheckCircle className="w-4 h-4" />
+                )}
+                Approve anyway
               </button>
             )}
 

@@ -299,8 +299,11 @@ function Referrals() {
             required for the person being referred.
           </>,
           <>
-            As they hit milestones, they unlock <strong>reward tiers</strong>{' '}
-            (see below) &mdash; on top of any normal loyalty points.
+            Referral bonuses are credited <strong>instantly and flat</strong>:{' '}
+            {POINTS.REFERRAL_SIGNUP.toLocaleString()} points when a referred
+            friend joins, {POINTS.REFERRAL_FIRST_PURCHASE.toLocaleString()}{' '}
+            points when that friend makes their first purchase. Self-referrals
+            and repeat signups from the same email earn nothing.
           </>,
         ]}
       />
@@ -313,60 +316,18 @@ function Referrals() {
         that credits a referrer still works for anonymous visitors.
       </Callout>
 
-      <h3 className="text-white font-semibold text-lg pt-2">
-        Referral reward tiers
-      </h3>
-      <p>These are the milestone rewards a referral agent unlocks automatically:</p>
-      <div className="rounded-xl border border-[#2A2A2A] overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-[#1A1A1A] text-[#A0A0A0]">
-            <tr>
-              <th className="text-left px-4 py-2 font-medium">Tier</th>
-              <th className="text-left px-4 py-2 font-medium">Requirement</th>
-              <th className="text-left px-4 py-2 font-medium">Reward</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[#2A2A2A]">
-            {[
-              ['Pack Runner', '3 friend signups', '100 bonus points'],
-              [
-                'Territory Scout',
-                '5 signups + 1 distributor lead',
-                '500 bonus points',
-              ],
-              [
-                'Alpha Predator',
-                '10 signups + 3 distributor leads',
-                'Untamed Merch Bundle',
-              ],
-              [
-                'Pride Leader',
-                '25 signups + 5 distributor leads',
-                'VIP founding member status',
-              ],
-            ].map(([tier, req, reward]) => (
-              <tr key={tier} className="text-[#C8C8C8]">
-                <td className="px-4 py-2 font-medium text-white">{tier}</td>
-                <td className="px-4 py-2">{req}</td>
-                <td className="px-4 py-2 text-[#39FF14]">{reward}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <p className="text-xs text-[#666]">
-        Tiers are configured in the database and shown read-only on{' '}
-        <Path>/admin/referrals</Path> under the &ldquo;Tiers &amp; Rewards&rdquo;
-        tab.
-      </p>
+      <Callout tone="info" title="Tiers are retired">
+        The old milestone tier system (Pack Runner, Territory Scout, etc.) has
+        been replaced by the flat instant bonuses above. Historical tier data
+        is still visible read-only on <Path>/admin/referrals</Path>.
+      </Callout>
 
       <AdminBox>
         <p>
           Go to <Path>/admin/referrals</Path> to see every participant, their
-          click/signup/conversion counts, the live activity event feed, and
-          which tier rewards have been earned. Nothing is required from you for a
-          referral to work &mdash; crediting is automatic. You step in only to
-          fulfill an earned reward (e.g. ship the merch bundle).
+          click/signup/conversion counts, and the live activity event feed.
+          Nothing is required from you for a referral to work &mdash; crediting
+          is automatic and instant.
         </p>
       </AdminBox>
     </SectionShell>
@@ -382,8 +343,9 @@ function Distributor() {
     >
       <p>
         Businesses that want to stock Untamed submit a lead at{' '}
-        <Path>/retail</Path>. This is also how a referral agent earns
-        &ldquo;distributor lead&rdquo; credit toward their higher tiers.
+        <Path>/retail</Path>. If the business arrived through a member&apos;s
+        link, that member gets &ldquo;distributor lead&rdquo; credit on their
+        dashboard.
       </p>
       <Steps
         items={[
@@ -464,11 +426,13 @@ function Loyalty() {
         <table className="w-full text-sm">
           <tbody className="divide-y divide-[#2A2A2A]">
             {[
-              ['Signup bonus', `${POINTS.SIGNUP_BONUS} pts`],
-              ['Online order (automatic)', `${POINTS.PER_PACK} pts per pack \u2014 no upload needed`],
-              ['Approved in-store receipt', `${POINTS.PER_RECEIPT} pts (per pack, you set the final amount)`],
-              ['Approved UGC submission', `${POINTS.PER_UGC_APPROVED} pts`],
-              ['Featured UGC', `${POINTS.PER_UGC_FEATURED} pts`],
+              ['Signup bonus', `${POINTS.SIGNUP_BONUS.toLocaleString()} pts`],
+              ['Online order (automatic)', '100 pts per $1 of subtotal \u2014 no upload needed'],
+              ['Approved in-store receipt', `${POINTS.PER_RECEIPT.toLocaleString()} pts per pack default (you set the final amount)`],
+              ['Approved UGC submission', `${POINTS.PER_UGC_APPROVED.toLocaleString()} pts`],
+              ['Featured UGC', `${POINTS.PER_UGC_FEATURED.toLocaleString()} pts total (delta credited if already approved)`],
+              ['Referred friend joins', `${POINTS.REFERRAL_SIGNUP.toLocaleString()} pts to the referrer`],
+              ["Referred friend's first purchase", `${POINTS.REFERRAL_FIRST_PURCHASE.toLocaleString()} pts to the referrer`],
             ].map(([label, val]) => (
               <tr key={label} className="text-[#C8C8C8]">
                 <td className="px-4 py-2.5 font-medium text-white">{label}</td>
@@ -495,8 +459,8 @@ function Receipts() {
     <SectionShell id="receipts" icon={Receipt} title="Logging a purchase (online vs in-store)">
       <Callout tone="tip" title="Online orders credit automatically">
         <strong>Online orders are credited automatically.</strong> When a member
-        buys through our shop (AccelPay), a webhook records the order and awards{' '}
-        {POINTS.PER_PACK} points per pack with no receipt upload. If the buyer
+        buys through our shop (AccelPay), a webhook records the order and awards
+        100 points per $1 of subtotal with no receipt upload. If the buyer
         isn&apos;t a member yet, the points are held and auto-applied the moment
         they sign up with that email. Receipts below are only for{' '}
         <strong>in-store / on-premise</strong> purchases.
@@ -555,8 +519,10 @@ function Ugc() {
             The submission is <strong>pending</strong> until you review it.
           </>,
           <>
-            Approving it awards {POINTS.PER_UGC_APPROVED} points; marking it{' '}
-            <strong>featured</strong> awards {POINTS.PER_UGC_FEATURED}.
+            Approving it awards {POINTS.PER_UGC_APPROVED.toLocaleString()}{' '}
+            points; marking it <strong>featured</strong> brings the total to{' '}
+            {POINTS.PER_UGC_FEATURED.toLocaleString()} (the delta is credited
+            automatically if it was already approved).
           </>,
         ]}
       />
@@ -741,7 +707,7 @@ function AdminDuties() {
     },
     {
       page: '/admin/referrals',
-      what: 'See participants, clicks, signups, conversions, and earned tier rewards.',
+      what: 'See participants, clicks, signups, conversions, and the referral event feed.',
     },
     {
       page: '/admin/ugc',

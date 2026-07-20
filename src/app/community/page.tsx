@@ -8,7 +8,7 @@ import { drinks } from '@/lib/drinks'
 export const metadata: Metadata = {
   title: 'Untamed Community | Real moments, real drinks',
   description:
-    'Photos and videos from the Untamed community -- members and partners sharing how they unleash it. Submit your own to earn loyalty points.',
+    'Photos and videos from the Untamed community -- members and partners sharing how they unleash it. Submit your own for a chance to be featured.',
 }
 
 export const revalidate = 60
@@ -28,8 +28,8 @@ export default function CommunityPage() {
               The <span className="font-headline text-gradient-wild">Untamed</span> Community
             </h1>
             <p className="text-lg text-untamed-white-muted max-w-2xl mx-auto">
-              Real moments from real members. Tag your photos and videos for a
-              chance to be featured on this page and earn loyalty points.
+              Real moments from real members. Share your photos and videos for
+              a chance to be featured on this page.
             </p>
           </div>
         </section>

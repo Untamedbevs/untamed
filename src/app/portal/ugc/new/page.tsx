@@ -258,9 +258,10 @@ export default function NewUgcSubmissionPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-headline text-2xl text-white">Submit photo or video</h1>
+          <h1 className="font-headline text-2xl text-white">Share a moment</h1>
           <p className="text-sm text-[#A0A0A0]">
-            Approved submissions earn 50 loyalty points (150 if featured).
+            The best submissions get featured on the site for the whole pack
+            to see.
           </p>
         </div>
         <Link href="/portal/ugc" className="text-sm text-[#A0A0A0] hover:text-white">

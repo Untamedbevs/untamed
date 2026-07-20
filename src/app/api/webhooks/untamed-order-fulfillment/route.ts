@@ -29,6 +29,27 @@ function isAuthorized(request: NextRequest): boolean {
   return provided === secret
 }
 
+/**
+ * The live "Fulfill Order" event sends a SHIPMENT object, not a sale: its
+ * top-level `id` is the fulfillment id and the actual sale id lives in
+ * `saleId` (alongside carrier/tracking fields). Passing that shape to
+ * parseAccelPaySale used to mint bogus $0 "orders" keyed on the fulfillment
+ * id. Detect it so we update the real order's status instead.
+ */
+function parseShipmentEvent(
+  body: unknown
+): { saleId: number; status: string | null } | null {
+  if (!body || typeof body !== 'object') return null
+  const b = body as Record<string, any>
+  const saleId = Number(b.saleId)
+  if (!Number.isFinite(saleId) || saleId <= 0) return null
+  const looksLikeShipment =
+    'carrier' in b || 'trackingNumber' in b || Array.isArray(b.history)
+  if (!looksLikeShipment) return null
+  const status = typeof b.status === 'string' && b.status.trim() ? b.status.trim() : null
+  return { saleId, status }
+}
+
 export async function POST(request: NextRequest) {
   if (!isAuthorized(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -43,6 +64,30 @@ export async function POST(request: NextRequest) {
 
   const admin = createAdminClient()
   await captureWebhookEvent(admin, 'untamed-order-fulfillment', body)
+
+  const shipment = parseShipmentEvent(body)
+  if (shipment) {
+    if (!shipment.status) {
+      return NextResponse.json({ ok: true, result: 'no-status', saleId: shipment.saleId })
+    }
+    try {
+      const { data: updated } = await admin
+        .from('loyalty_orders')
+        .update({ status: shipment.status })
+        .eq('accelpay_sale_id', shipment.saleId)
+        .select('id')
+        .maybeSingle()
+      return NextResponse.json({
+        ok: true,
+        result: updated ? 'status-updated' : 'order-not-recorded-yet',
+        saleId: shipment.saleId,
+        status: shipment.status,
+      })
+    } catch (err) {
+      console.error('[webhooks/untamed-order-fulfillment] status update failed:', err)
+      return NextResponse.json({ error: 'Processing failed' }, { status: 500 })
+    }
+  }
 
   const sale = parseAccelPaySale(body)
   if (!sale) {

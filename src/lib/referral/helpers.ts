@@ -1,5 +1,6 @@
 import { SupabaseClient } from '@supabase/supabase-js'
 import { RESERVED_CODES, CODE_REGEX } from './constants'
+import { POINTS } from '@/lib/loyalty/constants'
 
 export function isValidReferralCode(code: string): { valid: boolean; error?: string } {
   if (code.length < 2 || code.length > 20) {
@@ -167,10 +168,45 @@ export async function ensureReferralParticipant(
 }
 
 /**
+ * Insert a loyalty transaction for a referrer and bump their balance.
+ * The referral program pays flat, instant points -- no tiers, no claiming.
+ */
+async function creditReferrerLoyaltyPoints(
+  supabase: SupabaseClient,
+  loyaltyMemberId: string,
+  points: number,
+  type: 'referral_signup' | 'referral_purchase',
+  description: string
+): Promise<void> {
+  const { data: member } = await supabase
+    .from('loyalty_members')
+    .select('points_balance')
+    .eq('id', loyaltyMemberId)
+    .maybeSingle()
+  if (!member) return
+
+  await supabase.from('loyalty_transactions').insert({
+    member_id: loyaltyMemberId,
+    points,
+    type,
+    description,
+  })
+
+  await supabase
+    .from('loyalty_members')
+    .update({ points_balance: ((member.points_balance as number) || 0) + points })
+    .eq('id', loyaltyMemberId)
+}
+
+/**
  * Credit a referrer when a referred consumer signs up. Resolves the referral
  * code, increments the participant's consumer signups, logs the event, marks
- * the matching warm-intro invite converted, and grants any newly earned tier
- * rewards. Best-effort: never throws so it can't fail the signup it accompanies.
+ * the matching warm-intro invite converted, and instantly credits the flat
+ * referral-signup points to the referrer's loyalty balance.
+ *
+ * Guards: self-referrals earn nothing, and each referred email can only ever
+ * credit a given referrer once. Best-effort: never throws so it can't fail
+ * the signup it accompanies.
  */
 export async function creditConsumerReferral(
   supabase: SupabaseClient,
@@ -186,9 +222,23 @@ export async function creditConsumerReferral(
 
     const normalizedEmail = referredEmail.toLowerCase().trim()
 
+    // Self-referral guard: signing yourself up earns nothing.
+    if (normalizedEmail === referrer.email.toLowerCase().trim()) return
+
+    // Dedupe guard: a referred email only credits a referrer once, ever.
+    const { data: priorSignup } = await supabase
+      .from('referral_events')
+      .select('id')
+      .eq('participant_id', referrer.id)
+      .eq('event_type', 'consumer_signup')
+      .eq('referred_email', normalizedEmail)
+      .limit(1)
+      .maybeSingle()
+    if (priorSignup) return
+
     const { data: refParticipant } = await supabase
       .from('referral_participants')
-      .select('consumer_signups, distributor_leads, paid_conversions')
+      .select('consumer_signups')
       .eq('id', referrer.id)
       .single()
 
@@ -216,12 +266,12 @@ export async function creditConsumerReferral(
       .eq('invite_type', 'consumer')
       .neq('status', 'converted')
 
-    await checkAndGrantRewards(
+    await creditReferrerLoyaltyPoints(
       supabase,
-      referrer.id,
-      newSignups,
-      refParticipant.distributor_leads || 0,
-      refParticipant.paid_conversions || 0
+      referrer.loyalty_member_id,
+      POINTS.REFERRAL_SIGNUP,
+      'referral_signup',
+      'A friend joined the pack through your link'
     )
   } catch {
     // Referral crediting is best-effort; never throw to the caller.
@@ -232,10 +282,11 @@ export async function creditConsumerReferral(
  * Credit a referrer for a paid AccelPay order. Resolves the order + its stored
  * attribution (ref code), then logs a `paid_conversion` event for the buyer
  * (always, for conversion tracking) and -- unless it's a self-referral --
- * increments the referrer's paid_conversions and grants any newly earned tier
- * rewards. Idempotent: an atomic claim on `conversion_credited` guarantees a
- * sale is only ever credited once, no matter how many times this runs.
- * Best-effort: never throws.
+ * increments the referrer's paid_conversions. The referred friend's FIRST
+ * purchase also instantly credits flat referral-purchase points to the
+ * referrer's loyalty balance. Idempotent: an atomic claim on
+ * `conversion_credited` guarantees a sale is only ever credited once, no
+ * matter how many times this runs. Best-effort: never throws.
  */
 export async function creditPaidConversion(
   supabase: SupabaseClient,
@@ -278,6 +329,21 @@ export async function creditPaidConversion(
     const isSelfReferral =
       !!buyerEmail && buyerEmail === referrer.email.toLowerCase().trim()
 
+    // Is this the buyer's first tracked purchase through this referrer?
+    // Checked BEFORE inserting the new event so the new row doesn't count.
+    let isFirstPurchase = false
+    if (buyerEmail && !isSelfReferral) {
+      const { data: priorPurchase } = await supabase
+        .from('referral_events')
+        .select('id')
+        .eq('participant_id', referrer.id)
+        .eq('event_type', 'paid_conversion')
+        .eq('referred_email', buyerEmail)
+        .limit(1)
+        .maybeSingle()
+      isFirstPurchase = !priorPurchase
+    }
+
     // Always log the conversion event (for tracking), even for self-referrals.
     await supabase.from('referral_events').insert({
       participant_id: referrer.id,
@@ -295,63 +361,26 @@ export async function creditPaidConversion(
 
     const { data: refParticipant } = await supabase
       .from('referral_participants')
-      .select('consumer_signups, distributor_leads, paid_conversions')
+      .select('paid_conversions')
       .eq('id', referrer.id)
       .single()
     if (!refParticipant) return
 
-    const newPaidConversions = (refParticipant.paid_conversions || 0) + 1
-
     await supabase
       .from('referral_participants')
-      .update({ paid_conversions: newPaidConversions })
+      .update({ paid_conversions: (refParticipant.paid_conversions || 0) + 1 })
       .eq('id', referrer.id)
 
-    await checkAndGrantRewards(
-      supabase,
-      referrer.id,
-      refParticipant.consumer_signups || 0,
-      refParticipant.distributor_leads || 0,
-      newPaidConversions
-    )
+    if (isFirstPurchase) {
+      await creditReferrerLoyaltyPoints(
+        supabase,
+        referrer.loyalty_member_id,
+        POINTS.REFERRAL_FIRST_PURCHASE,
+        'referral_purchase',
+        'A friend you referred made their first purchase'
+      )
+    }
   } catch {
     // Paid-conversion crediting is best-effort; never throw to the caller.
-  }
-}
-
-export async function checkAndGrantRewards(
-  supabase: SupabaseClient,
-  participantId: string,
-  consumerSignups: number,
-  distributorLeads: number,
-  paidConversions: number
-): Promise<void> {
-  const { data: tiers } = await supabase
-    .from('referral_reward_tiers')
-    .select('id, tier_order, min_consumer_signups, min_distributor_leads, min_paid_conversions')
-    .eq('is_active', true)
-    .order('tier_order', { ascending: true })
-
-  if (!tiers?.length) return
-
-  const { data: existingRewards } = await supabase
-    .from('referral_rewards_earned')
-    .select('tier_id')
-    .eq('participant_id', participantId)
-
-  const earnedTierIds = new Set(existingRewards?.map((r) => r.tier_id) || [])
-
-  for (const tier of tiers) {
-    if (earnedTierIds.has(tier.id)) continue
-    if (
-      consumerSignups >= tier.min_consumer_signups &&
-      distributorLeads >= tier.min_distributor_leads &&
-      paidConversions >= tier.min_paid_conversions
-    ) {
-      await supabase.from('referral_rewards_earned').insert({
-        participant_id: participantId,
-        tier_id: tier.id,
-      })
-    }
   }
 }

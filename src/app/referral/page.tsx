@@ -1,6 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -18,7 +17,6 @@ import { JoinForm } from '@/components/loyalty/JoinForm'
 import { useTracking } from '@/components/TrackingProvider'
 import { drinks } from '@/lib/drinks'
 import { siteAssetAbsoluteUrl } from '@/lib/site-assets'
-import type { ReferralRewardTier } from '@/lib/referral/types'
 
 const GOLD = '#FFD700'
 const GOLD_GLOW = 'rgba(255, 215, 0, 0.3)'
@@ -71,9 +69,9 @@ export default function ReferralPage() {
                 Spread the Wild
               </h1>
               <p className="text-base md:text-lg text-untamed-white-muted mb-8 max-w-xl mx-auto lg:mx-0 leading-relaxed">
-                Share Untamed with friends and businesses. Earn rewards for every
-                signup and retailer lead you bring to the pack &mdash; then watch
-                it all in your member portal.
+                The best things spread by word of mouth. Get your own link,
+                share it with friends and businesses, and watch the pack grow
+                from your member portal.
               </p>
 
               {/* Fanned cans */}
@@ -109,22 +107,22 @@ export default function ReferralPage() {
                   className="flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-medium"
                   style={{ borderColor: `${GOLD}40`, color: GOLD }}
                 >
+                  <Share2 className="w-4 h-4" />
+                  Your own personal link
+                </div>
+                <div
+                  className="flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-medium"
+                  style={{ borderColor: `${GOLD}40`, color: GOLD }}
+                >
                   <Users className="w-4 h-4" />
-                  Earn on every signup
+                  See every friend who joins
                 </div>
                 <div
                   className="flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-medium"
                   style={{ borderColor: `${GOLD}40`, color: GOLD }}
                 >
                   <Building2 className="w-4 h-4" />
-                  Bigger rewards for retailers
-                </div>
-                <div
-                  className="flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-medium"
-                  style={{ borderColor: `${GOLD}40`, color: GOLD }}
-                >
-                  <TrendingUp className="w-4 h-4" />
-                  Unlock tier rewards
+                  Intro your favorite spots
                 </div>
               </div>
             </motion.div>
@@ -143,10 +141,17 @@ export default function ReferralPage() {
                     Get your referral link
                   </h2>
                 </div>
-                <p className="text-sm text-untamed-white-muted mb-6">
+                <p className="text-sm text-untamed-white-muted mb-4">
                   Enter your name and email. We&apos;ll send a 6-digit code
                   &mdash; no password needed &mdash; and drop you straight into
                   your referral dashboard.
+                </p>
+                <p className="text-sm text-untamed-white-muted mb-6">
+                  <strong className="text-untamed-white">
+                    Ordered from us before?
+                  </strong>{' '}
+                  Your account already exists &mdash; use the email from your
+                  order and you&apos;re in.
                 </p>
                 <JoinForm
                   visitorId={visitorId}
@@ -158,7 +163,7 @@ export default function ReferralPage() {
                   href={PORTAL_REFERRALS}
                   className="inline-block mt-4 text-untamed-white-muted text-sm hover:text-untamed-white transition-colors underline underline-offset-4"
                 >
-                  Already a member? Sign in
+                  Have a password? Sign in here
                 </Link>
               </div>
             </motion.div>
@@ -184,21 +189,21 @@ export default function ReferralPage() {
                   >
                     <Users className="w-5 h-5 text-green-400" />
                   </div>
-                  <h3 className="font-bold text-white text-lg">Refer Consumers</h3>
+                  <h3 className="font-bold text-white text-lg">Bring Your Friends</h3>
                 </div>
                 <p className="text-sm text-untamed-white-muted leading-relaxed mb-3">
                   Share your personal link with friends, family, and social
-                  followers. When they sign up for the loyalty program or make a
-                  purchase, you earn points and unlock reward tiers.
+                  followers. Every person who joins through it shows up on your
+                  dashboard &mdash; and a little thank-you lands on your account.
                 </p>
                 <ul className="space-y-1.5 text-sm text-untamed-white-muted">
                   <li className="flex items-start gap-2">
                     <ArrowRight className="w-3.5 h-3.5 mt-0.5 text-green-400 shrink-0" />
-                    <span>Earn points for every new loyalty signup</span>
+                    <span>Watch your pack grow with every signup</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <ArrowRight className="w-3.5 h-3.5 mt-0.5 text-green-400 shrink-0" />
-                    <span>Bonus rewards when they make a purchase</span>
+                    <span>Get credit when a friend makes their first order</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <ArrowRight className="w-3.5 h-3.5 mt-0.5 text-green-400 shrink-0" />
@@ -215,25 +220,25 @@ export default function ReferralPage() {
                   >
                     <Building2 className="w-5 h-5 text-[#FF8C2A]" />
                   </div>
-                  <h3 className="font-bold text-white text-lg">Refer Retailers</h3>
+                  <h3 className="font-bold text-white text-lg">Intro a Retailer</h3>
                 </div>
                 <p className="text-sm text-untamed-white-muted leading-relaxed mb-3">
                   Know a bar, restaurant, or liquor store that should carry
-                  Untamed? Send them your retail referral link. When they submit
-                  a lead form, you earn rewards for connecting us.
+                  Untamed? Send them your retail link and we&apos;ll take it
+                  from there.
                 </p>
                 <ul className="space-y-1.5 text-sm text-untamed-white-muted">
-                  <li className="flex items-start gap-2">
-                    <ArrowRight className="w-3.5 h-3.5 mt-0.5 text-[#FF8C2A] shrink-0" />
-                    <span>Earn bigger rewards for retailer leads</span>
-                  </li>
                   <li className="flex items-start gap-2">
                     <ArrowRight className="w-3.5 h-3.5 mt-0.5 text-[#FF8C2A] shrink-0" />
                     <span>Help your favorite spots stock Untamed</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <ArrowRight className="w-3.5 h-3.5 mt-0.5 text-[#FF8C2A] shrink-0" />
-                    <span>Unlock top-tier rewards faster</span>
+                    <span>Our team follows up within 48 hours</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <ArrowRight className="w-3.5 h-3.5 mt-0.5 text-[#FF8C2A] shrink-0" />
+                    <span>Every intro is tracked to you</span>
                   </li>
                 </ul>
               </div>
@@ -258,8 +263,8 @@ export default function ReferralPage() {
                   },
                   {
                     icon: TrendingUp,
-                    title: 'Earn rewards',
-                    body: 'Get credit when they sign up or buy, and unlock tier rewards as your referrals add up.',
+                    title: 'Watch the pack grow',
+                    body: 'See every click, signup, and first purchase on your dashboard. Thank-you points land on your account along the way.',
                   },
                 ].map((step, i) => {
                   const Icon = step.icon
@@ -283,9 +288,6 @@ export default function ReferralPage() {
               </div>
             </div>
 
-            {/* Tier preview */}
-            <TierPreview />
-
             {/* Closing CTA */}
             <div className="mt-12">
               <Link
@@ -301,38 +303,6 @@ export default function ReferralPage() {
       </div>
 
       <Footer />
-    </div>
-  )
-}
-
-function TierPreview() {
-  const [tiers, setTiers] = useState<ReferralRewardTier[]>([])
-
-  useEffect(() => {
-    fetch('/api/referral/tiers')
-      .then((res) => res.json())
-      .then((data) => setTiers(data.tiers || []))
-      .catch(() => {})
-  }, [])
-
-  if (!tiers.length) return null
-
-  return (
-    <div>
-      <h3 className="font-condensed text-xl font-bold text-white uppercase mb-6">
-        Rewards You Can Earn
-      </h3>
-      <div className="grid sm:grid-cols-2 gap-4">
-        {tiers.map((tier) => (
-          <div
-            key={tier.id}
-            className="rounded-2xl border border-card-border bg-untamed-black-card p-5 text-left"
-          >
-            <h4 className="font-bold text-white mb-1">{tier.tier_name}</h4>
-            <p className="text-sm text-muted-foreground">{tier.description}</p>
-          </div>
-        ))}
-      </div>
     </div>
   )
 }

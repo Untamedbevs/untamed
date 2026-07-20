@@ -1,7 +1,6 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import Link from 'next/link'
 import {
   AlertCircle,
   Check,
@@ -10,14 +9,12 @@ import {
   Lock,
   Loader2,
   Sparkles,
-  Trophy,
   X,
 } from 'lucide-react'
 import { REWARDS } from '@/lib/loyalty/constants'
 import type {
   PortalLoyaltyRedemption,
   PortalLoyaltyTransaction,
-  PortalReferralRewardEarned,
 } from './page'
 
 interface Props {
@@ -25,7 +22,6 @@ interface Props {
   pointsBalance: number
   initialTransactions: PortalLoyaltyTransaction[]
   initialRedemptions: PortalLoyaltyRedemption[]
-  initialReferralRewards: PortalReferralRewardEarned[]
 }
 
 type CatalogReward = (typeof REWARDS)[number]
@@ -65,7 +61,6 @@ export function PortalRewardsClient({
   pointsBalance: initialBalance,
   initialTransactions,
   initialRedemptions,
-  initialReferralRewards,
 }: Props) {
   const [balance, setBalance] = useState(initialBalance)
   const [transactions, setTransactions] = useState(initialTransactions)
@@ -155,11 +150,11 @@ export function PortalRewardsClient({
       {/* Header */}
       <div>
         <h1 className="font-headline text-2xl text-white mb-1">
-          {memberFirstName ? `Hey ${memberFirstName}, ` : ''}your rewards
+          {memberFirstName ? `Hey ${memberFirstName}, ` : ''}your points
         </h1>
         <p className="text-sm text-[#A0A0A0]">
-          Earn points on every receipt and submission. Trade them in for swag
-          when you&apos;re ready.
+          A thank-you for being here early. Points land here automatically as
+          you shop and share — trade them in whenever you&apos;re ready.
         </p>
       </div>
 
@@ -273,7 +268,8 @@ export function PortalRewardsClient({
         <h2 className="font-headline text-xl text-white mb-4">Recent activity</h2>
         {activity.length === 0 ? (
           <div className="bg-[#141414] border border-[#2A2A2A] rounded-2xl p-8 text-center text-sm text-[#A0A0A0]">
-            No activity yet. Upload a receipt to start earning.
+            Nothing here yet. Points show up on their own as you shop and
+            share.
           </div>
         ) : (
           <div className="bg-[#141414] border border-[#2A2A2A] rounded-2xl divide-y divide-[#2A2A2A]">
@@ -312,70 +308,6 @@ export function PortalRewardsClient({
           </div>
         )}
       </section>
-
-      {/* Referral rewards link */}
-      {initialReferralRewards.length > 0 ? (
-        <section>
-          <h2 className="font-headline text-xl text-white mb-4">
-            Referral tier rewards
-          </h2>
-          <div className="bg-[#141414] border border-[#2A2A2A] rounded-2xl divide-y divide-[#2A2A2A]">
-            {initialReferralRewards.map((r) => (
-              <div
-                key={r.id}
-                className="flex items-center justify-between gap-4 px-5 py-4"
-              >
-                <div>
-                  <div className="text-white text-sm font-medium">
-                    {r.tier?.label || 'Referral reward'}
-                  </div>
-                  {r.tier?.description && (
-                    <div className="text-xs text-[#A0A0A0] mt-0.5">
-                      {r.tier.description}
-                    </div>
-                  )}
-                  <div className="text-[10px] text-[#666] mt-1">
-                    Earned{' '}
-                    {new Date(r.earned_at).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                    })}
-                  </div>
-                </div>
-                <RedemptionStatusPill status={r.status} />
-              </div>
-            ))}
-          </div>
-          <Link
-            href="/portal/referrals"
-            className="text-sm text-[#9B30FF] hover:text-[#B266FF] inline-flex items-center gap-1 mt-3"
-          >
-            <Trophy className="w-4 h-4" />
-            View referral progress
-          </Link>
-        </section>
-      ) : (
-        <section>
-          <Link
-            href="/portal/referrals"
-            className="block bg-[#141414] border border-[#2A2A2A] hover:border-[#9B30FF] rounded-2xl p-5 transition-colors"
-          >
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-[#9B30FF]/15 flex items-center justify-center shrink-0">
-                <Trophy className="w-5 h-5 text-[#9B30FF]" />
-              </div>
-              <div className="flex-1">
-                <div className="font-semibold text-white">Earn more via referrals</div>
-                <div className="text-xs text-[#A0A0A0]">
-                  Share Untamed to unlock tier rewards on top of points.
-                </div>
-              </div>
-              <span className="text-[#9B30FF] text-sm">→</span>
-            </div>
-          </Link>
-        </section>
-      )}
 
       {pendingReward && (
         <ConfirmRedeemModal
@@ -504,6 +436,10 @@ function labelForType(type: PortalLoyaltyTransaction['type']): string {
       return 'Content approved'
     case 'online_order':
       return 'Online order'
+    case 'referral_signup':
+      return 'Friend joined the pack'
+    case 'referral_purchase':
+      return "Friend's first purchase"
     default:
       return 'Activity'
   }

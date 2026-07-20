@@ -2,9 +2,9 @@ import type { Metadata } from 'next'
 import { LoyaltyLanding } from '@/components/loyalty/LoyaltyLanding'
 
 export const metadata: Metadata = {
-  title: 'Rewards | Untamed Beverages',
+  title: 'Join the Pack | Untamed Beverages',
   description:
-    'Join the Pack! Earn points with every purchase, upload receipts, and unlock exclusive Untamed rewards.',
+    'Be part of Untamed from day one. Share your moments, bring your friends, and get first access to what is next.',
 }
 
 export default function RewardsPage() {

@@ -56,14 +56,36 @@ export default function ShopPage() {
             </p>
           </motion.div>
 
+          {/* Guests: every order auto-creates a member account */}
+          {!isAuthed && (
+            <div className="mb-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-[#9B30FF]/30 bg-[#9B30FF]/10 px-5 py-4">
+              <div className="flex items-start gap-3">
+                <Sparkles className="w-5 h-5 text-[#C68BFF] shrink-0 mt-0.5" />
+                <p className="text-sm text-untamed-white">
+                  Every order automatically creates your Pack member account,
+                  tied to your checkout email. Ordered before? You&apos;re
+                  already in &mdash; just enter that email to get started.
+                </p>
+              </div>
+              <Link
+                href="/portal/login"
+                className="inline-flex items-center gap-1.5 shrink-0 rounded-full bg-[#9B30FF] px-3 py-1.5 text-xs font-medium uppercase tracking-wider text-white transition-colors hover:bg-[#8526DE]"
+              >
+                <LayoutDashboard className="w-4 h-4" />
+                Get In
+              </Link>
+            </div>
+          )}
+
           {/* Member earn-points banner (logged in only) */}
           {isAuthed && (
             <div className="mb-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-[#9B30FF]/30 bg-[#9B30FF]/10 px-5 py-4">
               <div className="flex items-start gap-3">
                 <Sparkles className="w-5 h-5 text-[#C68BFF] shrink-0 mt-0.5" />
                 <p className="text-sm text-untamed-white">
-                  You&apos;re a member &mdash; orders you place here earn loyalty
-                  points automatically. (Buying in a store? Upload that receipt.)
+                  You&apos;re a member &mdash; orders you place here are
+                  credited to your account automatically. (Buying in a store?
+                  Upload that receipt.)
                 </p>
               </div>
               <div className="flex items-center gap-2 shrink-0">

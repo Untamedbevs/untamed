@@ -20,9 +20,10 @@
 import {
   MediaConvertClient,
   CreateJobCommand,
+  GetJobCommand,
 } from '@aws-sdk/client-mediaconvert'
 import { HeadObjectCommand } from '@aws-sdk/client-s3'
-import { getS3Client } from '@/lib/storage/s3'
+import { getS3Client, s3PublicUrl } from '@/lib/storage/s3'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 export interface TriggerInput {
@@ -180,6 +181,181 @@ export async function triggerMediaConvertForVideoAssets(
     )
   }
   return results
+}
+
+// ---------------------------------------------------------------------------
+// Reconciliation -- flip processing_status -> ready once outputs exist.
+//
+// The old Lambda webhook (`/api/ugc/processing-complete`) is gone. In the
+// VF-style flow, nothing pushes a "done" event, so we reconcile from the
+// server: check the MediaConvert job status and/or the presence of the
+// processed files in S3, then update the asset row.
+// ---------------------------------------------------------------------------
+
+interface ProcessedUrls {
+  '1080p'?: string
+  '720p'?: string
+  original?: string
+  thumb?: string
+}
+
+/**
+ * Derive the expected processed-output S3 keys from a source key.
+ *   user-uploads/.../uploads/{base}.mp4
+ *     -> user-uploads/.../uploads/processed/{base}-1080p.mp4  (etc.)
+ */
+export function expectedProcessedKeys(s3Key: string) {
+  if (!VIDEO_EXT_REGEX.test(s3Key)) return null
+  const lastSlash = s3Key.lastIndexOf('/')
+  const dir = s3Key.substring(0, lastSlash)
+  const filename = s3Key.substring(lastSlash + 1)
+  const base = filename.replace(VIDEO_EXT_REGEX, '')
+  const prefix = `${dir}/processed/${base}`
+  return {
+    '1080p': `${prefix}-1080p.mp4`,
+    '720p': `${prefix}-720p.mp4`,
+    original: `${prefix}-original.mp4`,
+    thumb: `${prefix}-thumb.0000000.jpg`,
+  }
+}
+
+async function objectExists(bucket: string, key: string): Promise<boolean> {
+  try {
+    await getS3Client().send(
+      new HeadObjectCommand({ Bucket: bucket, Key: key })
+    )
+    return true
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Ask MediaConvert whether a job errored. Returns 'error' | 'complete' |
+ * 'in_progress' | 'unknown'. Never throws.
+ */
+async function getJobState(
+  jobId: string
+): Promise<'error' | 'complete' | 'in_progress' | 'unknown'> {
+  const mc = mediaConvertClient()
+  if (!mc) return 'unknown'
+  try {
+    const res = await mc.send(new GetJobCommand({ Id: jobId }))
+    const status = res.Job?.Status
+    if (status === 'ERROR' || status === 'CANCELED') return 'error'
+    if (status === 'COMPLETE') return 'complete'
+    if (status === 'SUBMITTED' || status === 'PROGRESSING') return 'in_progress'
+    return 'unknown'
+  } catch {
+    return 'unknown'
+  }
+}
+
+export interface ReconcileAssetResult {
+  assetId: string
+  status: 'ready' | 'processing' | 'failed' | 'skipped'
+}
+
+/**
+ * Reconcile a single video asset row given its current DB values.
+ * - If the processed outputs exist in S3 -> mark ready + populate processed_urls.
+ * - Else if the MediaConvert job errored -> mark failed.
+ * - Else leave as-is (still processing).
+ */
+export async function reconcileVideoAsset(asset: {
+  id: string
+  s3_key: string
+  mediaconvert_job_id: string | null
+}): Promise<ReconcileAssetResult> {
+  const bucket = process.env.AWS_S3_BUCKET
+  const keys = expectedProcessedKeys(asset.s3_key)
+  if (!bucket || !keys) {
+    return { assetId: asset.id, status: 'skipped' }
+  }
+
+  // Check which renditions actually landed in S3.
+  const [has1080, has720, hasOriginal, hasThumb] = await Promise.all([
+    objectExists(bucket, keys['1080p']),
+    objectExists(bucket, keys['720p']),
+    objectExists(bucket, keys.original),
+    objectExists(bucket, keys.thumb),
+  ])
+
+  const admin = createAdminClient()
+
+  // We consider the asset playable once the 1080p rendition + thumbnail exist.
+  if (has1080 && hasThumb) {
+    const processed: ProcessedUrls = { '1080p': s3PublicUrl(keys['1080p']) }
+    if (has720) processed['720p'] = s3PublicUrl(keys['720p'])
+    if (hasOriginal) processed.original = s3PublicUrl(keys.original)
+    if (hasThumb) processed.thumb = s3PublicUrl(keys.thumb)
+
+    await admin
+      .from('ugc_submission_assets')
+      .update({
+        processing_status: 'ready',
+        processed_urls: processed,
+        url: processed['1080p'],
+      })
+      .eq('id', asset.id)
+    return { assetId: asset.id, status: 'ready' }
+  }
+
+  // No outputs yet -- if the job explicitly errored, mark failed.
+  if (asset.mediaconvert_job_id) {
+    const state = await getJobState(asset.mediaconvert_job_id)
+    if (state === 'error') {
+      await admin
+        .from('ugc_submission_assets')
+        .update({ processing_status: 'failed' })
+        .eq('id', asset.id)
+      return { assetId: asset.id, status: 'failed' }
+    }
+  }
+
+  return { assetId: asset.id, status: 'processing' }
+}
+
+/**
+ * Find every video asset that isn't finished yet and reconcile it. Safe to run
+ * from a cron on a short interval -- all operations are idempotent.
+ */
+export async function reconcileStuckVideoAssets(limit = 100) {
+  const admin = createAdminClient()
+  const { data: assets, error } = await admin
+    .from('ugc_submission_assets')
+    .select('id, s3_key, mediaconvert_job_id, processing_status')
+    .eq('asset_type', 'video')
+    .in('processing_status', ['uploaded', 'processing'])
+    .limit(limit)
+
+  if (error) {
+    console.error('[mediaconvert] reconcile lookup failed', error)
+    return { scanned: 0, ready: 0, failed: 0, stillProcessing: 0 }
+  }
+
+  let ready = 0
+  let failed = 0
+  let stillProcessing = 0
+
+  for (const asset of assets || []) {
+    // An 'uploaded' asset never got a job (e.g. trigger failed) -- try to
+    // (re)submit it before reconciling. reconcile still works because outputs
+    // may already exist from a prior manual run.
+    if (asset.processing_status === 'uploaded' && !asset.mediaconvert_job_id) {
+      await triggerMediaConvertForAsset({
+        assetId: asset.id,
+        s3Key: asset.s3_key,
+      })
+    }
+
+    const result = await reconcileVideoAsset(asset)
+    if (result.status === 'ready') ready++
+    else if (result.status === 'failed') failed++
+    else stillProcessing++
+  }
+
+  return { scanned: (assets || []).length, ready, failed, stillProcessing }
 }
 
 // ---------------------------------------------------------------------------

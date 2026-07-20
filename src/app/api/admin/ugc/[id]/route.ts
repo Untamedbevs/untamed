@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resolveStaff } from '@/lib/auth/resolve-staff'
-import {
-  POINTS_PER_UGC_APPROVED,
-  POINTS_PER_UGC_FEATURED,
-  type UgcStatus,
-  type UgcSubmissionAsset,
-} from '@/lib/ugc/types'
+import { POINTS } from '@/lib/loyalty/constants'
+import type { UgcStatus, UgcSubmissionAsset } from '@/lib/ugc/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -148,21 +144,18 @@ export async function PUT(
     const targetStatus: UgcStatus =
       body.action === 'feature' ? 'featured' : 'approved'
 
-    const isFirstApproval =
-      submission.status === 'pending' ||
-      (submission.status === 'rejected' && body.action === 'approve')
-
-    const baseAward =
+    // Points accumulate toward a target total (approved vs featured), so
+    // featuring an already-approved submission credits the remaining delta
+    // and the contributor always ends up at the full featured amount.
+    const targetTotal =
       targetStatus === 'featured'
-        ? POINTS_PER_UGC_FEATURED
-        : POINTS_PER_UGC_APPROVED
+        ? POINTS.PER_UGC_FEATURED
+        : POINTS.PER_UGC_APPROVED
 
     const pointsToAward =
       typeof body.customPoints === 'number' && body.customPoints >= 0
         ? body.customPoints
-        : isFirstApproval
-          ? baseAward
-          : 0
+        : Math.max(0, targetTotal - (submission.points_awarded || 0))
 
     const updatePayload: Record<string, unknown> = {
       status: targetStatus,

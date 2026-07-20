@@ -79,7 +79,7 @@ export function HomeCommunityStrip() {
           </h2>
 
           <p className="text-lg text-untamed-white-muted max-w-2xl mx-auto">
-            Photos and videos from the Untamed community. Submit yours and earn loyalty points.
+            Photos and videos from the Untamed community. Submit yours and get featured.
           </p>
         </motion.div>
 
@@ -147,7 +147,7 @@ export function HomeCommunityStrip() {
             <ArrowRight className="w-4 h-4" />
           </Link>
           <Link
-            href="/portal/login?returnTo=/portal/ugc/new"
+            href="/rewards?intent=ugc"
             className="px-7 py-3 border border-[#9B30FF]/40 text-[#9B30FF] font-medium text-base rounded-full hover:border-[#9B30FF] hover:bg-[#9B30FF]/10 transition-all duration-300 active:scale-95 inline-flex items-center gap-2"
           >
             <Camera className="w-4 h-4" />

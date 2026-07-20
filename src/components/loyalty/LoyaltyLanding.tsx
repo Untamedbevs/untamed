@@ -1,22 +1,39 @@
 'use client'
 
+import { Suspense, useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Sparkles, Loader2, Gift, Receipt, ScanLine } from 'lucide-react'
+import {
+  ArrowLeft,
+  ArrowRight,
+  Camera,
+  Loader2,
+  ScanLine,
+  Share2,
+  ShoppingBag,
+  Sparkles,
+} from 'lucide-react'
 import type { Drink } from '@/lib/drinks'
 import { drinks } from '@/lib/drinks'
 import { siteAssetAbsoluteUrl } from '@/lib/site-assets'
-import { POINTS, REWARDS } from '@/lib/loyalty/constants'
 import { useTracking } from '@/components/TrackingProvider'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
+import { UgcVideo } from '@/components/ugc/UgcVideo'
 import { JoinForm } from './JoinForm'
-import { RewardsShowcase } from './RewardsShowcase'
 
 const BRAND_COLOR = '#FFD700'
 const BRAND_COLOR_LIGHT = '#FFA500'
 const BRAND_GLOW = 'rgba(255, 215, 0, 0.3)'
+
+type JoinIntent = 'refer' | 'ugc' | null
+
+const INTENT_DESTINATIONS: Record<Exclude<JoinIntent, null>, string> = {
+  refer: '/portal/referrals',
+  ugc: '/portal/ugc/new',
+}
 
 interface LoyaltyLandingProps {
   drink?: Drink
@@ -31,8 +48,37 @@ function getTheme(drink?: Drink) {
 }
 
 export function LoyaltyLanding({ drink }: LoyaltyLandingProps) {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-untamed-black flex items-center justify-center">
+          <Loader2
+            className="w-8 h-8 animate-spin"
+            style={{ color: getTheme(drink).color }}
+          />
+        </div>
+      }
+    >
+      <LoyaltyLandingInner drink={drink} />
+    </Suspense>
+  )
+}
+
+function LoyaltyLandingInner({ drink }: LoyaltyLandingProps) {
   const { visitorId, ready } = useTracking()
   const theme = getTheme(drink)
+  const searchParams = useSearchParams()
+
+  const initialIntent = searchParams.get('intent')
+  const [intent, setIntent] = useState<JoinIntent>(
+    initialIntent === 'refer' || initialIntent === 'ugc' ? initialIntent : null
+  )
+  const joinCardRef = useRef<HTMLDivElement>(null)
+
+  function chooseIntent(next: Exclude<JoinIntent, null>) {
+    setIntent(next)
+    joinCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }
 
   if (!ready) {
     return (
@@ -41,6 +87,20 @@ export function LoyaltyLanding({ drink }: LoyaltyLandingProps) {
       </div>
     )
   }
+
+  const joinHeading =
+    intent === 'ugc'
+      ? 'Share Your First Moment'
+      : intent === 'refer'
+        ? 'Get Your Personal Link'
+        : 'Get Started'
+
+  const joinSubcopy =
+    intent === 'ugc'
+      ? "Enter your name and email. We'll send a 6-digit code — no password needed — and drop you right where you can post your photo or video."
+      : intent === 'refer'
+        ? "Enter your name and email. We'll send a 6-digit code — no password needed — and hand you your personal share link."
+        : "Enter your name and email. We'll send a 6-digit code — no password needed — and you're in."
 
   return (
     <>
@@ -85,7 +145,7 @@ export function LoyaltyLanding({ drink }: LoyaltyLandingProps) {
             )}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-center">
-              {/* Left: headline + can(s) + quick stats */}
+              {/* Left: headline + can(s) + community pills */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -101,7 +161,7 @@ export function LoyaltyLanding({ drink }: LoyaltyLandingProps) {
                   }}
                 >
                   <Sparkles className="w-3.5 h-3.5" />
-                  {drink ? `${drink.name} Rewards` : 'Untamed Rewards'}
+                  The Untamed Pack
                 </div>
 
                 <h1
@@ -112,7 +172,9 @@ export function LoyaltyLanding({ drink }: LoyaltyLandingProps) {
                 </h1>
 
                 <p className="text-base md:text-lg text-untamed-white-muted mb-8 max-w-xl mx-auto lg:mx-0 leading-relaxed">
-                  Earn points with every purchase. Upload your receipts, unlock exclusive rewards, and <span className="font-wild cyber-brush-fix text-lg md:text-xl">unleash</span> your <span className="font-wild cyber-brush-fix text-lg md:text-xl">wild side</span>.
+                  Be part of <span className="font-headline">Untamed</span> from
+                  day one. Share your moments, bring your friends, and get first
+                  access to what&rsquo;s next.
                 </p>
 
                 {/* Can(s) */}
@@ -168,28 +230,28 @@ export function LoyaltyLanding({ drink }: LoyaltyLandingProps) {
                   )}
                 </div>
 
-                {/* Quick Stats */}
+                {/* Community pills — no points jargon */}
                 <div className="flex flex-wrap gap-3 justify-center lg:justify-start">
                   <div
                     className="flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-medium"
                     style={{ borderColor: `${theme.color}40`, color: theme.color }}
                   >
+                    <Camera className="w-4 h-4" />
+                    Share your moments
+                  </div>
+                  <div
+                    className="flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-medium"
+                    style={{ borderColor: `${theme.color}40`, color: theme.color }}
+                  >
+                    <Share2 className="w-4 h-4" />
+                    Bring your friends
+                  </div>
+                  <div
+                    className="flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-medium"
+                    style={{ borderColor: `${theme.color}40`, color: theme.color }}
+                  >
                     <Sparkles className="w-4 h-4" />
-                    {POINTS.SIGNUP_BONUS} pts signup bonus
-                  </div>
-                  <div
-                    className="flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-medium"
-                    style={{ borderColor: `${theme.color}40`, color: theme.color }}
-                  >
-                    <Receipt className="w-4 h-4" />
-                    {POINTS.PER_RECEIPT} pts per receipt
-                  </div>
-                  <div
-                    className="flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-medium"
-                    style={{ borderColor: `${theme.color}40`, color: theme.color }}
-                  >
-                    <Gift className="w-4 h-4" />
-                    {REWARDS.length} rewards to unlock
+                    First access to what&rsquo;s next
                   </div>
                 </div>
               </motion.div>
@@ -201,28 +263,60 @@ export function LoyaltyLanding({ drink }: LoyaltyLandingProps) {
                 transition={{ duration: 0.7, delay: 0.2 }}
                 className="w-full max-w-md mx-auto"
               >
-                <div className="rounded-2xl border border-card-border bg-untamed-black-card p-6 sm:p-8 text-left">
+                <div
+                  ref={joinCardRef}
+                  className="rounded-2xl border border-card-border bg-untamed-black-card p-6 sm:p-8 text-left"
+                >
                   <div className="flex items-center gap-2 mb-2">
                     <Sparkles className="w-5 h-5" style={{ color: theme.color }} />
-                    <h2 className="font-bold text-white text-xl">Get Started</h2>
+                    <h2 className="font-bold text-white text-xl">{joinHeading}</h2>
                   </div>
-                  <p className="text-sm text-untamed-white-muted mb-6">
-                    Enter your name and email. We&apos;ll send a 6-digit code
-                    &mdash; no password needed &mdash; and you&apos;ll earn{' '}
-                    {POINTS.SIGNUP_BONUS} points just for signing up.
+                  <p className="text-sm text-untamed-white-muted mb-5">
+                    {joinSubcopy}
                   </p>
+
+                  {/* The single most important thing a past customer needs to know */}
+                  <div
+                    className="flex items-start gap-3 rounded-xl border px-4 py-3 mb-5"
+                    style={{
+                      borderColor: `${theme.color}40`,
+                      backgroundColor: `${theme.color}0D`,
+                    }}
+                  >
+                    <ShoppingBag
+                      className="w-4 h-4 shrink-0 mt-0.5"
+                      style={{ color: theme.color }}
+                    />
+                    <p className="text-sm text-untamed-white leading-relaxed">
+                      <strong>Ordered from us before?</strong> Your account
+                      already exists — it was created with your order and is
+                      tied to the email you used at checkout. Enter that email
+                      below and you&rsquo;re in.
+                    </p>
+                  </div>
+
                   <JoinForm
                     drink={drink || drinks[0]}
                     visitorId={visitorId}
                     accentColor={theme.color}
                     accentGlow={theme.colorGlow}
+                    redirectTo={intent ? INTENT_DESTINATIONS[intent] : '/portal'}
                   />
-                  <Link
-                    href="/portal/login?returnTo=%2Fportal"
-                    className="inline-block mt-4 text-untamed-white-muted text-sm hover:text-untamed-white transition-colors underline underline-offset-4"
-                  >
-                    Already a member? Sign in
-                  </Link>
+                  <p className="mt-4 text-xs text-muted">
+                    One form for everyone — new members are created on the
+                    spot, and past customers pick up right where their orders
+                    left off.{' '}
+                    <Link
+                      href={
+                        intent
+                          ? `/portal/login?returnTo=${encodeURIComponent(INTENT_DESTINATIONS[intent])}`
+                          : '/portal/login?returnTo=%2Fportal'
+                      }
+                      className="underline underline-offset-2 hover:text-untamed-white transition-colors"
+                    >
+                      Have a password? Sign in here
+                    </Link>
+                  </p>
                 </div>
               </motion.div>
             </div>
@@ -230,65 +324,12 @@ export function LoyaltyLanding({ drink }: LoyaltyLandingProps) {
         </section>
 
         {/* ============================================
-            HOW IT WORKS SECTION
+            TWO WAYS IN — Share a moment / Bring a friend
             ============================================ */}
         <section className="relative py-20 md:py-28 overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-card-border to-transparent" />
 
-          <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-            >
-              <h2 className="font-condensed text-3xl md:text-4xl font-bold uppercase tracking-wider text-untamed-white mb-12">
-                How It Works
-              </h2>
-            </motion.div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
-              {[
-                { step: '01', title: 'Join the Pack', desc: 'Sign up with your email and a 6-digit code. Instant signup bonus points.' },
-                { step: '02', title: 'Upload Receipts', desc: 'Snap a photo of your purchase receipt. We verify and credit your points.' },
-                { step: '03', title: 'Unlock Rewards', desc: 'Redeem points for exclusive Untamed merch, glassware, and stickers.' },
-              ].map((item, idx) => (
-                <motion.div
-                  key={idx}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.6, delay: idx * 0.15 }}
-                  className="text-center"
-                >
-                  <p
-                    className="font-condensed text-5xl md:text-6xl font-bold mb-3 opacity-30"
-                    style={{ color: theme.color }}
-                  >
-                    {item.step}
-                  </p>
-                  <h3
-                    className="font-condensed text-xl md:text-2xl font-bold uppercase tracking-wider mb-3"
-                    style={{ color: theme.color }}
-                  >
-                    {item.title}
-                  </h3>
-                  <p className="text-untamed-white-muted text-sm md:text-base">
-                    {item.desc}
-                  </p>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ============================================
-            REWARDS SHOWCASE SECTION
-            ============================================ */}
-        <section className="relative py-20 md:py-28">
-          <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-card-border to-transparent" />
-
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -296,18 +337,107 @@ export function LoyaltyLanding({ drink }: LoyaltyLandingProps) {
               transition={{ duration: 0.6 }}
               className="text-center mb-12"
             >
-              <p
-                className="text-sm tracking-[0.3em] uppercase mb-3"
-                style={{ color: theme.color }}
-              >
-                Earn &amp; Redeem
-              </p>
-              <h2 className="font-condensed text-3xl md:text-4xl lg:text-5xl font-bold uppercase tracking-wider text-untamed-white">
-                Available Rewards
+              <h2 className="font-condensed text-3xl md:text-4xl font-bold uppercase tracking-wider text-untamed-white mb-3">
+                Be Part of It
               </h2>
+              <p className="text-untamed-white-muted max-w-2xl mx-auto">
+                The pack is built by its members. Two ways to leave your mark
+                from day one.
+              </p>
             </motion.div>
 
-            <RewardsShowcase accentColor={theme.color} />
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Share a moment */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6 }}
+                className="rounded-2xl border border-card-border bg-untamed-black-card p-6 sm:p-8 flex flex-col"
+              >
+                <div className="flex items-center gap-3 mb-3">
+                  <div
+                    className="w-11 h-11 rounded-xl flex items-center justify-center"
+                    style={{ backgroundColor: `${theme.color}1A` }}
+                  >
+                    <Camera className="w-5 h-5" style={{ color: theme.color }} />
+                  </div>
+                  <h3 className="font-condensed text-2xl font-bold uppercase tracking-wider text-white">
+                    Share a Moment
+                  </h3>
+                </div>
+                <p className="text-sm text-untamed-white-muted leading-relaxed mb-5">
+                  Post a photo or video of your Untamed moment — the cooler at
+                  the lake, the tailgate, the back porch. The best ones get
+                  featured on the site for the whole pack to see.
+                </p>
+
+                <FeaturedProof />
+
+                <button
+                  onClick={() => chooseIntent('ugc')}
+                  className="mt-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full font-bold text-black uppercase tracking-wider text-sm transition-all duration-300 hover:scale-[1.02] hover:shadow-lg"
+                  style={{
+                    backgroundColor: theme.color,
+                    boxShadow: `0 0 20px ${theme.colorGlow}`,
+                  }}
+                >
+                  <Camera className="w-4 h-4" />
+                  Share a moment
+                </button>
+              </motion.div>
+
+              {/* Bring a friend */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: 0.1 }}
+                className="rounded-2xl border border-card-border bg-untamed-black-card p-6 sm:p-8 flex flex-col"
+              >
+                <div className="flex items-center gap-3 mb-3">
+                  <div
+                    className="w-11 h-11 rounded-xl flex items-center justify-center"
+                    style={{ backgroundColor: `${theme.color}1A` }}
+                  >
+                    <Share2 className="w-5 h-5" style={{ color: theme.color }} />
+                  </div>
+                  <h3 className="font-condensed text-2xl font-bold uppercase tracking-wider text-white">
+                    Bring a Friend
+                  </h3>
+                </div>
+                <p className="text-sm text-untamed-white-muted leading-relaxed mb-5">
+                  Get your own personal link and send it to the people who&rsquo;d
+                  love this. Takes 10 seconds, and you&rsquo;ll see every friend
+                  who joins through you.
+                </p>
+
+                <ul className="space-y-2.5 text-sm text-untamed-white-muted mb-6">
+                  {[
+                    'Your own link — share it anywhere',
+                    'Watch your pack grow on your dashboard',
+                    'Know a bar or store? Intro them too',
+                  ].map((line) => (
+                    <li key={line} className="flex items-start gap-2">
+                      <ArrowRight
+                        className="w-3.5 h-3.5 mt-0.5 shrink-0"
+                        style={{ color: theme.color }}
+                      />
+                      <span>{line}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <button
+                  onClick={() => chooseIntent('refer')}
+                  className="mt-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full font-bold uppercase tracking-wider text-sm border transition-all duration-300 hover:scale-[1.02]"
+                  style={{ borderColor: `${theme.color}66`, color: theme.color }}
+                >
+                  <Share2 className="w-4 h-4" />
+                  Get my link
+                </button>
+              </motion.div>
+            </div>
           </div>
         </section>
 
@@ -335,7 +465,7 @@ export function LoyaltyLanding({ drink }: LoyaltyLandingProps) {
                 Scan to Join
               </h2>
               <p className="text-untamed-white-muted text-base md:text-lg max-w-lg mb-8">
-                Scan the QR code on any <span className="font-headline">Untamed</span> can or box to come straight here and start earning rewards!
+                Scan the QR code on any <span className="font-headline">Untamed</span> can or box to come straight here and join the pack.
               </p>
 
               <div
@@ -344,7 +474,7 @@ export function LoyaltyLanding({ drink }: LoyaltyLandingProps) {
               >
                 <Image
                   src={drink ? `/images/qr/qr-${drink.slug}.png` : '/images/qr/qr-rewards-generic.png'}
-                  alt="Scan to join Untamed Rewards"
+                  alt="Scan to join the Untamed Pack"
                   width={200}
                   height={200}
                   className="rounded-lg"
@@ -352,14 +482,120 @@ export function LoyaltyLanding({ drink }: LoyaltyLandingProps) {
               </div>
 
               <p className="text-muted text-xs mt-4 uppercase tracking-wider">
-                {drink ? `${drink.name} Rewards` : 'Untamed Rewards'} &bull; Scan with your phone camera
+                {drink ? `${drink.name}` : 'Untamed'} &bull; Scan with your phone camera
               </p>
             </motion.div>
+          </div>
+        </section>
+
+        {/* Low-key points footnote */}
+        <section className="relative pb-16">
+          <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <p className="text-sm text-muted">
+              Members also earn points on everything — purchases, posts,
+              referrals — redeemable for Untamed merch.{' '}
+              <Link
+                href="/portal/login?returnTo=%2Fportal%2Frewards"
+                className="underline underline-offset-4 hover:text-untamed-white transition-colors"
+              >
+                See your points
+              </Link>
+            </p>
           </div>
         </section>
       </main>
 
       <Footer />
     </>
+  )
+}
+
+/**
+ * Social proof for the "Share a Moment" card: a mini grid of real featured
+ * community posts. Renders nothing until there are at least 3 to show.
+ */
+function FeaturedProof() {
+  interface ProofAsset {
+    id: string
+    asset_type: 'image' | 'video'
+    url: string
+    processed_urls: Record<string, string> | null
+    processing_status: 'uploaded' | 'processing' | 'ready' | 'failed'
+  }
+  interface ProofPost {
+    id: string
+    caption: string | null
+    contributor_display_name: string | null
+    assets: ProofAsset[]
+  }
+
+  const [posts, setPosts] = useState<ProofPost[]>([])
+
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/community/posts?featured=1&limit=4')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (cancelled) return
+        const list = ((data?.posts as ProofPost[]) || []).filter(
+          (p) => p.assets.length > 0
+        )
+        setPosts(list.slice(0, 4))
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  if (posts.length < 3) return null
+
+  return (
+    <div className="mb-6">
+      <div className="grid grid-cols-4 gap-2">
+        {posts.map((post) => {
+          const primary = post.assets[0]
+          return (
+            <div
+              key={post.id}
+              className="relative aspect-square rounded-xl overflow-hidden border border-untamed-white/10 bg-black"
+            >
+              {primary.asset_type === 'video' ? (
+                <UgcVideo
+                  src={primary.url}
+                  processedUrls={primary.processed_urls}
+                  processingStatus={primary.processing_status}
+                  context="list"
+                  fit="cover"
+                  controls={false}
+                  autoplay
+                  muted
+                  loop
+                  lazy
+                  className="absolute inset-0 w-full h-full"
+                />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={primary.url}
+                  alt={post.caption || 'Untamed community post'}
+                  loading="lazy"
+                  className="w-full h-full object-cover"
+                />
+              )}
+            </div>
+          )
+        })}
+      </div>
+      <p className="text-xs text-muted mt-2">
+        Recently featured from the community &middot;{' '}
+        <Link
+          href="/community"
+          className="underline underline-offset-2 hover:text-untamed-white transition-colors"
+        >
+          see the gallery
+        </Link>
+      </p>
+    </div>
   )
 }
