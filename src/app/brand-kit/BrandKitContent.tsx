@@ -239,7 +239,7 @@ const FONTS = [
     name: 'Inter',
     role: 'Body copy & UI text',
     cssVar: '--font-inter',
-    sample: 'Premium ready-to-drink vodka martinis.',
+    sample: 'Premium ready-to-serve vodka martinis.',
     big: false,
   },
 ]
@@ -326,7 +326,7 @@ export function BrandKitContent() {
               <div className="rounded-2xl border border-card-border bg-untamed-black-card p-6 md:p-8">
                 <p className="text-untamed-white-muted text-sm leading-relaxed">
                   <span className="font-headline text-untamed-white text-lg">Untamed</span>{' '}
-                  Beverages makes premium ready-to-drink vodka martinis. Each 12 oz can is 15%
+                  Beverages makes premium ready-to-serve vodka martinis. Each 12 oz can is 15%
                   ALC/VOL and holds{' '}
                   <span className="text-untamed-white font-medium">two full martinis</span>. Founded
                   by three couples around a backyard fire pit, the brand is built on one idea:

@@ -29,7 +29,7 @@ export function Footer() {
               />
             </Link>
             <p className="text-untamed-white-muted text-sm leading-relaxed mb-4">
-              Premium ready-to-drink vodka martinis. 1 can. 2 martinis. $3 per cocktail.
+              Premium ready-to-serve vodka martinis. 1 can. 2 martinis. $3 per cocktail.
             </p>
             <a
               href="https://instagram.com/untamedbevs"

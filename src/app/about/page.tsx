@@ -143,7 +143,7 @@ export default function AboutPage() {
                   Carol, affectionately known as &ldquo;<span className="text-lioness font-medium font-wild cyber-brush-fix text-2xl">The Lioness</span>,&rdquo;
                   helped spark a simple question that wouldn&apos;t go away:{' '}
                   <span className="text-untamed-white font-medium italic">
-                    What if a martini could come ready to drink, taste premium, and feel empowering?
+                    What if a martini could come ready to serve, taste premium, and feel empowering?
                   </span>
                 </p>
 
@@ -228,7 +228,7 @@ export default function AboutPage() {
                 </p>
 
                 <p>
-                  That is why <span className="font-headline text-untamed-white">Untamed</span> matters. Our premium RTD martini line is not just convenient. It is deliberate. It is expressive. And it is backed by a value proposition that makes sense the moment someone sees it.
+                  That is why <span className="font-headline text-untamed-white">Untamed</span> matters. Our premium RTS martini line is not just convenient. It is deliberate. It is expressive. And it is backed by a value proposition that makes sense the moment someone sees it.
                 </p>
               </motion.div>
 
@@ -541,7 +541,7 @@ export default function AboutPage() {
               className="space-y-8 text-untamed-white-muted text-lg md:text-xl leading-relaxed"
             >
               <p className="text-untamed-white text-2xl md:text-3xl font-light italic text-center">
-                We are not here to fit into the future of ready-to-drink. We are here to define it.
+                We are not here to fit into the future of ready-to-serve. We are here to define it.
               </p>
 
               <p className="text-center max-w-3xl mx-auto">

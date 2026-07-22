@@ -109,7 +109,7 @@ const RETAILER_ADVANTAGES = [
   {
     icon: DollarSign,
     title: 'Premium Ring + Trade-Up',
-    description: 'Spirit-forward vodka martinis give retailers a premium RTD option that lifts average ticket versus lighter, lower-ABV RTDs. The martini cue carries "night-out" equity that justifies a higher price point without extensive shopper education.',
+    description: 'Spirit-forward vodka martinis give retailers a premium RTS option that lifts average ticket versus lighter, lower-ABV RTSs. The martini cue carries "night-out" equity that justifies a higher price point without extensive shopper education.',
   },
   {
     icon: ShieldCheck,
@@ -195,7 +195,7 @@ const DISTRIBUTOR_ADVANTAGES = [
   {
     icon: TrendingUp,
     title: 'Explosive Category Growth',
-    description: 'Ready-to-drink cocktails are the #1 growth segment in beverage alcohol. Untamed sits at the premium end with a clear differentiation story.',
+    description: 'Ready-to-serve cocktails are the #1 growth segment in beverage alcohol. Untamed sits at the premium end with a clear differentiation story.',
   },
   {
     icon: Sparkles,
@@ -628,7 +628,7 @@ function DistributeContent() {
               {[
                 {
                   title: 'Premium, Spirit-Forward Positioning',
-                  desc: 'Untamed competes as a premium ready-to-drink vodka martini — clean vodka backbone, martini-style builds, and a bar-worthy serve. Not a "lite" RTD.',
+                  desc: 'Untamed competes as a premium ready-to-serve vodka martini — clean vodka backbone, martini-style builds, and a bar-worthy serve. Not a "lite" RTS.',
                 },
                 {
                   title: 'Format Advantage: Bigger Can + True Multi-Serve',
@@ -636,7 +636,7 @@ function DistributeContent() {
                 },
                 {
                   title: 'Brand Differentiation That Earns Preference',
-                  desc: '"Live Life Untamed" creates an emotional reason to choose: freedom, authenticity, and courage. In a crowded RTD set, Untamed competes on meaning — turning a purchase into a statement.',
+                  desc: '"Live Life Untamed" creates an emotional reason to choose: freedom, authenticity, and courage. In a crowded RTS set, Untamed competes on meaning — turning a purchase into a statement.',
                 },
                 {
                   title: 'Culture-Driven Lineup: Four Wild Spirits',
@@ -644,7 +644,7 @@ function DistributeContent() {
                 },
                 {
                   title: 'On-Pack Ritual That Upgrades the Occasion',
-                  desc: '"Chill it. Shake it. Unleash it!" gives consumers a premium serving cue that bridges canned convenience and cocktail ceremony. Reduces RTD skepticism.',
+                  desc: '"Chill it. Shake it. Unleash it!" gives consumers a premium serving cue that bridges canned convenience and cocktail ceremony. Reduces RTS skepticism.',
                 },
                 {
                   title: 'Distinct, Bar-Relevant Flavor Builds',

@@ -175,7 +175,7 @@ const HERO_LABEL: Record<HeroGender, { subject: string; pronoun: string }> = {
 
 /** Matches real Untamed SKU: 12 fl oz slimline can (not 16oz / pint / short wide). */
 const HERO_CAN_FORMAT =
-  'The beverage is a 12 fl oz tall slim aluminum can (slimline RTD: noticeably taller and narrower than a standard short 12oz beer can). It is not a 16 ounce can, not a pint, not a short wide stubby. Keep scale in the hand consistent with that slim tall format and with the reference can proportions.'
+  'The beverage is a 12 fl oz tall slim aluminum can (slimline RTS: noticeably taller and narrower than a standard short 12oz beer can). It is not a 16 ounce can, not a pint, not a short wide stubby. Keep scale in the hand consistent with that slim tall format and with the reference can proportions.'
 
 function getDrinkHeroChainExamplePosts(drink: Drink, siteBase: string, gender: HeroGender = 'female'): PlannedPost[] {
   const canUrl = drinkAssetAbsoluteUrl(siteBase, drink.canImage)

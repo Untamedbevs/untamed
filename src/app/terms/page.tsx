@@ -51,7 +51,7 @@ export default function TermsPage() {
 
             <Section title="2. Products &amp; Alcohol">
               <p>
-                Untamed sells ready-to-drink alcoholic beverages (vodka-based
+                Untamed sells ready-to-serve alcoholic beverages (vodka-based
                 canned cocktails, 15% ALC./VOL.). Product availability, shipping,
                 and sale are subject to applicable federal, state, and local
                 laws. We may be unable to ship to certain jurisdictions. Please

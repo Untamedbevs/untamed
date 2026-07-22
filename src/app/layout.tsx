@@ -65,11 +65,11 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: 'Untamed Beverages | Get In Touch With Your Wild Side',
   description:
-    'Premium ready-to-drink vodka martinis. 2 martinis per can, 15% ALC/VOL. Black Panther Espresso, Cheetah Lemon Drop, Cougar Dirty Martini, Lioness Peach & Rosemary. Chill it. Shake it. Unleash it!',
+    'Premium ready-to-serve vodka martinis. 2 martinis per can, 15% ALC/VOL. Black Panther Espresso, Cheetah Lemon Drop, Cougar Dirty Martini, Lioness Peach & Rosemary. Chill it. Shake it. Unleash it!',
   keywords: [
     'Untamed Beverages',
     'vodka martini',
-    'ready to drink',
+    'ready to serve',
     'canned cocktails',
     'espresso martini',
     'lemon drop martini',
@@ -85,7 +85,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Untamed Beverages | Get In Touch With Your Wild Side',
     description:
-      'Premium ready-to-drink vodka martinis. 2 martinis per can. Chill it. Shake it. Unleash it!',
+      'Premium ready-to-serve vodka martinis. 2 martinis per can. Chill it. Shake it. Unleash it!',
     url: siteUrl,
     siteName: 'Untamed Beverages',
     type: 'website',
@@ -96,7 +96,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Untamed Beverages | Get In Touch With Your Wild Side',
     description:
-      'Premium ready-to-drink vodka martinis. 2 martinis per can. Chill it. Shake it. Unleash it!',
+      'Premium ready-to-serve vodka martinis. 2 martinis per can. Chill it. Shake it. Unleash it!',
     images: [ogImage.url],
   },
   robots: {

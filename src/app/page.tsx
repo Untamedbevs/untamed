@@ -396,7 +396,7 @@ export default function HomePage() {
               <p className="text-untamed-white-muted text-lg md:text-xl leading-relaxed">
                 It started with three couples sharing cocktails around a backyard fire pit.
                 Carol, affectionately known as &ldquo;<span className="text-lioness font-medium font-wild cyber-brush-fix text-2xl">The Lioness</span>,&rdquo;
-                sparked a simple question: What if a martini could come ready to drink, taste premium, and feel empowering?
+                sparked a simple question: What if a martini could come ready to serve, taste premium, and feel empowering?
               </p>
               <p className="text-untamed-white-muted text-lg md:text-xl leading-relaxed">
                 That night, after plenty of laughs and drinks, the name came:{' '}

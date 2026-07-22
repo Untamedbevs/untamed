@@ -317,7 +317,7 @@ export default function DesignSystemPage() {
 
               <div>
                 <p className="text-untamed-white-muted text-xs uppercase tracking-wider mb-3">Body (Inter)</p>
-                <p className="text-xl text-untamed-white mb-2">Body Large -- Premium ready-to-drink vodka martinis.</p>
+                <p className="text-xl text-untamed-white mb-2">Body Large -- Premium ready-to-serve vodka martinis.</p>
                 <p className="text-base text-untamed-white/80 mb-2">Body Default -- Get in touch with your wild side. Four premium cocktails, four wild spirits.</p>
                 <p className="text-sm text-untamed-white/60 mb-2">Body Small -- 12 FL OZ / 355mL. 15% ALC/VOL. 2 Vodka Martinis Per Can.</p>
                 <p className="text-xs text-untamed-white/40">Caption -- Always drink responsibly. Must be 21+.</p>
