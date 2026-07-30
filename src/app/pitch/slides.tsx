@@ -8,10 +8,13 @@ import {
   Clock,
   Crown,
   Flag,
+  Gift,
   Home,
   Hotel,
   Martini,
   Minus,
+  Rocket,
+  ShoppingBasket,
   ShoppingCart,
   Sparkles,
   Store,
@@ -19,7 +22,7 @@ import {
   Wine,
   X,
 } from 'lucide-react'
-import { drinks, groupImages } from '@/lib/drinks'
+import { drinks } from '@/lib/drinks'
 import {
   BREAK_EVEN,
   DISCLAIMER,
@@ -35,41 +38,129 @@ import {
 } from './deck-data'
 import { BreakEvenChart, RevenueBarChart, ScenarioLineChart } from './charts'
 
+const CANS_GROUP = '/brand-kit/cans/cans-group-front.png'
+
+/* ============================================
+   Section theming — every section is a cat
+   ============================================ */
+
+interface SectionTheme {
+  accent: string
+  gradientClass: string
+  animal: string
+  glow: string
+}
+
+const SECTION_THEMES: Record<string, SectionTheme> = {
+  'The Category': {
+    accent: '#E6D800',
+    gradientClass: 'text-gradient-cheetah',
+    animal: '/images/animal-cheetah.png',
+    glow: 'rgba(212, 215, 0, 0.28)',
+  },
+  'The Product': {
+    accent: '#9B30FF',
+    gradientClass: 'text-gradient-panther',
+    animal: '/images/animal-black-panther.png',
+    glow: 'rgba(155, 48, 255, 0.3)',
+  },
+  'The Business': {
+    accent: '#6B8E23',
+    gradientClass: 'text-gradient-cougar',
+    animal: '/images/animal-cougar.png',
+    glow: 'rgba(107, 142, 35, 0.3)',
+  },
+  'The Financials': {
+    accent: '#FF8C2A',
+    gradientClass: 'text-gradient-lioness',
+    animal: '/images/animal-lioness.png',
+    glow: 'rgba(232, 117, 17, 0.28)',
+  },
+  'The Ask': {
+    accent: '#FFD700',
+    gradientClass: 'text-gradient-wild',
+    animal: '/images/animal-lioness.png',
+    glow: 'rgba(255, 215, 0, 0.25)',
+  },
+}
+
+const GOLD_THEME = SECTION_THEMES['The Ask']
+
 /* ============================================
    Shared building blocks
    ============================================ */
 
 function SlideShell({
-  kicker,
+  section,
   title,
   intro,
   children,
   footnote,
+  hideAnimal = false,
 }: {
-  kicker: string
+  section: string
   title: ReactNode
   intro?: ReactNode
   children: ReactNode
   footnote?: string
+  hideAnimal?: boolean
 }) {
+  const theme = SECTION_THEMES[section] ?? GOLD_THEME
   return (
-    <div className="flex h-full w-full flex-col px-6 pb-20 pt-16 sm:px-10 md:px-16 md:pt-20 lg:px-24">
-      <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col">
-        <p className="font-condensed text-xs font-bold uppercase tracking-[0.35em] text-gradient-wild md:text-sm">
-          {kicker}
-        </p>
-        <h2 className="mt-3 font-condensed text-3xl font-bold uppercase leading-[1.05] tracking-tight sm:text-4xl md:text-5xl lg:text-6xl">
+    <div className="relative flex h-full w-full flex-col overflow-hidden px-6 pb-16 pt-14 sm:px-10 md:px-16 lg:px-24">
+      {/* ambient section glow */}
+      <div
+        className="pointer-events-none absolute -left-40 -top-40 h-[480px] w-[480px] rounded-full opacity-[0.16] blur-[140px]"
+        style={{ backgroundColor: theme.accent }}
+      />
+      {/* ghosted section animal */}
+      {!hideAnimal && (
+        <div className="pointer-events-none absolute -right-16 bottom-0 top-0 flex items-center opacity-[0.07] md:-right-8">
+          <Image
+            src={theme.animal}
+            alt=""
+            width={700}
+            height={700}
+            className="h-[70vh] w-auto max-w-none select-none"
+          />
+        </div>
+      )}
+
+      <div className="relative z-10 mx-auto my-auto w-full max-w-6xl">
+        <div className="flex items-center gap-3">
+          <span
+            className="h-[2px] w-10 rounded-full"
+            style={{ background: `linear-gradient(90deg, ${theme.accent}, transparent)` }}
+          />
+          <p
+            className="font-condensed text-xs font-bold uppercase tracking-[0.35em] md:text-sm"
+            style={{ color: theme.accent }}
+          >
+            {section}
+          </p>
+        </div>
+        <h2 className="animate-scratch mt-2 font-condensed text-3xl font-bold uppercase leading-[1.02] tracking-tight sm:text-4xl md:text-5xl lg:text-6xl">
           {title}
         </h2>
         {intro && (
-          <p className="mt-4 max-w-3xl text-sm leading-relaxed text-untamed-white-muted md:text-lg">{intro}</p>
+          <p className="mt-3 max-w-3xl text-sm leading-relaxed text-untamed-white-muted md:text-base lg:text-lg">
+            {intro}
+          </p>
         )}
-        <div className="mt-8 flex flex-1 flex-col justify-center md:mt-10">{children}</div>
-        {footnote && (
-          <p className="mt-6 text-[11px] leading-relaxed text-muted md:text-xs">{footnote}</p>
-        )}
+        <div className="mt-6 md:mt-7">{children}</div>
+        {footnote && <p className="mt-5 text-[11px] leading-relaxed text-muted md:text-xs">{footnote}</p>}
       </div>
     </div>
+  )
+}
+
+/** Big brand statement line, tinted with the section gradient */
+function Statement({ section, children, highlight }: { section: string; children: ReactNode; highlight: ReactNode }) {
+  const theme = SECTION_THEMES[section] ?? GOLD_THEME
+  return (
+    <p className="mt-7 font-condensed text-xl font-bold uppercase leading-snug tracking-tight md:text-3xl">
+      {children} <span className={theme.gradientClass}>{highlight}</span>
+    </p>
   )
 }
 
@@ -77,42 +168,48 @@ function StatCard({
   icon,
   title,
   body,
-  accent = '#FFD700',
+  accent,
 }: {
   icon?: ReactNode
   title: string
   body?: string
-  accent?: string
+  accent: string
 }) {
   return (
-    <div className="rounded-2xl border border-card-border bg-untamed-black-card p-5 md:p-6">
+    <div
+      className="rounded-2xl border border-card-border bg-untamed-black-card/80 p-5 backdrop-blur-sm transition-transform duration-300 md:p-6"
+      style={{ borderTop: `2px solid ${accent}55` }}
+    >
       {icon && (
         <div
-          className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-full"
+          className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-full"
           style={{ backgroundColor: `${accent}1A`, color: accent }}
         >
           {icon}
         </div>
       )}
       <h3 className="font-condensed text-base font-bold uppercase tracking-wide md:text-lg">{title}</h3>
-      {body && <p className="mt-2 text-xs leading-relaxed text-untamed-white-muted md:text-sm">{body}</p>}
+      {body && <p className="mt-1.5 text-xs leading-relaxed text-untamed-white-muted md:text-sm">{body}</p>}
     </div>
   )
 }
 
-function CheckItem({ children }: { children: ReactNode }) {
+function CheckItem({ children, accent = '#FFD700' }: { children: ReactNode; accent?: string }) {
   return (
     <li className="flex items-start gap-3">
-      <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#FFD700]/10">
-        <Check className="h-3.5 w-3.5 text-[#FFD700]" />
+      <span
+        className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
+        style={{ backgroundColor: `${accent}1A` }}
+      >
+        <Check className="h-3.5 w-3.5" style={{ color: accent }} />
       </span>
       <span className="text-sm leading-relaxed text-untamed-white md:text-base">{children}</span>
     </li>
   )
 }
 
-function CompareMark({ value }: { value: 'yes' | 'no' | 'limited' | 'rarely' }) {
-  if (value === 'yes') return <Check className="mx-auto h-5 w-5 text-[#FFD700]" />
+function CompareMark({ value, accent }: { value: 'yes' | 'no' | 'limited' | 'rarely'; accent?: string }) {
+  if (value === 'yes') return <Check className="mx-auto h-5 w-5" style={{ color: accent ?? '#FAFAFA' }} />
   if (value === 'no') return <X className="mx-auto h-5 w-5 text-muted" />
   return (
     <span className="inline-flex items-center gap-1.5 text-xs uppercase tracking-wider text-untamed-white-muted">
@@ -123,44 +220,58 @@ function CompareMark({ value }: { value: 'yes' | 'no' | 'limited' | 'rarely' }) 
 }
 
 /* ============================================
-   Section: Cover
+   Cover
    ============================================ */
 
 function CoverSlide() {
   return (
-    <div className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden px-6 text-center">
-      <div className="relative z-10 flex flex-col items-center">
+    <div className="relative flex h-full w-full flex-col items-center overflow-hidden px-6 text-center">
+      {/* corner glows */}
+      <div className="pointer-events-none absolute -left-32 -top-32 h-[420px] w-[420px] rounded-full bg-[#9B30FF] opacity-[0.14] blur-[130px]" />
+      <div className="pointer-events-none absolute -right-32 top-1/3 h-[420px] w-[420px] rounded-full bg-[#FFD700] opacity-[0.10] blur-[130px]" />
+
+      <div className="relative z-10 flex flex-1 flex-col items-center justify-center pb-[30vh]">
         <Image
           src="/images/logo-mark.png"
           alt="Untamed Beverages logo"
           width={120}
           height={120}
-          className="h-20 w-20 md:h-28 md:w-28"
+          className="h-16 w-16 md:h-20 md:w-20"
           priority
         />
-        <h1 className="mt-6 font-headline text-5xl uppercase tracking-wide sm:text-7xl md:text-8xl">
+        <h1 className="mt-4 font-headline text-5xl uppercase tracking-wide sm:text-6xl md:text-7xl lg:text-8xl">
           Untamed
         </h1>
-        <p className="mt-2 font-condensed text-lg font-bold uppercase tracking-[0.3em] text-untamed-silver md:text-2xl">
-          The Ready-to-Serve Martini Company
-        </p>
-        <p className="mt-8 font-condensed text-2xl font-bold uppercase tracking-tight text-gradient-wild sm:text-3xl md:text-5xl">
+        <div className="mt-3 flex items-center gap-4">
+          <span className="h-px w-10 bg-gradient-to-r from-transparent to-[#FFD700] md:w-16" />
+          <p className="font-condensed text-sm font-bold uppercase tracking-[0.3em] text-untamed-silver md:text-xl">
+            The Ready-to-Serve Martini Company
+          </p>
+          <span className="h-px w-10 bg-gradient-to-l from-transparent to-[#FFD700] md:w-16" />
+        </div>
+        <p className="mt-6 font-condensed text-2xl font-bold uppercase tracking-tight text-gradient-wild sm:text-3xl md:text-4xl">
           Not Ready-to-Drink. Ready-to-Serve.
         </p>
-        <p className="mt-4 max-w-xl text-sm text-untamed-white-muted md:text-lg">
+        <p className="mt-3 max-w-xl text-sm text-untamed-white-muted md:text-base">
           Premium cocktails crafted for the glass, not the can.
         </p>
-        <p className="mt-10 font-condensed text-[11px] uppercase tracking-[0.3em] text-muted md:text-xs">
+        <p className="mt-6 font-condensed text-[11px] uppercase tracking-[0.3em] text-muted md:text-xs">
           Investor Presentation — Confidential
         </p>
       </div>
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-0 flex justify-center opacity-25">
+
+      {/* full-color can lineup, faded into the floor */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-0 flex justify-center">
         <Image
-          src={groupImages.front}
-          alt=""
-          width={1200}
-          height={500}
-          className="h-auto w-[900px] max-w-none translate-y-1/3"
+          src={CANS_GROUP}
+          alt="Untamed martini can lineup"
+          width={1400}
+          height={640}
+          className="h-auto w-[60%] max-w-xl translate-y-[26%] select-none md:max-w-2xl"
+          style={{
+            maskImage: 'linear-gradient(to bottom, black 55%, transparent 96%)',
+            WebkitMaskImage: 'linear-gradient(to bottom, black 55%, transparent 96%)',
+          }}
           priority
         />
       </div>
@@ -169,10 +280,11 @@ function CoverSlide() {
 }
 
 /* ============================================
-   Section: The Category
+   The Category
    ============================================ */
 
 function OpportunitySlide() {
+  const accent = SECTION_THEMES['The Category'].accent
   const wants = [
     { icon: <Sparkles className="h-5 w-5" />, title: 'Premium cocktail experiences' },
     { icon: <Home className="h-5 w-5" />, title: 'Entertaining at home' },
@@ -181,28 +293,27 @@ function OpportunitySlide() {
   ]
   return (
     <SlideShell
-      kicker="The Category"
+      section="The Category"
       title="Consumers want better at-home cocktails"
       intro="Yet most canned cocktails focus on convenience over experience — forcing a trade-off between quality, presentation, and ease."
     >
       <div className="grid gap-4 sm:grid-cols-2">
         {wants.map((w) => (
-          <StatCard key={w.title} icon={w.icon} title={w.title} />
+          <StatCard key={w.title} icon={w.icon} title={w.title} accent={accent} />
         ))}
       </div>
-      <p className="mt-8 font-condensed text-xl font-bold uppercase leading-snug tracking-tight md:text-3xl">
-        The market is crowded with RTD brands.{' '}
-        <span className="text-gradient-wild">The RTS category is largely undefined.</span>
-      </p>
+      <Statement section="The Category" highlight="The RTS category is largely undefined.">
+        The market is crowded with RTD brands.
+      </Statement>
     </SlideShell>
   )
 }
 
 function ProblemSlide() {
   return (
-    <SlideShell kicker="The Category" title="Today's cocktail options miss the mark">
+    <SlideShell section="The Category" title="Today's cocktail options miss the mark">
       <div className="grid gap-4 md:grid-cols-2 md:gap-6">
-        <div className="rounded-2xl border border-card-border bg-untamed-black-card p-6 md:p-8">
+        <div className="rounded-2xl border border-card-border bg-untamed-black-card/80 p-6 backdrop-blur-sm md:p-7">
           <h3 className="font-condensed text-lg font-bold uppercase tracking-wide md:text-xl">
             Ready-to-Drink cans
           </h3>
@@ -217,7 +328,7 @@ function ProblemSlide() {
             )}
           </ul>
         </div>
-        <div className="rounded-2xl border border-card-border bg-untamed-black-card p-6 md:p-8">
+        <div className="rounded-2xl border border-card-border bg-untamed-black-card/80 p-6 backdrop-blur-sm md:p-7">
           <h3 className="font-condensed text-lg font-bold uppercase tracking-wide md:text-xl">
             Cocktails from scratch
           </h3>
@@ -231,50 +342,56 @@ function ProblemSlide() {
           </ul>
         </div>
       </div>
-      <p className="mt-8 font-condensed text-xl font-bold uppercase tracking-tight md:text-3xl">
-        Consumers want <span className="text-gradient-wild">both quality and convenience.</span>
-      </p>
+      <Statement section="The Category" highlight="both quality and convenience.">
+        Consumers want
+      </Statement>
     </SlideShell>
   )
 }
 
 function SolutionSlide() {
+  const theme = SECTION_THEMES['The Category']
   return (
     <SlideShell
-      kicker="The Category"
+      section="The Category"
       title={
         <>
           Introducing <span className="text-gradient-wild">Untamed</span>
         </>
       }
       intro="A premium ready-to-serve martini designed to deliver a true cocktail experience at home."
+      hideAnimal
     >
       <div className="grid items-center gap-8 md:grid-cols-2">
         <div>
-          <div className="flex items-center gap-4 md:gap-6">
+          <div className="flex items-center gap-4 md:gap-5">
             {['Chill', 'Pour', 'Serve'].map((step, i) => (
-              <div key={step} className="flex items-center gap-4 md:gap-6">
-                {i > 0 && <span className="h-px w-6 bg-card-border md:w-10" />}
+              <div key={step} className="flex items-center gap-4 md:gap-5">
+                {i > 0 && <span className="h-px w-6 md:w-9" style={{ backgroundColor: `${theme.accent}66` }} />}
                 <span className="font-condensed text-3xl font-bold uppercase tracking-tight sm:text-4xl md:text-5xl">
                   {step}
-                  <span className="text-gradient-wild">.</span>
+                  <span className={theme.gradientClass}>.</span>
                 </span>
               </div>
             ))}
           </div>
-          <ul className="mt-8 space-y-3">
-            <CheckItem>No mixing. No measuring. No compromise.</CheckItem>
-            <CheckItem>Bar-quality cocktails in seconds.</CheckItem>
-            <CheckItem>Crafted for glassware, designed for sharing.</CheckItem>
+          <ul className="mt-7 space-y-3">
+            <CheckItem accent={theme.accent}>No mixing. No measuring. No compromise.</CheckItem>
+            <CheckItem accent={theme.accent}>Bar-quality cocktails in seconds.</CheckItem>
+            <CheckItem accent={theme.accent}>Crafted for glassware, designed for sharing.</CheckItem>
           </ul>
         </div>
-        <div className="hidden justify-center md:flex">
+        <div className="relative hidden justify-center md:flex">
+          <div
+            className="pointer-events-none absolute inset-0 m-auto h-64 w-64 rounded-full blur-[100px]"
+            style={{ backgroundColor: theme.glow }}
+          />
           <Image
-            src={groupImages.front}
+            src={CANS_GROUP}
             alt="Untamed martini lineup"
-            width={640}
-            height={420}
-            className="h-auto w-full max-w-md"
+            width={720}
+            height={480}
+            className="relative h-auto w-full max-w-lg drop-shadow-2xl"
           />
         </div>
       </div>
@@ -283,10 +400,11 @@ function SolutionSlide() {
 }
 
 function RtsVsRtdSlide() {
+  const theme = SECTION_THEMES['The Category']
   return (
-    <SlideShell kicker="The Category" title="Ready-to-Serve changes everything">
+    <SlideShell section="The Category" title="Ready-to-Serve changes everything">
       <div className="grid gap-4 md:grid-cols-2 md:gap-6">
-        <div className="rounded-2xl border border-card-border bg-untamed-black-card p-6 md:p-8">
+        <div className="rounded-2xl border border-card-border bg-untamed-black-card/80 p-6 backdrop-blur-sm md:p-7">
           <p className="font-condensed text-xs font-bold uppercase tracking-[0.25em] text-untamed-white-muted">
             RTD — Ready-to-Drink
           </p>
@@ -301,8 +419,11 @@ function RtsVsRtdSlide() {
             )}
           </ul>
         </div>
-        <div className="rounded-2xl border-2 border-[#FFD700]/40 bg-untamed-black-card p-6 md:p-8">
-          <p className="font-condensed text-xs font-bold uppercase tracking-[0.25em] text-gradient-wild">
+        <div
+          className="rounded-2xl border-2 bg-untamed-black-card/80 p-6 backdrop-blur-sm md:p-7"
+          style={{ borderColor: `${theme.accent}66`, boxShadow: `0 0 60px -24px ${theme.glow}` }}
+        >
+          <p className={`font-condensed text-xs font-bold uppercase tracking-[0.25em] ${theme.gradientClass}`}>
             RTS — Ready-to-Serve
           </p>
           <ul className="mt-4 space-y-3">
@@ -314,21 +435,22 @@ function RtsVsRtdSlide() {
               'Entertaining friendly',
             ].map((t) => (
               <li key={t} className="flex items-start gap-3 text-sm md:text-base">
-                <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#FFD700]" />
+                <Check className="mt-0.5 h-4 w-4 shrink-0" style={{ color: theme.accent }} />
                 {t}
               </li>
             ))}
           </ul>
         </div>
       </div>
-      <p className="mt-8 font-condensed text-xl font-bold uppercase tracking-tight md:text-3xl">
-        Untamed is building <span className="text-gradient-wild">the RTS martini category.</span>
-      </p>
+      <Statement section="The Category" highlight="the RTS martini category.">
+        Untamed is building
+      </Statement>
     </SlideShell>
   )
 }
 
 function TrendsSlide() {
+  const accent = SECTION_THEMES['The Category'].accent
   const trends = [
     {
       icon: <TrendingUp className="h-5 w-5" />,
@@ -352,24 +474,25 @@ function TrendsSlide() {
     },
   ]
   return (
-    <SlideShell kicker="The Category" title="Consumers are trading up">
+    <SlideShell section="The Category" title="Consumers are trading up">
       <div className="grid gap-4 sm:grid-cols-2">
         {trends.map((t) => (
-          <StatCard key={t.title} icon={t.icon} title={t.title} body={t.body} />
+          <StatCard key={t.title} icon={t.icon} title={t.title} body={t.body} accent={accent} />
         ))}
       </div>
-      <p className="mt-8 font-condensed text-xl font-bold uppercase tracking-tight md:text-3xl">
-        Less effort. <span className="text-gradient-wild">Better experiences.</span>
-      </p>
+      <Statement section="The Category" highlight="Better experiences.">
+        Less effort.
+      </Statement>
     </SlideShell>
   )
 }
 
 /* ============================================
-   Section: The Product
+   The Product
    ============================================ */
 
 function WhyUntamedWinsSlide() {
+  const accent = SECTION_THEMES['The Product'].accent
   const points = [
     { title: 'Two full martinis per can', body: 'Every 12 oz can pours two complete cocktails.' },
     { title: '15% ALC/VOL', body: 'Real cocktail strength — not a seltzer in disguise.' },
@@ -379,13 +502,20 @@ function WhyUntamedWinsSlide() {
     { title: 'Memorable feline branding', body: 'Four big-cat personalities consumers connect with.' },
   ]
   return (
-    <SlideShell kicker="The Product" title="Why Untamed wins">
+    <SlideShell section="The Product" title="Why Untamed wins">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {points.map((p) => (
-          <div key={p.title} className="rounded-2xl border border-card-border bg-untamed-black-card p-5 md:p-6">
+          <div
+            key={p.title}
+            className="rounded-2xl border border-card-border bg-untamed-black-card/80 p-5 backdrop-blur-sm md:p-6"
+            style={{ borderTop: `2px solid ${accent}55` }}
+          >
             <div className="flex items-start gap-3">
-              <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#FFD700]/10">
-                <Check className="h-3.5 w-3.5 text-[#FFD700]" />
+              <span
+                className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
+                style={{ backgroundColor: `${accent}1A` }}
+              >
+                <Check className="h-3.5 w-3.5" style={{ color: accent }} />
               </span>
               <div>
                 <h3 className="font-condensed text-base font-bold uppercase tracking-wide md:text-lg">{p.title}</h3>
@@ -402,43 +532,54 @@ function WhyUntamedWinsSlide() {
 function ProductLineSlide() {
   return (
     <SlideShell
-      kicker="The Product"
+      section="The Product"
       title={
         <>
-          Four personalities. <span className="text-gradient-wild">One untamed spirit.</span>
+          Four personalities. <span className="text-gradient-panther">One untamed spirit.</span>
         </>
       }
+      hideAnimal
     >
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 lg:gap-6">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 lg:gap-5">
         {drinks.map((d) => (
           <div
             key={d.slug}
-            className="flex flex-col items-center rounded-2xl border border-card-border bg-untamed-black-card p-4 text-center md:p-6"
-            style={{ boxShadow: `0 0 40px -18px ${d.colorGlow}` }}
+            className="relative flex flex-col items-center overflow-hidden rounded-2xl border bg-untamed-black-card/80 p-4 text-center backdrop-blur-sm md:p-5"
+            style={{ borderColor: `${d.colorLight}44`, boxShadow: `0 0 50px -18px ${d.colorGlow}` }}
           >
-            <Image src={d.canImage} alt={`${d.name} — ${d.flavor}`} width={200} height={340} className="h-32 w-auto md:h-48" />
-            <p
-              className="cyber-brush-fix mt-4 font-wild text-xl md:text-2xl"
-              style={{ color: d.colorLight }}
-            >
+            {/* ghosted animal behind the can */}
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-[0.12]">
+              <Image src={d.animalImage} alt="" width={340} height={340} className="h-full w-auto max-w-none select-none" />
+            </div>
+            <Image
+              src={d.canImage}
+              alt={`${d.name} — ${d.flavor}`}
+              width={200}
+              height={340}
+              className="relative h-32 w-auto drop-shadow-xl md:h-44"
+            />
+            <p className="cyber-brush-fix relative mt-3 font-wild text-xl md:text-2xl" style={{ color: d.colorLight }}>
               {d.name}
             </p>
-            <p className="mt-1 font-condensed text-xs font-bold uppercase tracking-widest text-untamed-white md:text-sm">
+            <p className="relative mt-1 font-condensed text-xs font-bold uppercase tracking-widest text-untamed-white md:text-sm">
               {d.flavor}
             </p>
-            <p className="mt-2 hidden text-xs leading-relaxed text-untamed-white-muted md:block">{d.tagline}</p>
+            <p className="relative mt-2 hidden text-xs leading-relaxed text-untamed-white-muted lg:block">{d.tagline}</p>
           </div>
         ))}
       </div>
-      <p className="mt-8 text-sm text-untamed-white-muted md:text-base">
-        Each flavor is built around a unique big-cat personality and lifestyle identity — branding people remember,
-        wear, and share.
+      <p className="mt-6 text-sm text-untamed-white-muted md:text-base">
+        Each flavor is built around a big-cat personality consumers remember, wear, and share.{' '}
+        <span className="text-untamed-white">
+          Future pipeline: additional premium varieties, variety packs, and seasonal releases.
+        </span>
       </p>
     </SlideShell>
   )
 }
 
 function PositioningSlide() {
+  const theme = SECTION_THEMES['The Product']
   const rows: { label: string; rtd: 'yes' | 'no' | 'limited' | 'rarely'; untamed: 'yes' | 'no'; spirits: 'yes' | 'no' }[] = [
     { label: 'Convenient', rtd: 'yes', untamed: 'yes', spirits: 'no' },
     { label: 'Premium taste', rtd: 'limited', untamed: 'yes', spirits: 'yes' },
@@ -447,8 +588,8 @@ function PositioningSlide() {
     { label: 'Built for entertaining', rtd: 'no', untamed: 'yes', spirits: 'yes' },
   ]
   return (
-    <SlideShell kicker="The Product" title="Positioned between spirits and convenience">
-      <div className="overflow-x-auto rounded-2xl border border-card-border">
+    <SlideShell section="The Product" title="Positioned between spirits and convenience">
+      <div className="overflow-x-auto rounded-2xl border border-card-border bg-untamed-black-card/60 backdrop-blur-sm">
         <table className="w-full min-w-[560px] text-left">
           <thead>
             <tr className="border-b border-card-border bg-untamed-black-card">
@@ -456,7 +597,10 @@ function PositioningSlide() {
               <th className="p-4 text-center font-condensed text-xs font-bold uppercase tracking-widest text-untamed-white-muted md:text-sm">
                 Traditional RTD
               </th>
-              <th className="bg-[#FFD700]/5 p-4 text-center font-condensed text-xs font-bold uppercase tracking-widest text-gradient-wild md:text-sm">
+              <th
+                className={`p-4 text-center font-condensed text-xs font-bold uppercase tracking-widest md:text-sm ${theme.gradientClass}`}
+                style={{ backgroundColor: `${theme.accent}0D` }}
+              >
                 Untamed RTS
               </th>
               <th className="p-4 text-center font-condensed text-xs font-bold uppercase tracking-widest text-untamed-white-muted md:text-sm">
@@ -471,8 +615,8 @@ function PositioningSlide() {
                 <td className="p-4 text-center">
                   <CompareMark value={r.rtd} />
                 </td>
-                <td className="bg-[#FFD700]/5 p-4 text-center">
-                  <CompareMark value={r.untamed} />
+                <td className="p-4 text-center" style={{ backgroundColor: `${theme.accent}0D` }}>
+                  <CompareMark value={r.untamed} accent={theme.accent} />
                 </td>
                 <td className="p-4 text-center">
                   <CompareMark value={r.spirits} />
@@ -482,49 +626,106 @@ function PositioningSlide() {
           </tbody>
         </table>
       </div>
-      <p className="mt-8 font-condensed text-xl font-bold uppercase tracking-tight md:text-3xl">
-        We sit between premium spirits and convenience beverages —{' '}
-        <span className="text-gradient-wild">and deliver the best of both.</span>
-      </p>
+      <Statement section="The Product" highlight="and deliver the best of both.">
+        We sit between premium spirits and convenience beverages —
+      </Statement>
     </SlideShell>
   )
 }
 
 /* ============================================
-   Section: The Business
+   The Business
    ============================================ */
 
 function BusinessModelSlide() {
+  const accent = SECTION_THEMES['The Business'].accent
   const channels = [
     { icon: <Store className="h-5 w-5" />, title: 'Retail chains' },
     { icon: <Wine className="h-5 w-5" />, title: 'Independent liquor stores' },
     { icon: <Hotel className="h-5 w-5" />, title: 'Resorts & hospitality' },
     { icon: <Flag className="h-5 w-5" />, title: 'Golf clubs' },
     { icon: <Anchor className="h-5 w-5" />, title: 'Marina retailers' },
-    { icon: <ShoppingCart className="h-5 w-5" />, title: 'Direct-to-consumer where permitted' },
+    { icon: <ShoppingBasket className="h-5 w-5" />, title: 'Grocery where legal' },
+    { icon: <Gift className="h-5 w-5" />, title: 'Corporate gifting & events' },
+    { icon: <ShoppingCart className="h-5 w-5" />, title: 'DTC where permitted' },
   ]
   return (
     <SlideShell
-      kicker="The Business"
+      section="The Business"
       title="A scalable premium beverage platform"
       intro="Multiple revenue channels, designed for repeat purchase and strong customer loyalty."
     >
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {channels.map((c) => (
-          <StatCard key={c.title} icon={c.icon} title={c.title} />
+          <StatCard key={c.title} icon={c.icon} title={c.title} accent={accent} />
         ))}
       </div>
-      <p className="mt-8 font-condensed text-xl font-bold uppercase tracking-tight md:text-3xl">
-        The goal: <span className="text-gradient-wild">America&apos;s leading Ready-to-Serve martini brand.</span>
-      </p>
+      <Statement section="The Business" highlight="America's leading Ready-to-Serve martini brand.">
+        The goal:
+      </Statement>
+    </SlideShell>
+  )
+}
+
+function GoToMarketSlide() {
+  const theme = SECTION_THEMES['The Business']
+  const phases = [
+    {
+      phase: 'Phase 1',
+      name: 'Ignite',
+      items: ['Target cocktail enthusiasts', 'Build social media presence', 'Sampling & influencer partnerships'],
+    },
+    {
+      phase: 'Phase 2',
+      name: 'Expand',
+      items: ['Grow the retail footprint', 'Strategic distributor relationships', 'Geographic expansion'],
+    },
+    {
+      phase: 'Phase 3',
+      name: 'Own',
+      items: ['New product launches', 'National brand development', 'RTS category leadership'],
+    },
+  ]
+  return (
+    <SlideShell
+      section="The Business"
+      title="Go-to-market: build the brand in three moves"
+      intro="Win the enthusiasts first, expand distribution second, then own the category."
+    >
+      <div className="grid gap-4 md:grid-cols-3 md:gap-6">
+        {phases.map((p, i) => (
+          <div
+            key={p.phase}
+            className="relative rounded-2xl border border-card-border bg-untamed-black-card/80 p-6 backdrop-blur-sm md:p-7"
+            style={{ borderTop: `2px solid ${theme.accent}${['44', '77', 'BB'][i]}` }}
+          >
+            <div className="flex items-baseline justify-between">
+              <p className="font-condensed text-[11px] font-bold uppercase tracking-[0.3em] text-untamed-white-muted">
+                {p.phase}
+              </p>
+              {i === 2 && <Rocket className="h-4 w-4" style={{ color: theme.accent }} />}
+            </div>
+            <p className={`cyber-brush-fix mt-2 font-wild text-3xl md:text-4xl ${theme.gradientClass}`}>{p.name}</p>
+            <ul className="mt-4 space-y-2.5">
+              {p.items.map((t) => (
+                <li key={t} className="flex items-start gap-2.5 text-sm text-untamed-white-muted md:text-base">
+                  <Check className="mt-0.5 h-4 w-4 shrink-0" style={{ color: theme.accent }} />
+                  {t}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
     </SlideShell>
   )
 }
 
 function RoadmapSlide() {
+  const theme = SECTION_THEMES['The Business']
   return (
     <SlideShell
-      kicker="The Business"
+      section="The Business"
       title="Five years to category leadership"
       intro="Distribution-led growth: win Florida, expand across the Southeast, then scale nationally as the defining RTS brand."
     >
@@ -532,11 +733,12 @@ function RoadmapSlide() {
         {ROADMAP.map((step, i) => (
           <div
             key={step.year}
-            className={`relative rounded-2xl border p-5 md:p-5 ${
+            className="relative rounded-2xl border p-5 backdrop-blur-sm"
+            style={
               i === ROADMAP.length - 1
-                ? 'border-[#FFD700]/40 bg-[#FFD700]/5'
-                : 'border-card-border bg-untamed-black-card'
-            }`}
+                ? { borderColor: '#FFD70066', backgroundColor: 'rgba(255, 215, 0, 0.05)' }
+                : { borderColor: 'var(--card-border)', backgroundColor: 'rgba(20, 20, 20, 0.8)' }
+            }
           >
             <p className="font-condensed text-[11px] font-bold uppercase tracking-[0.25em] text-untamed-white-muted">
               {step.year}
@@ -544,14 +746,19 @@ function RoadmapSlide() {
             <p className="mt-2 font-condensed text-base font-bold uppercase leading-tight tracking-wide md:text-lg">
               {step.milestone}
             </p>
-            <p className={`mt-3 text-lg font-bold md:text-xl ${i === ROADMAP.length - 1 ? 'text-gradient-wild' : 'text-untamed-silver'}`}>
+            <p
+              className={`mt-3 text-lg font-bold md:text-xl ${
+                i === ROADMAP.length - 1 ? 'text-gradient-wild' : ''
+              }`}
+              style={i === ROADMAP.length - 1 ? undefined : { color: theme.accent }}
+            >
               {step.revenue}
             </p>
             {i === ROADMAP.length - 1 && <Crown className="absolute right-4 top-4 h-4 w-4 text-[#FFD700]" />}
           </div>
         ))}
       </div>
-      <p className="mt-8 text-sm text-untamed-white-muted md:text-base">
+      <p className="mt-6 text-sm text-untamed-white-muted md:text-base">
         Revenue milestones reflect the base case: $500K to $25M over five years, driven by door growth, velocity per
         door, and brand pull.
       </p>
@@ -560,19 +767,27 @@ function RoadmapSlide() {
 }
 
 /* ============================================
-   Section: The Financials
+   The Financials
    ============================================ */
 
 function ProjectionSlide() {
+  const assumptions = [
+    'RTS category creation',
+    'Florida launch & expansion',
+    'Southeast rollout',
+    'National retail partnerships',
+    'New flavors & variety packs',
+    'Repeat purchase growth',
+  ]
   return (
     <SlideShell
-      kicker="The Financials"
+      section="The Financials"
       title="Five-year base case"
       intro="Profitability in Year 3 while continuing aggressive geographic expansion."
       footnote={DISCLAIMER}
     >
-      <div className="grid items-center gap-8 lg:grid-cols-2">
-        <div className="overflow-x-auto rounded-2xl border border-card-border">
+      <div className="grid items-center gap-6 lg:grid-cols-2 lg:gap-8">
+        <div className="overflow-x-auto rounded-2xl border border-card-border bg-untamed-black-card/60 backdrop-blur-sm">
           <table className="w-full min-w-[420px] text-left">
             <thead>
               <tr className="border-b border-card-border bg-untamed-black-card">
@@ -605,6 +820,16 @@ function ProjectionSlide() {
           <RevenueBarChart data={FIVE_YEAR_BASE} />
         </div>
       </div>
+      <div className="mt-5 flex flex-wrap gap-2">
+        {assumptions.map((a) => (
+          <span
+            key={a}
+            className="rounded-full border border-card-border bg-untamed-black-card/80 px-3.5 py-1.5 font-condensed text-[11px] font-bold uppercase tracking-widest text-untamed-white-muted md:text-xs"
+          >
+            {a}
+          </span>
+        ))}
+      </div>
     </SlideShell>
   )
 }
@@ -612,7 +837,7 @@ function ProjectionSlide() {
 function ScenarioDashboardSlide() {
   return (
     <SlideShell
-      kicker="The Financials"
+      section="The Financials"
       title="Multiple paths to value creation"
       intro="Year 5 outcomes under conservative, base, and upside execution cases."
       footnote={DISCLAIMER}
@@ -621,29 +846,33 @@ function ScenarioDashboardSlide() {
         {YEAR5_SCENARIOS.map((s) => (
           <div
             key={s.name}
-            className={`rounded-2xl border p-6 md:p-8 ${
-              s.name === 'Base' ? 'border-[#FFD700]/40 bg-[#FFD700]/5' : 'border-card-border bg-untamed-black-card'
-            }`}
+            className="rounded-2xl border p-6 backdrop-blur-sm md:p-7"
+            style={
+              s.name === 'Base'
+                ? {
+                    borderColor: '#FFD70066',
+                    backgroundColor: 'rgba(255, 215, 0, 0.05)',
+                    boxShadow: '0 0 60px -24px rgba(255, 215, 0, 0.35)',
+                  }
+                : { borderColor: 'var(--card-border)', backgroundColor: 'rgba(20, 20, 20, 0.8)' }
+            }
           >
-            <p
-              className="font-condensed text-xs font-bold uppercase tracking-[0.25em]"
-              style={{ color: s.color }}
-            >
+            <p className="font-condensed text-xs font-bold uppercase tracking-[0.25em]" style={{ color: s.color }}>
               {s.name} case
             </p>
-            <p className="mt-4 font-condensed text-4xl font-bold tracking-tight md:text-5xl">{s.revenue}</p>
+            <p className="mt-3 font-condensed text-4xl font-bold tracking-tight md:text-5xl">{s.revenue}</p>
             <p className="mt-1 font-condensed text-sm uppercase tracking-widest text-untamed-white-muted">Revenue</p>
-            <div className="mt-5 space-y-1.5 border-t border-card-border pt-5 text-sm text-untamed-white-muted md:text-base">
+            <div className="mt-4 space-y-1.5 border-t border-card-border pt-4 text-sm text-untamed-white-muted md:text-base">
               <p>
                 <span className="font-semibold text-untamed-white">{s.ebitda}</span> EBITDA
               </p>
               <p>{s.doors}</p>
             </div>
-            <p className="mt-4 text-xs leading-relaxed text-untamed-white-muted md:text-sm">{s.summary}</p>
+            <p className="mt-3 text-xs leading-relaxed text-untamed-white-muted md:text-sm">{s.summary}</p>
           </div>
         ))}
       </div>
-      <p className="mt-8 text-sm text-untamed-white-muted md:text-base">
+      <p className="mt-6 text-sm text-untamed-white-muted md:text-base">
         <span className="font-semibold text-untamed-white">Investor takeaway:</span> the model is designed to show
         downside resilience and upside operating leverage as distribution scales.
       </p>
@@ -654,7 +883,7 @@ function ScenarioDashboardSlide() {
 function RevenueSensitivitySlide() {
   return (
     <SlideShell
-      kicker="The Financials"
+      section="The Financials"
       title="Revenue growth by scenario"
       intro="Distribution expansion, velocity per door, and RTS brand pull drive the revenue curve."
       footnote={DISCLAIMER}
@@ -666,7 +895,7 @@ function RevenueSensitivitySlide() {
         yMax={48}
         yTicks={[0, 10, 20, 30, 40]}
       />
-      <p className="mt-6 text-sm text-untamed-white-muted md:text-base">
+      <p className="mt-4 text-sm text-untamed-white-muted md:text-base">
         The base case scales from <span className="font-semibold text-untamed-white">$0.5M in Year 1</span> to{' '}
         <span className="font-semibold text-untamed-white">$25M in Year 5</span>.
       </p>
@@ -677,7 +906,7 @@ function RevenueSensitivitySlide() {
 function EbitdaSlide() {
   return (
     <SlideShell
-      kicker="The Financials"
+      section="The Financials"
       title="EBITDA path to break-even"
       intro="The base case reaches EBITDA profitability in Year 3; the upside case gets there earlier."
       footnote={DISCLAIMER}
@@ -690,7 +919,7 @@ function EbitdaSlide() {
         yTicks={[0, 3, 6, 9, 12]}
         zeroLineLabel="Break-even"
       />
-      <p className="mt-6 text-sm text-untamed-white-muted md:text-base">
+      <p className="mt-4 text-sm text-untamed-white-muted md:text-base">
         Even the conservative case becomes EBITDA-positive by Year 4 in this illustrative model.
       </p>
     </SlideShell>
@@ -698,15 +927,16 @@ function EbitdaSlide() {
 }
 
 function DoorsVelocitySlide() {
+  const theme = SECTION_THEMES['The Financials']
   const m = DOORS_VELOCITY_MATRIX
   return (
     <SlideShell
-      kicker="The Financials"
+      section="The Financials"
       title="Year 5 revenue: doors x velocity"
       intro="Revenue upside comes from both more doors and stronger annual revenue per retail door."
       footnote={`${DISCLAIMER} Velocity assumptions are annual revenue per retail location.`}
     >
-      <div className="overflow-x-auto rounded-2xl border border-card-border">
+      <div className="overflow-x-auto rounded-2xl border border-card-border bg-untamed-black-card/60 backdrop-blur-sm">
         <table className="w-full min-w-[560px] text-center">
           <thead>
             <tr className="border-b border-card-border bg-untamed-black-card">
@@ -730,10 +960,10 @@ function DoorsVelocitySlide() {
                 {row.values.map((v, ci) => {
                   const isBase = ri === m.baseCell[0] && ci === m.baseCell[1]
                   return (
-                    <td key={ci} className={`p-4 ${isBase ? 'bg-[#FFD700]/10' : ''}`}>
+                    <td key={ci} className="p-4" style={isBase ? { backgroundColor: `${theme.accent}14` } : undefined}>
                       <span
                         className={`font-condensed text-xl font-bold md:text-2xl ${
-                          isBase ? 'text-gradient-wild' : 'text-untamed-white'
+                          isBase ? theme.gradientClass : 'text-untamed-white'
                         }`}
                       >
                         {v}
@@ -751,7 +981,7 @@ function DoorsVelocitySlide() {
           </tbody>
         </table>
       </div>
-      <p className="mt-8 text-sm text-untamed-white-muted md:text-base">
+      <p className="mt-6 text-sm text-untamed-white-muted md:text-base">
         <span className="font-semibold text-untamed-white">Investor takeaway:</span> Untamed can create value through
         door growth, velocity improvement, or both. Retail activation and repeat purchase rates are the core levers.
       </p>
@@ -760,34 +990,40 @@ function DoorsVelocitySlide() {
 }
 
 function BreakEvenSlide() {
+  const theme = SECTION_THEMES['The Financials']
   return (
     <SlideShell
-      kicker="The Financials"
+      section="The Financials"
       title="Break-even analysis"
       intro="Break-even revenue declines as gross margin improves."
       footnote={`${DISCLAIMER} Break-even doors assume ${BREAK_EVEN.velocityAssumption}.`}
     >
-      <div className="grid items-center gap-8 lg:grid-cols-2">
-        <div className="rounded-2xl border border-card-border bg-untamed-black-card p-6 md:p-8">
-          <p className="font-condensed text-xs font-bold uppercase tracking-[0.25em] text-gradient-wild">
+      <div className="grid items-center gap-6 lg:grid-cols-2 lg:gap-8">
+        <div className="rounded-2xl border border-card-border bg-untamed-black-card/80 p-6 backdrop-blur-sm md:p-7">
+          <p className={`font-condensed text-xs font-bold uppercase tracking-[0.25em] ${theme.gradientClass}`}>
             Base case break-even
           </p>
-          <dl className="mt-5 space-y-4">
+          <dl className="mt-4 space-y-3.5">
             {[
               { label: 'Fixed OpEx assumption', value: BREAK_EVEN.fixedOpex },
               { label: 'Gross margin', value: BREAK_EVEN.baseGrossMargin },
               { label: 'Break-even revenue', value: BREAK_EVEN.baseRevenue, highlight: true },
               { label: 'Doors at $3,125 / door', value: BREAK_EVEN.doorsAtBase },
             ].map((row) => (
-              <div key={row.label} className="flex items-baseline justify-between gap-4 border-b border-card-border pb-4 last:border-0 last:pb-0">
+              <div
+                key={row.label}
+                className="flex items-baseline justify-between gap-4 border-b border-card-border pb-3.5 last:border-0 last:pb-0"
+              >
                 <dt className="text-sm text-untamed-white-muted md:text-base">{row.label}</dt>
-                <dd className={`font-condensed text-2xl font-bold md:text-3xl ${row.highlight ? 'text-gradient-wild' : ''}`}>
+                <dd
+                  className={`font-condensed text-2xl font-bold md:text-3xl ${row.highlight ? theme.gradientClass : ''}`}
+                >
                   {row.value}
                 </dd>
               </div>
             ))}
           </dl>
-          <p className="mt-5 text-xs text-muted md:text-sm">
+          <p className="mt-4 text-xs text-muted md:text-sm">
             Break-even revenue = fixed operating expenses / gross margin
           </p>
         </div>
@@ -800,13 +1036,13 @@ function BreakEvenSlide() {
 }
 
 /* ============================================
-   Section: The Ask
+   The Ask
    ============================================ */
 
 function RaiseSlide() {
   return (
     <SlideShell
-      kicker="The Ask"
+      section="The Ask"
       title={
         <>
           Seeking <span className="text-gradient-wild">{RAISE.amount}</span> via {RAISE.instrument}
@@ -852,7 +1088,7 @@ function RaiseSlide() {
 function ReturnScenarioSlide() {
   return (
     <SlideShell
-      kicker="The Ask"
+      section="The Ask"
       title="The scale opportunity"
       intro="Illustrative example only — if Untamed reaches the base case and is acquired by a strategic beverage company."
       footnote="This is not a guarantee. It demonstrates the scale opportunity created by establishing a new RTS category."
@@ -867,7 +1103,7 @@ function ReturnScenarioSlide() {
               <CheckItem key={a}>{a}</CheckItem>
             ))}
           </ul>
-          <p className="mt-6 text-sm leading-relaxed text-untamed-white-muted md:text-base">
+          <p className="mt-5 text-sm leading-relaxed text-untamed-white-muted md:text-base">
             Category creators command premium multiples. RTS positioning supports a potentially higher valuation
             multiple than a typical RTD brand.
           </p>
@@ -876,11 +1112,16 @@ function ReturnScenarioSlide() {
           {RETURN_SCENARIO.multiples.map((m, i) => (
             <div
               key={m.multiple}
-              className={`rounded-2xl border p-6 text-center ${
+              className="rounded-2xl border p-6 text-center backdrop-blur-sm"
+              style={
                 i === RETURN_SCENARIO.multiples.length - 1
-                  ? 'border-[#FFD700]/40 bg-[#FFD700]/5'
-                  : 'border-card-border bg-untamed-black-card'
-              }`}
+                  ? {
+                      borderColor: '#FFD70066',
+                      backgroundColor: 'rgba(255, 215, 0, 0.05)',
+                      boxShadow: '0 0 60px -24px rgba(255, 215, 0, 0.35)',
+                    }
+                  : { borderColor: 'var(--card-border)', backgroundColor: 'rgba(20, 20, 20, 0.8)' }
+              }
             >
               <p className="font-condensed text-xs font-bold uppercase tracking-[0.25em] text-untamed-white-muted">
                 {m.multiple}
@@ -911,13 +1152,13 @@ function ThesisSlide() {
     'Significant acquisition potential',
   ]
   return (
-    <SlideShell kicker="The Ask" title="Why Untamed?">
+    <SlideShell section="The Ask" title="Why Untamed?">
       <ul className="grid gap-x-10 gap-y-4 md:grid-cols-2">
         {points.map((p) => (
           <CheckItem key={p}>{p}</CheckItem>
         ))}
       </ul>
-      <blockquote className="mt-10 max-w-4xl border-l-2 border-[#FFD700] pl-6">
+      <blockquote className="mt-8 max-w-4xl border-l-2 border-[#FFD700] pl-6">
         <p className="text-base leading-relaxed text-untamed-white md:text-xl">
           &ldquo;RTD was built for convenience. RTS is built for occasions. Untamed delivers a premium martini
           experience wherever people gather.&rdquo;
@@ -929,34 +1170,53 @@ function ThesisSlide() {
 
 function VisionSlide() {
   return (
-    <div className="flex h-full w-full flex-col items-center justify-center px-6 text-center">
-      <p className="font-condensed text-xs font-bold uppercase tracking-[0.35em] text-gradient-wild md:text-sm">
-        The Vision
-      </p>
-      <h2 className="mt-6 font-condensed text-3xl font-bold uppercase leading-tight tracking-tight sm:text-5xl md:text-6xl">
-        RTD is convenience.
-        <br />
-        <span className="text-gradient-wild">RTS is an experience.</span>
-      </h2>
-      <p className="mt-8 max-w-2xl text-sm leading-relaxed text-untamed-white-muted md:text-lg">
-        Consumers do not want another canned cocktail. They want a premium cocktail experience that is ready to serve,
-        ready to share, and ready to impress. Untamed Beverages is building America&apos;s first defining
-        Ready-to-Serve martini brand.
-      </p>
-      <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
-        {['Ready to Serve', 'Ready to Share', 'Ready to Impress'].map((t) => (
-          <span
-            key={t}
-            className="rounded-full border border-card-border bg-untamed-black-card px-5 py-2 font-condensed text-xs font-bold uppercase tracking-widest text-untamed-silver md:text-sm"
-          >
-            {t}
-          </span>
-        ))}
+    <div className="relative flex h-full w-full flex-col items-center overflow-hidden px-6 text-center">
+      <div className="pointer-events-none absolute -right-32 -top-32 h-[420px] w-[420px] rounded-full bg-[#FFD700] opacity-[0.12] blur-[130px]" />
+      <div className="pointer-events-none absolute -left-32 top-1/4 h-[420px] w-[420px] rounded-full bg-[#9B30FF] opacity-[0.10] blur-[130px]" />
+
+      <div className="relative z-10 flex flex-1 flex-col items-center justify-center pb-[30vh]">
+        <p className="font-condensed text-xs font-bold uppercase tracking-[0.35em] text-gradient-wild md:text-sm">
+          The Vision
+        </p>
+        <h2 className="animate-scratch mt-4 font-condensed text-3xl font-bold uppercase leading-tight tracking-tight sm:text-5xl md:text-6xl">
+          RTD is convenience.
+          <br />
+          <span className="text-gradient-wild">RTS is an experience.</span>
+        </h2>
+        <p className="mt-6 max-w-2xl text-sm leading-relaxed text-untamed-white-muted md:text-lg">
+          Consumers do not want another canned cocktail. They want a premium cocktail experience that is ready to
+          serve, ready to share, and ready to impress. Untamed Beverages is building America&apos;s first defining
+          Ready-to-Serve martini brand.
+        </p>
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+          {['Ready to Serve', 'Ready to Share', 'Ready to Impress'].map((t) => (
+            <span
+              key={t}
+              className="rounded-full border border-card-border bg-untamed-black-card px-5 py-2 font-condensed text-xs font-bold uppercase tracking-widest text-untamed-silver md:text-sm"
+            >
+              {t}
+            </span>
+          ))}
+        </div>
+        <p className="cyber-brush-fix mt-10 font-wild text-4xl text-gradient-wild md:text-6xl">Live Life Untamed</p>
+        <p className="mt-6 font-condensed text-[11px] uppercase tracking-[0.3em] text-muted md:text-xs">
+          Untamed Beverages, LLC — untamedbevs.com — Please drink responsibly. 21+
+        </p>
       </div>
-      <p className="cyber-brush-fix mt-12 font-wild text-4xl text-gradient-wild md:text-6xl">Live Life Untamed</p>
-      <p className="mt-8 font-condensed text-[11px] uppercase tracking-[0.3em] text-muted md:text-xs">
-        Untamed Beverages, LLC — untamedbevs.com — Please drink responsibly. 21+
-      </p>
+
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-0 flex justify-center">
+        <Image
+          src={CANS_GROUP}
+          alt="Untamed martini can lineup"
+          width={1400}
+          height={640}
+          className="h-auto w-[55%] max-w-xl translate-y-[28%] select-none"
+          style={{
+            maskImage: 'linear-gradient(to bottom, black 50%, transparent 95%)',
+            WebkitMaskImage: 'linear-gradient(to bottom, black 50%, transparent 95%)',
+          }}
+        />
+      </div>
     </div>
   )
 }
@@ -983,6 +1243,7 @@ export const SLIDES: SlideDef[] = [
   { id: 'lineup', section: 'The Product', title: 'Product Line', render: () => <ProductLineSlide /> },
   { id: 'positioning', section: 'The Product', title: 'Market Positioning', render: () => <PositioningSlide /> },
   { id: 'model', section: 'The Business', title: 'Business Model', render: () => <BusinessModelSlide /> },
+  { id: 'go-to-market', section: 'The Business', title: 'Go-to-Market', render: () => <GoToMarketSlide /> },
   { id: 'roadmap', section: 'The Business', title: 'Growth Roadmap', render: () => <RoadmapSlide /> },
   { id: 'projection', section: 'The Financials', title: 'Five-Year Base Case', render: () => <ProjectionSlide /> },
   { id: 'scenarios', section: 'The Financials', title: 'Scenario Dashboard', render: () => <ScenarioDashboardSlide /> },
