@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev --turbopack -p 3003",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -13,7 +13,6 @@
     "@ai-sdk/react": "^3.0.101",
     "@aws-sdk/client-mediaconvert": "^3.1054.0",
     "@aws-sdk/client-s3": "^3.996.0",
-    "@aws-sdk/client-ses": "^3.1053.0",
     "@aws-sdk/s3-request-presigner": "^3.996.0",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",

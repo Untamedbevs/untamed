@@ -4,8 +4,8 @@
  * Wraps `sendEmail()` / `sendRawEmail()` with a write to the `email_messages`
  * table so every outbound email is recorded (transactional + bulk).
  *
- * Throws if SES send fails. Throws if DB insert fails after retries so the
- * caller always knows about both failure modes.
+ * Throws if the SMTP send fails. Throws if DB insert fails after retries so
+ * the caller always knows about both failure modes.
  */
 
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -16,7 +16,7 @@ import {
   type SendEmailParams,
   type EmailAlias,
   type EmailAttachment,
-} from '@/lib/email/ses'
+} from '@/lib/email/smtp'
 
 const LOG_INSERT_MAX_RETRIES = 2
 const LOG_INSERT_RETRY_DELAY_MS = 500
@@ -27,7 +27,7 @@ export interface LoggedEmailParams extends SendEmailParams {
    * Full addresses pass through as-is. Overridden by `from` if also set.
    */
   fromAlias?: EmailAlias | string
-  /** Thread grouping identifier (defaults to the SES message id) */
+  /** Thread grouping identifier (defaults to the SMTP message id) */
   threadId?: string
   /** Slug of the email template used (for analytics tracking) */
   templateSlug?: string
@@ -44,8 +44,8 @@ export interface LoggedEmailParams extends SendEmailParams {
 }
 
 /**
- * Send an email via SES and log it to the `email_messages` table.
- * Returns the SES message id.
+ * Send an email via Google Workspace SMTP and log it to the `email_messages`
+ * table. Returns the message id.
  */
 export async function sendAndLogEmail(params: LoggedEmailParams): Promise<string> {
   const {
@@ -58,35 +58,35 @@ export async function sendAndLogEmail(params: LoggedEmailParams): Promise<string
     referralParticipantId,
     distributorLeadId,
     attachments,
-    ...sesParams
+    ...emailParams
   } = params
 
   const resolvedFrom = resolveAlias(fromAlias)
-  sesParams.from = sesParams.from || resolvedFrom
-  sesParams.replyTo = sesParams.replyTo || resolvedFrom
+  emailParams.from = emailParams.from || resolvedFrom
+  emailParams.replyTo = emailParams.replyTo || resolvedFrom
 
-  const sesMessageId =
+  const messageId =
     attachments && attachments.length > 0
-      ? await sendRawEmail({ ...sesParams, attachments })
-      : await sendEmail(sesParams)
+      ? await sendRawEmail({ ...emailParams, attachments })
+      : await sendEmail(emailParams)
 
   const supabase = createAdminClient()
-  const toAddresses = Array.isArray(sesParams.to) ? sesParams.to : [sesParams.to]
+  const toAddresses = Array.isArray(emailParams.to) ? emailParams.to : [emailParams.to]
 
   const row = {
     campaign_id: campaignId || null,
     loyalty_member_id: loyaltyMemberId || null,
     referral_participant_id: referralParticipantId || null,
     distributor_lead_id: distributorLeadId || null,
-    from_email: sesParams.from,
+    from_email: emailParams.from,
     to_email: toAddresses[0],
-    subject: sesParams.subject,
-    body_html: sesParams.html,
-    body_text: sesParams.text || '',
+    subject: emailParams.subject,
+    body_html: emailParams.html,
+    body_text: emailParams.text || '',
     direction: 'outbound' as const,
     status: 'sent',
-    ses_message_id: sesMessageId,
-    thread_id: threadId || sesMessageId,
+    ses_message_id: messageId,
+    thread_id: threadId || messageId,
     template_slug: templateSlug || null,
     sent_by: sentBy || null,
     sent_at: new Date().toISOString(),
@@ -122,9 +122,9 @@ export async function sendAndLogEmail(params: LoggedEmailParams): Promise<string
 
   if (lastError) {
     throw new Error(
-      `Email sent (SES ID: ${sesMessageId}) but failed to log to database after ${LOG_INSERT_MAX_RETRIES + 1} attempts: ${lastError}`
+      `Email sent (message ID: ${messageId}) but failed to log to database after ${LOG_INSERT_MAX_RETRIES + 1} attempts: ${lastError}`
     )
   }
 
-  return sesMessageId
+  return messageId
 }

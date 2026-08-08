@@ -4,7 +4,24 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { resolveReferralCode, generateUniqueCode } from '@/lib/referral/helpers'
 import { REF_COOKIE_NAME } from '@/lib/referral/constants'
 import { POINTS } from '@/lib/loyalty/constants'
+import { sendAndLogEmail } from '@/lib/messaging/email-log'
 import { z } from 'zod'
+
+const LEAD_NOTIFY_EMAIL = 'joe.colella@untamedbeverages.com'
+
+const BUSINESS_TYPE_LABELS: Record<string, string> = {
+  bar_restaurant: 'Bar / Restaurant',
+  liquor_store: 'Liquor Store',
+  distributor: 'Distributor',
+  event_venue: 'Event Venue',
+  other: 'Other',
+}
+
+const VOLUME_LABELS: Record<string, string> = {
+  small: 'Small',
+  medium: 'Medium',
+  large: 'Large',
+}
 
 const leadSchema = z.object({
   businessName: z.string().min(1, 'Business name is required'),
@@ -62,6 +79,22 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (leadError) throw leadError
+
+    // Notify sales of the new lead. Failure here should never block the
+    // lead submission itself.
+    try {
+      await sendAndLogEmail({
+        to: LEAD_NOTIFY_EMAIL,
+        replyTo: data.email,
+        subject: `New Retail Lead: ${data.businessName}`,
+        html: renderLeadNotificationHtml(data),
+        text: renderLeadNotificationText(data),
+        templateSlug: 'retail-lead-notification',
+        distributorLeadId: lead.id,
+      })
+    } catch (emailErr) {
+      console.error('[distributor/lead] Notification email failed:', emailErr)
+    }
 
     // Credit referrer (counter + event only -- referral points are reserved
     // for consumer signups and purchases). Deduped per referred email.
@@ -172,4 +205,78 @@ export async function POST(request: NextRequest) {
     console.error('[distributor/lead] Failed:', err)
     return NextResponse.json({ error: 'Failed to submit inquiry' }, { status: 500 })
   }
+}
+
+// ---------------------------------------------------------------------------
+// Lead notification email
+// ---------------------------------------------------------------------------
+
+type LeadData = z.infer<typeof leadSchema>
+
+function leadFields(data: LeadData): Array<[string, string]> {
+  const fields: Array<[string, string]> = [
+    ['Business', data.businessName],
+    ['Contact', data.contactName],
+    ['Email', data.email],
+  ]
+  if (data.phone) fields.push(['Phone', data.phone])
+  if (data.location) fields.push(['Location', data.location])
+  fields.push(['Business Type', BUSINESS_TYPE_LABELS[data.businessType] || data.businessType])
+  if (data.volumeInterest) {
+    fields.push(['Volume Interest', VOLUME_LABELS[data.volumeInterest] || data.volumeInterest])
+  }
+  if (data.message) fields.push(['Message', data.message])
+  return fields
+}
+
+function renderLeadNotificationText(data: LeadData): string {
+  return [
+    'New retail lead from untamedbeverages.com:',
+    '',
+    ...leadFields(data).map(([label, value]) => `${label}: ${value}`),
+  ].join('\n')
+}
+
+function renderLeadNotificationHtml(data: LeadData): string {
+  const rows = leadFields(data)
+    .map(
+      ([label, value]) => `
+        <tr>
+          <td style="padding:8px 12px;color:#888;font-size:13px;white-space:nowrap;vertical-align:top;">${escapeHtml(label)}</td>
+          <td style="padding:8px 12px;color:#EDEDED;font-size:14px;">${escapeHtml(value).replace(/\n/g, '<br>')}</td>
+        </tr>`
+    )
+    .join('')
+
+  return `
+    <div style="background:#0A0A0A;padding:32px 16px;font-family:Arial,Helvetica,sans-serif;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;margin:0 auto;background:#141414;border:1px solid #2A2A2A;border-radius:12px;overflow:hidden;">
+        <tr>
+          <td style="padding:24px 32px;border-bottom:1px solid #2A2A2A;">
+            <span style="color:#9B30FF;font-size:12px;letter-spacing:2px;text-transform:uppercase;">Untamed Beverages</span>
+            <h1 style="margin:8px 0 0;color:#FFFFFF;font-size:20px;">New Retail Lead</h1>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:16px 20px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows}
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:16px 32px;border-top:1px solid #2A2A2A;color:#666;font-size:12px;">
+            Reply to this email to respond to the lead directly, or view it in the
+            <a href="https://untamedbeverages.com/admin/retail" style="color:#9B30FF;">admin dashboard</a>.
+          </td>
+        </tr>
+      </table>
+    </div>`
+}
+
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
 }
