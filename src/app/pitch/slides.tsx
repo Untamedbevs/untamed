@@ -249,10 +249,7 @@ function CoverSlide() {
           </p>
           <span className="h-px w-10 bg-gradient-to-l from-transparent to-[#FFD700] md:w-16" />
         </div>
-        <p className="mt-6 font-condensed text-2xl font-bold uppercase tracking-tight text-gradient-wild sm:text-3xl md:text-4xl">
-          Not Ready-to-Drink. Ready-to-Serve.
-        </p>
-        <p className="mt-3 max-w-xl text-sm text-untamed-white-muted md:text-base">
+        <p className="mt-6 max-w-xl text-sm text-untamed-white-muted md:text-base">
           Premium cocktails crafted for the glass, not the can.
         </p>
         <p className="mt-6 font-condensed text-[11px] uppercase tracking-[0.3em] text-muted md:text-xs">
