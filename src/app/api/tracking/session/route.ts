@@ -87,6 +87,7 @@ export async function POST(request: NextRequest) {
       if (visitor) {
         await supabase.from('sessions').insert({
           visitor_id: visitor.id,
+          client_session_id: sessionId,
           landing_page: landingPage,
           referrer: referrer,
           utm_source: utm.source,

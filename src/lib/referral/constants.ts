@@ -40,3 +40,16 @@ export const LEAD_STATUS_LABELS: Record<string, string> = {
   converted: 'Converted',
   declined: 'Declined',
 }
+
+export const LEAD_SLA_HOURS = 48
+
+export const LEAD_ACTIVITY_LABELS: Record<string, string> = {
+  created: 'Created',
+  status_change: 'Status',
+  note: 'Note',
+  called: 'Called',
+  emailed: 'Emailed',
+  meeting: 'Meeting',
+  sample_sent: 'Sample sent',
+  next_action: 'Next action',
+}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import {
   Building2, User, Mail, Phone, MapPin,
@@ -11,32 +11,52 @@ import {
   VOLUME_INTEREST_LABELS,
 } from '@/lib/referral/constants'
 import type { DistributorBusinessType, VolumeInterest } from '@/lib/referral/types'
+import { useTracking } from '@/components/TrackingProvider'
+import { trackLead } from '@/lib/tracking/meta-pixel'
 
 interface DistributorLeadFormProps {
   referrerName?: string | null
   onSuccess?: () => void
+  defaultBusinessType?: DistributorBusinessType
 }
 
-export function DistributorLeadForm({ referrerName, onSuccess }: DistributorLeadFormProps) {
+function readCookie(name: string): string | undefined {
+  if (typeof document === 'undefined') return undefined
+  const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`))
+  return match ? decodeURIComponent(match[1]) : undefined
+}
+
+export function DistributorLeadForm({ referrerName, onSuccess, defaultBusinessType }: DistributorLeadFormProps) {
   const searchParams = useSearchParams()
   const ref = searchParams.get('ref')
+  const { getAttribution, trackEvent } = useTracking()
+  const formStarted = useRef(false)
 
   const [businessName, setBusinessName] = useState('')
   const [contactName, setContactName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [location, setLocation] = useState('')
-  const [businessType, setBusinessType] = useState<DistributorBusinessType>('bar_restaurant')
+  const [businessType, setBusinessType] = useState<DistributorBusinessType>(defaultBusinessType || 'bar_restaurant')
   const [volumeInterest, setVolumeInterest] = useState<VolumeInterest | ''>('')
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [submitted, setSubmitted] = useState(false)
 
+  function onFormStart() {
+    if (formStarted.current) return
+    formStarted.current = true
+    trackEvent('form_start', { form: 'distributor_lead' })
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError('')
+
+    const eventId = crypto.randomUUID()
+    const attribution = getAttribution()
 
     try {
       const res = await fetch('/api/distributor/lead', {
@@ -52,6 +72,10 @@ export function DistributorLeadForm({ referrerName, onSuccess }: DistributorLead
           volumeInterest: volumeInterest || undefined,
           message: message || undefined,
           ref: ref || undefined,
+          event_id: eventId,
+          fbp: readCookie('_fbp'),
+          fbc: readCookie('_fbc'),
+          ...attribution,
         }),
       })
 
@@ -60,6 +84,12 @@ export function DistributorLeadForm({ referrerName, onSuccess }: DistributorLead
         throw new Error(data.error || 'Failed to submit')
       }
 
+      trackLead({
+        eventID: eventId,
+        content_name: businessName,
+        content_category: businessType,
+      })
+      trackEvent('form_complete', { form: 'distributor_lead', event_id: eventId })
       setSubmitted(true)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
@@ -95,7 +125,7 @@ export function DistributorLeadForm({ referrerName, onSuccess }: DistributorLead
     'w-full px-4 py-3.5 bg-untamed-black-light border border-card-border rounded-xl text-white focus:outline-none transition-colors appearance-none'
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} onFocus={onFormStart} className="space-y-4">
       {referrerName && (
         <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-orange-500/10 border border-orange-500/30 text-sm mb-4 w-fit">
           <User className="w-4 h-4 text-orange-400" />

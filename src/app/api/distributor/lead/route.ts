@@ -5,6 +5,8 @@ import { resolveReferralCode, generateUniqueCode } from '@/lib/referral/helpers'
 import { REF_COOKIE_NAME } from '@/lib/referral/constants'
 import { POINTS } from '@/lib/loyalty/constants'
 import { sendAndLogEmail } from '@/lib/messaging/email-log'
+import { resolveLeadAttribution } from '@/lib/tracking/lead-attribution'
+import { fbcFromFbclid, sendMetaCapiEvent } from '@/lib/tracking/meta-capi'
 import { z } from 'zod'
 
 const LEAD_NOTIFY_EMAIL = 'joe.colella@untamedbeverages.com'
@@ -33,6 +35,20 @@ const leadSchema = z.object({
   volumeInterest: z.enum(['small', 'medium', 'large']).optional(),
   message: z.string().max(2000).optional(),
   ref: z.string().optional(),
+  visitor_id: z.string().max(80).optional(),
+  session_id: z.string().max(80).optional(),
+  utm_source: z.string().max(200).optional(),
+  utm_medium: z.string().max(200).optional(),
+  utm_campaign: z.string().max(200).optional(),
+  utm_content: z.string().max(200).optional(),
+  utm_term: z.string().max(200).optional(),
+  gclid: z.string().max(200).optional(),
+  fbclid: z.string().max(200).optional(),
+  referrer: z.string().max(2000).optional(),
+  landing_page: z.string().max(500).optional(),
+  event_id: z.string().max(80).optional(),
+  fbp: z.string().max(200).optional(),
+  fbc: z.string().max(500).optional(),
 })
 
 export async function POST(request: NextRequest) {
@@ -49,6 +65,20 @@ export async function POST(request: NextRequest) {
 
     const data = parsed.data
     const supabase = createAdminClient()
+    const eventId = data.event_id || randomUUID()
+    const attribution = await resolveLeadAttribution(supabase, {
+      visitor_id: data.visitor_id,
+      session_id: data.session_id,
+      utm_source: data.utm_source,
+      utm_medium: data.utm_medium,
+      utm_campaign: data.utm_campaign,
+      utm_content: data.utm_content,
+      utm_term: data.utm_term,
+      gclid: data.gclid,
+      fbclid: data.fbclid,
+      referrer: data.referrer,
+      landing_page: data.landing_page,
+    })
 
     // Resolve referrer from explicit ref param or cookie
     let referralParticipantId: string | null = null
@@ -74,11 +104,57 @@ export async function POST(request: NextRequest) {
         volume_interest: data.volumeInterest || null,
         message: data.message || null,
         referral_participant_id: referralParticipantId,
+        event_id: eventId,
+        ...attribution,
       })
       .select()
       .single()
 
     if (leadError) throw leadError
+
+    try {
+      await supabase.from('lead_activities').insert({
+        lead_id: lead.id,
+        activity_type: 'created',
+        body: 'Retail inquiry submitted',
+        metadata: {
+          first_utm_source: attribution.first_utm_source,
+          first_utm_campaign: attribution.first_utm_campaign,
+          landing_page: attribution.converting_landing_page,
+        },
+      })
+    } catch (activityErr) {
+      console.error('[distributor/lead] Activity log failed:', activityErr)
+    }
+
+    try {
+      const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null
+      const [firstName, ...rest] = data.contactName.trim().split(/\s+/)
+      await sendMetaCapiEvent({
+        eventName: 'Lead',
+        eventId,
+        eventSourceUrl: data.landing_page
+          ? `https://untamedbevs.com${data.landing_page.startsWith('/') ? data.landing_page : `/${data.landing_page}`}`
+          : 'https://untamedbevs.com/retail',
+        userData: {
+          email: data.email,
+          phone: data.phone,
+          firstName,
+          lastName: rest.join(' ') || null,
+          fbc: data.fbc || fbcFromFbclid(attribution.converting_fbclid || attribution.first_fbclid),
+          fbp: data.fbp,
+          clientIpAddress: ip,
+          clientUserAgent: request.headers.get('user-agent'),
+        },
+        customData: {
+          content_name: data.businessName,
+          content_category: data.businessType,
+          status: 'new',
+        },
+      })
+    } catch (capiErr) {
+      console.error('[distributor/lead] Meta CAPI failed:', capiErr)
+    }
 
     // Notify sales of the new lead. Failure here should never block the
     // lead submission itself.
@@ -171,8 +247,13 @@ export async function POST(request: NextRequest) {
           .insert({
             email: normalizedEmail,
             first_name: data.contactName,
-            visitor_id: randomUUID(),
+            visitor_id: attribution.visitor_fingerprint || randomUUID(),
             points_balance: POINTS.SIGNUP_BONUS,
+            first_utm_source: attribution.first_utm_source,
+            first_utm_medium: attribution.first_utm_medium,
+            first_utm_campaign: attribution.first_utm_campaign,
+            first_landing_page: attribution.first_landing_page,
+            first_referrer: attribution.first_referrer,
           })
           .select('id')
           .maybeSingle()
@@ -200,7 +281,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ success: true, leadId: lead.id })
+    return NextResponse.json({ success: true, leadId: lead.id, eventId })
   } catch (err) {
     console.error('[distributor/lead] Failed:', err)
     return NextResponse.json({ error: 'Failed to submit inquiry' }, { status: 500 })

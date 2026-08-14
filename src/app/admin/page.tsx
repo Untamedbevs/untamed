@@ -11,6 +11,7 @@ import {
   Clock,
   TrendingUp,
   Loader2,
+  Building2,
 } from 'lucide-react'
 
 interface DashboardStats {
@@ -18,6 +19,7 @@ interface DashboardStats {
   totalMedia: number
   totalCampaigns: number
   activeCampaigns: number
+  retailLeads: number
 }
 
 interface RecentIdea {
@@ -63,7 +65,7 @@ export default function AdminDashboard() {
     async function loadDashboard() {
       const supabase = createClient()
 
-      const [ideasCount, mediaCount, campaignsCount, activeCampaignsCount, ideas, campaigns] =
+      const [ideasCount, mediaCount, campaignsCount, activeCampaignsCount, ideas, campaigns, retailRes] =
         await Promise.all([
           supabase.from('ideas').select('*', { count: 'exact', head: true }),
           supabase.from('media').select('*', { count: 'exact', head: true }),
@@ -83,6 +85,7 @@ export default function AdminDashboard() {
             .in('status', ['draft', 'scheduled'])
             .order('scheduled_date', { ascending: true, nullsFirst: false })
             .limit(5),
+          fetch('/api/admin/retail').then((r) => r.json()).catch(() => ({ total: 0 })),
         ])
 
       setStats({
@@ -90,6 +93,7 @@ export default function AdminDashboard() {
         totalMedia: mediaCount.count ?? 0,
         totalCampaigns: campaignsCount.count ?? 0,
         activeCampaigns: activeCampaignsCount.count ?? 0,
+        retailLeads: retailRes.total ?? 0,
       })
       setRecentIdeas(ideas.data ?? [])
       setUpcomingCampaigns(campaigns.data ?? [])
@@ -107,6 +111,13 @@ export default function AdminDashboard() {
   }
 
   const statCards = [
+    {
+      label: 'Retail Leads',
+      value: stats?.retailLeads ?? 0,
+      icon: Building2,
+      color: '#FF8C2A',
+      href: '/admin/retail',
+    },
     {
       label: 'Total Ideas',
       value: stats?.totalIdeas ?? 0,
@@ -139,7 +150,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-8">
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
         {statCards.map((card) => {
           const Icon = card.icon
           return (

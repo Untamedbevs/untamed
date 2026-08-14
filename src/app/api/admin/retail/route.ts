@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { resolveStaff } from '@/lib/auth/resolve-staff'
 
 export async function GET() {
+  const staff = await resolveStaff()
+  if (!staff) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   try {
     const supabase = createAdminClient()
 

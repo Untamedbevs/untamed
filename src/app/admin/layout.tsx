@@ -33,6 +33,8 @@ import {
   Send,
   Palette,
   BookOpen,
+  Link2,
+  BarChart3,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { LucideIcon } from 'lucide-react'
@@ -55,7 +57,16 @@ const ALL_NAV_ITEMS: NavItem[] = [
   { href: '/admin/loyalty', label: 'Loyalty', icon: Trophy },
   { href: '/admin/ugc', label: 'UGC', icon: Camera },
   { href: '/admin/referrals', label: 'Referrals', icon: Share2 },
-  { href: '/admin/retail', label: 'Retail Leads', icon: Building2 },
+  {
+    href: '/admin/retail',
+    label: 'Retail Leads',
+    icon: Building2,
+    children: [
+      { href: '/admin/retail', label: 'Workbench', icon: Building2 },
+      { href: '/admin/retail/performance', label: 'Performance', icon: BarChart3 },
+      { href: '/admin/retail/utm-builder', label: 'UTM Builder', icon: Link2 },
+    ],
+  },
   {
     href: '/admin/crm',
     label: 'CRM',

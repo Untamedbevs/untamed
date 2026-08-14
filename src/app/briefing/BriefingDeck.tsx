@@ -3,6 +3,6 @@
 import { DeckShell } from '@/components/deck/DeckShell'
 import { SLIDES } from './slides'
 
-export function PitchDeck() {
-  return <DeckShell slides={SLIDES} chromeLabel="Investor Presentation" />
+export function BriefingDeck() {
+  return <DeckShell slides={SLIDES} chromeLabel="Owner Briefing" />
 }

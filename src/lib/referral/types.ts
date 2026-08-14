@@ -113,8 +113,50 @@ export interface DistributorLead {
   referral_participant_id: string | null
   status: DistributorLeadStatus
   admin_notes: string | null
+  visitor_fingerprint: string | null
+  session_id: string | null
+  first_utm_source: string | null
+  first_utm_medium: string | null
+  first_utm_campaign: string | null
+  first_utm_content: string | null
+  first_utm_term: string | null
+  first_gclid: string | null
+  first_fbclid: string | null
+  first_landing_page: string | null
+  first_referrer: string | null
+  converting_utm_source: string | null
+  converting_utm_medium: string | null
+  converting_utm_campaign: string | null
+  converting_gclid: string | null
+  converting_fbclid: string | null
+  converting_landing_page: string | null
+  next_action: string | null
+  next_action_at: string | null
+  first_contacted_at: string | null
+  event_id: string | null
   created_at: string
   updated_at: string
+}
+
+export type LeadActivityType =
+  | 'created'
+  | 'status_change'
+  | 'note'
+  | 'called'
+  | 'emailed'
+  | 'meeting'
+  | 'sample_sent'
+  | 'next_action'
+
+export interface LeadActivity {
+  id: string
+  lead_id: string
+  staff_id: string | null
+  activity_type: LeadActivityType
+  body: string | null
+  metadata: Record<string, unknown>
+  created_at: string
+  staff?: { full_name: string | null; email: string } | null
 }
 
 export interface ReferralDashboardData {
