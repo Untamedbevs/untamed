@@ -35,6 +35,7 @@ import {
   BookOpen,
   Link2,
   BarChart3,
+  Map,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { LucideIcon } from 'lucide-react'
@@ -86,6 +87,7 @@ const ALL_NAV_ITEMS: NavItem[] = [
     ],
   },
   { href: '/brand-kit', label: 'Brand Kit', icon: Palette },
+  { href: '/admin/owners', label: 'Owner Guide', icon: Map },
   { href: '/admin/handbook', label: 'Handbook', icon: BookOpen },
 ]
 
