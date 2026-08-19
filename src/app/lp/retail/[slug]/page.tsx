@@ -19,6 +19,11 @@ export async function generateMetadata({
     title: page.title,
     description: page.subhead,
     robots: { index: false, follow: false },
+    openGraph: {
+      title: page.title,
+      description: page.subhead,
+      images: ['/images/logo-mark.png'],
+    },
   }
 }
 

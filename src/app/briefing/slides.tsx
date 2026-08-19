@@ -6,14 +6,17 @@ import {
   ArrowRight,
   Car,
   Check,
+  Clapperboard,
   Clock,
   Gauge,
+  Images,
   Megaphone,
   Radio,
   Repeat,
   Target,
   Timer,
   Unplug,
+  User,
   Workflow,
   X,
 } from 'lucide-react'
@@ -23,10 +26,12 @@ import {
   BASE_UNIT,
   COLORS,
   CONSERVATIVE_UNIT,
+  CONTENT_PLAN,
   DISCLAIMER,
-  DOOR_VELOCITY,
+  PLATFORM_MIX,
   SCALE_FUNNELS,
   SCALE_ROWS,
+  SHELF_VELOCITY,
   TEAM_COST,
   TURN_ON,
   UNIT_COST,
@@ -193,8 +198,8 @@ function QuestionSlide() {
       <div className="grid gap-4 md:grid-cols-3">
         {[
           { label: 'Monthly burn', value: money(TEAM_COST), sub: 'two people × $3,500' },
-          { label: 'Documented doors', value: '0', sub: 'this is the actual number' },
-          { label: 'Cost per door', value: '∞', sub: 'undefined when output is zero' },
+          { label: 'Documented shelves', value: '0', sub: 'accounts actually carrying us' },
+          { label: 'Cost per shelf', value: '∞', sub: 'undefined when output is zero' },
         ].map((c) => (
           <div key={c.label} className="rounded-2xl border border-card-border bg-untamed-black-card/80 p-6">
             <p className="font-condensed text-xs uppercase tracking-[0.25em] text-muted">{c.label}</p>
@@ -228,7 +233,7 @@ function SalespersonSlide() {
             {[
               'Capacity is linear — 8 hours, one geography',
               'No first-touch record of how the account found us',
-              'No creative learning. Every door is cold again.',
+              'No creative learning. Every account is cold again.',
               'Referral program cannot attach to a walk-in',
             ].map((t) => (
               <li key={t} className="flex items-start gap-3">
@@ -260,7 +265,7 @@ function MachineSlide() {
     { label: 'Leads', value: String(BASE_UNIT.leads) },
     { label: 'Contacted', value: String(BASE_UNIT.contacted) },
     { label: 'Qualified', value: String(BASE_UNIT.qualified) },
-    { label: 'Doors', value: String(BASE_UNIT.doors) },
+    { label: 'Shelves', value: String(BASE_UNIT.shelves) },
   ]
   return (
     <SlideShell
@@ -288,8 +293,8 @@ function MachineSlide() {
           <p className="mt-1 font-condensed text-3xl font-bold">{money(BASE_UNIT.cpl)}</p>
         </div>
         <div className="rounded-2xl border border-card-border p-5">
-          <p className="font-condensed text-xs uppercase tracking-widest text-muted">Cost per door</p>
-          <p className="mt-1 font-condensed text-3xl font-bold text-[#FFD700]">{money(BASE_UNIT.costPerDoor)}</p>
+          <p className="font-condensed text-xs uppercase tracking-widest text-muted">Cost per shelf</p>
+          <p className="mt-1 font-condensed text-3xl font-bold text-[#FFD700]">{money(BASE_UNIT.costPerShelf)}</p>
         </div>
         <div className="rounded-2xl border border-card-border p-5">
           <p className="font-condensed text-xs uppercase tracking-widest text-muted">Annual velocity from this month</p>
@@ -305,8 +310,8 @@ function HeadToHeadSlide() {
     { label: 'Monthly cost', sales: money(UNIT_COST), machine: money(UNIT_COST) },
     { label: 'What you buy', sales: 'Hours in a car', machine: 'Inbound demand + attribution' },
     { label: 'Leads / month', sales: 'Unmeasured', machine: String(BASE_UNIT.leads) },
-    { label: 'Doors / month', sales: '~0', machine: String(BASE_UNIT.doors) },
-    { label: 'Cost per door', sales: '∞', machine: money(BASE_UNIT.costPerDoor) },
+    { label: 'Shelves / month', sales: '~0', machine: String(BASE_UNIT.shelves) },
+    { label: 'Cost per shelf', sales: '∞', machine: money(BASE_UNIT.costPerShelf) },
     { label: 'Compounds?', sales: 'No', machine: 'Yes — lookalikes, referrals, creative' },
     { label: 'After hours', sales: 'Off', machine: 'Ads still run' },
   ]
@@ -352,13 +357,13 @@ function InstrumentedFunnelSlide() {
     { icon: Target, title: 'Landing page', body: 'Campaign LPs. Form start and form complete as events.' },
     { icon: Workflow, title: 'Lead', body: 'First-touch waterfall onto the retailer record.' },
     { icon: Timer, title: 'CMO contact', body: '48-hour SLA clock. Activity log. Next action.' },
-    { icon: Check, title: 'Door', body: 'Converted status. Cost per door. Annual velocity.' },
+    { icon: Check, title: 'Shelf', body: 'Converted means we are carried. Cost per shelf. Annual velocity.' },
   ]
   return (
     <SlideShell
       section="TheMachine"
       title={<>Every step gets a number</>}
-      intro="This is the funnel we instrument. If a dollar cannot be followed from impression to door, it does not get spent twice."
+      intro="This is the funnel we instrument. If a dollar cannot be followed from impression to a shelf we sit on, it does not get spent twice."
     >
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {steps.map((s) => (
@@ -382,14 +387,14 @@ function scenarioCells(s: FunnelScenario) {
     String(s.leads),
     money(s.cpl),
     String(s.qualified),
-    String(s.doors),
-    money(s.costPerDoor),
+    String(s.shelves),
+    money(s.costPerShelf),
     money(s.annualVelocity),
   ]
 }
 
 function ScenariosSlide() {
-  const headers = ['Impr.', 'Clicks', 'Leads', 'CPL', 'Qualified', 'Doors', '$ / door', 'Velocity']
+  const headers = ['Impr.', 'Clicks', 'Leads', 'CPL', 'Qualified', 'Shelves', '$ / shelf', 'Velocity']
   return (
     <SlideShell
       section="TheMachine"
@@ -430,7 +435,7 @@ function ScenariosSlide() {
         </table>
       </div>
       <p className="mt-4 text-sm text-untamed-white-muted">
-        Conservative still produces {CONSERVATIVE_UNIT.doors} doors / month. Upside produces {UPSIDE_UNIT.doors}.
+        Conservative still produces {CONSERVATIVE_UNIT.shelves} shelves / month. Upside produces {UPSIDE_UNIT.shelves}.
         The salesperson produces ~0 in every case.
       </p>
     </SlideShell>
@@ -442,7 +447,7 @@ function ScaleSlide() {
     <SlideShell
       section="TheScale"
       title={<>Then we scale the unit</>}
-      intro="Two salespeople are $7,000 of the same zero. The machine at $7,000 and $15,000 still reports doors. At $7k+ the constraint is the closer, not the ads."
+      intro="Two salespeople are $7,000 of the same zero. The machine at $7,000 and $15,000 still reports shelves. At $7k+ the constraint is the closer, not the ads."
       footnote={DISCLAIMER}
     >
       <div className="overflow-hidden rounded-2xl border border-card-border">
@@ -451,8 +456,8 @@ function ScaleSlide() {
             <tr className="border-b border-card-border bg-untamed-black-card">
               <th className="px-4 py-3 font-condensed text-xs uppercase tracking-widest text-muted">Option</th>
               <th className="px-4 py-3 font-condensed text-xs uppercase tracking-widest text-muted">Spend</th>
-              <th className="px-4 py-3 font-condensed text-xs uppercase tracking-widest text-muted">Doors / mo</th>
-              <th className="px-4 py-3 font-condensed text-xs uppercase tracking-widest text-muted">$ / door</th>
+              <th className="px-4 py-3 font-condensed text-xs uppercase tracking-widest text-muted">Shelves / mo</th>
+              <th className="px-4 py-3 font-condensed text-xs uppercase tracking-widest text-muted">$ / shelf</th>
               <th className="px-4 py-3 font-condensed text-xs uppercase tracking-widest text-muted">Annual velocity</th>
             </tr>
           </thead>
@@ -469,9 +474,9 @@ function ScaleSlide() {
                 </td>
                 <td className="px-4 py-3">{money(r.spend)}</td>
                 <td className="px-4 py-3 font-condensed text-lg font-bold" style={{ color: r.kind === 'machine' ? COLORS.gold : COLORS.muted }}>
-                  {r.doors}
+                  {r.shelves}
                 </td>
-                <td className="px-4 py-3">{r.costPerDoor == null ? '∞' : money(r.costPerDoor)}</td>
+                <td className="px-4 py-3">{r.costPerShelf == null ? '∞' : money(r.costPerShelf)}</td>
                 <td className="px-4 py-3">{r.annualVelocity ? money(r.annualVelocity) : '—'}</td>
               </tr>
             ))}
@@ -486,27 +491,27 @@ function VelocitySlide() {
   return (
     <SlideShell
       section="TheScale"
-      title={<>Doors pay for the machine</>}
-      intro={`Existing financial model: ${money(DOOR_VELOCITY)} average annual revenue per retail location. One month of base-case doors is more annual velocity than a year of the sales team at zero.`}
+      title={<>Shelves pay for the machine</>}
+      intro={`Existing financial model: ${money(SHELF_VELOCITY)} average annual revenue per retail location. One month of base-case shelves is more annual velocity than a year of the sales team at zero.`}
       footnote={DISCLAIMER}
     >
       <div className="grid gap-4 md:grid-cols-2">
         <div className="rounded-2xl border border-card-border p-6">
           <p className="font-condensed text-xs uppercase tracking-widest text-muted">Sales team, 12 months</p>
           <p className="mt-2 font-condensed text-4xl font-bold text-untamed-white-muted">{money(TEAM_COST * 12)}</p>
-          <p className="mt-2 text-sm text-untamed-white-muted">spent. {money(0)} of documented door velocity.</p>
+          <p className="mt-2 text-sm text-untamed-white-muted">spent. {money(0)} of documented shelf velocity.</p>
         </div>
         <div className="rounded-2xl border border-[#FFD700]/40 bg-[#FFD700]/5 p-6">
           <p className="font-condensed text-xs uppercase tracking-widest text-[#FFD700]">Machine, one base month</p>
           <p className="mt-2 font-condensed text-4xl font-bold text-[#FFD700]">{money(BASE_UNIT.annualVelocity)}</p>
           <p className="mt-2 text-sm text-untamed-white-muted">
-            annual velocity from {BASE_UNIT.doors} new doors. Cost {money(UNIT_COST)}.
+            annual velocity from {BASE_UNIT.shelves} new shelves. Cost {money(UNIT_COST)}.
           </p>
         </div>
       </div>
       <p className="mt-6 text-sm text-untamed-white-muted">
-        At $7k media (base, capacity-adjusted): {SCALE_FUNNELS.seven.doors} doors / month,{' '}
-        {money(SCALE_FUNNELS.seven.annualVelocity)} annual velocity. Still cheaper per door than a walker who closes nothing.
+        At $7k media (base, capacity-adjusted): {SCALE_FUNNELS.seven.shelves} shelves / month,{' '}
+        {money(SCALE_FUNNELS.seven.annualVelocity)} annual velocity. Still cheaper per shelf than a walker who closes nothing.
       </p>
     </SlideShell>
   )
@@ -517,7 +522,7 @@ function CompoundingSlide() {
     { icon: Repeat, title: 'Referrals already live', body: 'Converted retailers become referrers. The form already credits distributor_lead events.' },
     { icon: Target, title: 'Lookalikes from wins', body: 'Every converted email is a seed audience. Walkers cannot do this.' },
     { icon: Megaphone, title: 'Creative studio already live', body: 'Ideas → flows → studio → schedule. We feed Meta without an agency retainer.' },
-    { icon: Gauge, title: 'Learning loop', body: 'CTR, CPL, and cost-per-door get better. A salesperson does not get 20% more efficient each month.' },
+    { icon: Gauge, title: 'Learning loop', body: 'CTR, CPL, and cost-per-shelf get better. A salesperson does not get 20% more efficient each month.' },
   ]
   return (
     <SlideShell
@@ -539,12 +544,77 @@ function CompoundingSlide() {
   )
 }
 
+function ContentPlanSlide() {
+  const icons = [User, Clapperboard, Images]
+  return (
+    <SlideShell
+      section="TheScale"
+      title={<>The content game plan</>}
+      intro="Three engines, one studio. Founder-led social seeds the story. Video is what we buy. Statics hold the line and retarget. We already make this — we have not pointed it at retail buyers."
+    >
+      <div className="grid gap-4 md:grid-cols-3">
+        {CONTENT_PLAN.map((c, i) => {
+          const Icon = icons[i]
+          return (
+            <div key={c.title} className="rounded-2xl border border-card-border bg-untamed-black-card/80 p-5">
+              <div className="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#E6D800]/15 text-[#E6D800]">
+                <Icon className="h-4 w-4" />
+              </div>
+              <p className="font-condensed text-[11px] uppercase tracking-widest text-[#FFD700]">{c.role}</p>
+              <h3 className="mt-1 font-condensed text-lg font-bold uppercase">{c.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-untamed-white-muted">{c.body}</p>
+              <p className="mt-4 text-xs leading-relaxed text-white">
+                <span className="font-condensed uppercase tracking-widest text-muted">Best home · </span>
+                {c.best}
+              </p>
+            </div>
+          )
+        })}
+      </div>
+    </SlideShell>
+  )
+}
+
+function PlatformMixSlide() {
+  return (
+    <SlideShell
+      section="TheScale"
+      title={<>Where it runs</>}
+      intro="At the $3,500 unit we do not spray. Meta is the brand home. Google Search catches people already looking. LinkedIn is a capped test for owners and distributors. TikTok is a cheap video test."
+      footnote={DISCLAIMER}
+    >
+      <div className="overflow-hidden rounded-2xl border border-card-border">
+        <table className="w-full text-left text-sm">
+          <thead>
+            <tr className="border-b border-card-border bg-untamed-black-card">
+              <th className="px-4 py-3 font-condensed text-xs uppercase tracking-widest text-muted">Platform</th>
+              <th className="px-4 py-3 font-condensed text-xs uppercase tracking-widest text-muted">Share</th>
+              <th className="px-4 py-3 font-condensed text-xs uppercase tracking-widest text-muted">Fit</th>
+              <th className="px-4 py-3 font-condensed text-xs uppercase tracking-widest text-muted">Why</th>
+            </tr>
+          </thead>
+          <tbody>
+            {PLATFORM_MIX.map((p) => (
+              <tr key={p.name} className="border-b border-card-border last:border-0">
+                <td className="px-4 py-3 font-condensed font-bold uppercase text-white">{p.name}</td>
+                <td className="px-4 py-3 whitespace-nowrap text-[#FFD700]">{p.share}</td>
+                <td className="px-4 py-3 whitespace-nowrap text-untamed-white-muted">{p.fit}</td>
+                <td className="px-4 py-3 text-sm text-untamed-white-muted">{p.why}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </SlideShell>
+  )
+}
+
 function BuiltSlide() {
   return (
     <SlideShell
       section="TheAsk"
-      title={<>Already built — about 60%</>}
-      intro="We are not pitching a fantasy stack. Attribution, retail pages, lead email, pipeline statuses, referrals, and the content engine are live today. The hole is that none of it is wired to paid media or to Joe’s daily work."
+      title={<>Already built. Not turned on.</>}
+      intro="The stack is live. Attribution, campaign pages, Joe’s workbench, the funnel dashboard, referrals, and the content engine are in the product today. What’s left is pointing paid media at it and putting Joe on inbound."
     >
       <div className="grid gap-3 sm:grid-cols-2">
         {ALREADY_BUILT.map((b) => (
@@ -619,7 +689,7 @@ function CmoDaySlide() {
             <li>Kanban of warm inbound, 48h clock</li>
             <li>Every card shows which ad created it</li>
             <li>Call, email, sample, meeting — logged</li>
-            <li>Owners see spend → doors on one page</li>
+            <li>Owners see spend → shelves on one page</li>
           </ul>
         </div>
       </div>
@@ -632,12 +702,13 @@ function AskSlide() {
     <SlideShell
       section="TheAsk"
       title={<>The ask</>}
+      intro="Not the full $7,000. A reasonable test so we can see what happens."
     >
       <ol className="space-y-4">
         {[
-          `Reallocate the ${money(TEAM_COST)} / month. Start the machine at the ${money(UNIT_COST)} unit — one salesperson’s cost.`,
-          'Keep Joe on inbound. Do not hire another walker. At $7k media, hire a closer if volume needs it.',
-          'Run 90 days. Kill or scale on cost per door, not on vibes.',
+          `Run 90 days at the ${money(UNIT_COST)} unit — one salesperson’s cost, not the whole team.`,
+          'Keep Joe on inbound. Do not hire another walker while we learn.',
+          'Read cost per shelf. Kill it, keep it, or scale toward $7k only if shelves show up.',
         ].map((t, i) => (
           <li key={t} className="flex items-start gap-4">
             <span className="font-condensed text-2xl font-bold text-[#FFD700]">{String(i + 1).padStart(2, '0')}</span>
@@ -646,19 +717,25 @@ function AskSlide() {
         ))}
       </ol>
       <p className="mt-10 font-condensed text-2xl font-bold uppercase md:text-3xl">
-        Same dollars.{' '}
-        <span className="text-gradient-wild">A machine instead of a car.</span>
+        A test.{' '}
+        <span className="text-gradient-wild">Then decide.</span>
       </p>
     </SlideShell>
   )
 }
 
-function AppendixSlide() {
+function AppendixSlide({
+  section = 'TheAsk',
+  intro = 'Attack these. If an input is wrong, the funnel updates. That is the point of a model.',
+}: {
+  section?: string
+  intro?: string
+}) {
   return (
     <SlideShell
-      section="TheAsk"
+      section={section}
       title={<>Assumption sheet</>}
-      intro="Attack these. If an input is wrong, the funnel updates. That is the point of a model."
+      intro={intro}
       footnote={DISCLAIMER}
     >
       <div className="overflow-hidden rounded-2xl border border-card-border">
@@ -688,6 +765,12 @@ export interface SlideDef {
 
 export const SLIDES: SlideDef[] = [
   { id: 'cover', section: 'TheQuestion', title: 'Cover', render: () => <CoverSlide /> },
+  { id: 'assumptions-open', section: 'TheQuestion', title: 'Assumptions', render: () => (
+    <AppendixSlide
+      section="TheQuestion"
+      intro="Skim this once so the inputs are clear. This will make sense later — we come back to the same sheet at the end."
+    />
+  ) },
   { id: 'question', section: 'TheQuestion', title: 'The $7,000 Question', render: () => <QuestionSlide /> },
   { id: 'salesperson', section: 'TheUnit', title: 'What $3,500 Buys Today', render: () => <SalespersonSlide /> },
   { id: 'machine', section: 'TheMachine', title: 'What $3,500 Buys as a Machine', render: () => <MachineSlide /> },
@@ -695,8 +778,10 @@ export const SLIDES: SlideDef[] = [
   { id: 'funnel', section: 'TheMachine', title: 'Instrumented Funnel', render: () => <InstrumentedFunnelSlide /> },
   { id: 'scenarios', section: 'TheMachine', title: 'Three Scenarios', render: () => <ScenariosSlide /> },
   { id: 'scale', section: 'TheScale', title: 'Scale the Unit', render: () => <ScaleSlide /> },
-  { id: 'velocity', section: 'TheScale', title: 'Doors × Velocity', render: () => <VelocitySlide /> },
+  { id: 'velocity', section: 'TheScale', title: 'Shelves × Velocity', render: () => <VelocitySlide /> },
   { id: 'compounding', section: 'TheScale', title: 'Compounding', render: () => <CompoundingSlide /> },
+  { id: 'content', section: 'TheScale', title: 'Content Game Plan', render: () => <ContentPlanSlide /> },
+  { id: 'platforms', section: 'TheScale', title: 'Where It Runs', render: () => <PlatformMixSlide /> },
   { id: 'built', section: 'TheAsk', title: 'Already Built', render: () => <BuiltSlide /> },
   { id: 'timeline', section: 'TheAsk', title: '30 / 60 / 90', render: () => <TimelineSlide /> },
   { id: 'cmo', section: 'TheAsk', title: 'The CMO Day', render: () => <CmoDaySlide /> },
