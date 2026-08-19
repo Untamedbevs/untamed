@@ -1,6 +1,7 @@
 'use client'
 
 import Image from 'next/image'
+import Link from 'next/link'
 import type { ReactNode } from 'react'
 import {
   ArrowRight,
@@ -8,6 +9,7 @@ import {
   Check,
   Clapperboard,
   Clock,
+  ExternalLink,
   Gauge,
   Images,
   Megaphone,
@@ -24,6 +26,7 @@ import {
   ALREADY_BUILT,
   ASSUMPTIONS,
   BASE_UNIT,
+  CASES_PER_ORDER,
   COLORS,
   CONSERVATIVE_UNIT,
   CONTENT_PLAN,
@@ -33,6 +36,7 @@ import {
   SCALE_ROWS,
   SHELF_VELOCITY,
   TEAM_COST,
+  THROUGHPUT,
   TURN_ON,
   UNIT_COST,
   UNIT_FUNNELS,
@@ -259,6 +263,7 @@ function SalespersonSlide() {
 }
 
 function MachineSlide() {
+  const openingCases = BASE_UNIT.shelves * CASES_PER_ORDER
   const steps = [
     { label: 'Impressions', value: compact(BASE_UNIT.impressions) },
     { label: 'Clicks', value: BASE_UNIT.clicks.toLocaleString() },
@@ -266,18 +271,19 @@ function MachineSlide() {
     { label: 'Contacted', value: String(BASE_UNIT.contacted) },
     { label: 'Qualified', value: String(BASE_UNIT.qualified) },
     { label: 'Shelves', value: String(BASE_UNIT.shelves) },
+    { label: 'Cases', value: String(openingCases) },
   ]
   return (
     <SlideShell
       section="TheMachine"
       title={<>What $3,500 buys as a machine</>}
-      intro="Base-case projection at the same unit cost as one salesperson. Every step is a number. Every lead has a source. Joe works inbound within 48 hours."
+      intro={`Base-case at the same unit cost as one salesperson. Each new shelf opens at ${CASES_PER_ORDER} cases. Every lead has a source. Joe works inbound within 48 hours.`}
       footnote={DISCLAIMER}
     >
       <div className="flex flex-wrap items-stretch gap-2 md:gap-3">
         {steps.map((s, i) => (
           <div key={s.label} className="flex items-center gap-2 md:gap-3">
-            <div className="min-w-[5.5rem] rounded-2xl border border-card-border bg-untamed-black-card/80 px-3 py-4 text-center md:min-w-[6.5rem] md:px-4">
+            <div className="min-w-[5.25rem] rounded-2xl border border-card-border bg-untamed-black-card/80 px-3 py-4 text-center md:min-w-[6.25rem] md:px-4">
               <p className="font-condensed text-2xl font-bold text-[#FFD700] md:text-3xl">{s.value}</p>
               <p className="mt-1 font-condensed text-[10px] uppercase tracking-widest text-muted">{s.label}</p>
             </div>
@@ -287,6 +293,9 @@ function MachineSlide() {
           </div>
         ))}
       </div>
+      <p className="mt-3 font-condensed text-xs uppercase tracking-widest text-untamed-white-muted">
+        Average opening order · {CASES_PER_ORDER} cases per shelf
+      </p>
       <div className="mt-6 grid gap-4 sm:grid-cols-3">
         <div className="rounded-2xl border border-card-border p-5">
           <p className="font-condensed text-xs uppercase tracking-widest text-muted">Cost per lead</p>
@@ -294,12 +303,32 @@ function MachineSlide() {
         </div>
         <div className="rounded-2xl border border-card-border p-5">
           <p className="font-condensed text-xs uppercase tracking-widest text-muted">Cost per shelf</p>
-          <p className="mt-1 font-condensed text-3xl font-bold text-[#FFD700]">{money(BASE_UNIT.costPerShelf)}</p>
+          <p className="mt-1 font-condensed text-3xl font-bold">{money(BASE_UNIT.costPerShelf)}</p>
         </div>
         <div className="rounded-2xl border border-card-border p-5">
-          <p className="font-condensed text-xs uppercase tracking-widest text-muted">Annual velocity from this month</p>
-          <p className="mt-1 font-condensed text-3xl font-bold">{money(BASE_UNIT.annualVelocity)}</p>
+          <p className="font-condensed text-xs uppercase tracking-widest text-muted">Opening cases</p>
+          <p className="mt-1 font-condensed text-3xl font-bold">{openingCases}</p>
+          <p className="mt-1 text-xs text-untamed-white-muted">
+            {BASE_UNIT.shelves} shelves × {CASES_PER_ORDER} cases
+          </p>
         </div>
+      </div>
+      <div className="mt-4 rounded-2xl border border-[#FFD700]/40 bg-[#FFD700]/5 p-5">
+        <p className="font-condensed text-xs uppercase tracking-widest text-[#FFD700]">
+          Annual velocity from this month
+        </p>
+        <div className="mt-2 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+          <p className="font-condensed text-3xl font-bold text-[#FFD700] md:text-4xl">
+            {money(BASE_UNIT.annualVelocity)}
+          </p>
+          <p className="font-condensed text-lg uppercase tracking-wide text-untamed-white">
+            {BASE_UNIT.shelves} shelves × {money(SHELF_VELOCITY)}
+          </p>
+        </div>
+        <p className="mt-2 text-sm text-untamed-white-muted">
+          {money(BASE_UNIT.annualVelocity)} / {BASE_UNIT.shelves} = {money(SHELF_VELOCITY)} per shelf per year
+          — existing financial model, not a new assumption.
+        </p>
       </div>
     </SlideShell>
   )
@@ -609,6 +638,49 @@ function PlatformMixSlide() {
   )
 }
 
+function ThroughputSlide() {
+  return (
+    <SlideShell
+      section="TheAsk"
+      title={<>Click through the machine</>}
+      intro="Ads go to these landing pages. Leads show up here. Open any link — these are the live screens, not mockups. Admin pages ask you to sign in."
+    >
+      <div className="grid gap-4 md:grid-cols-3">
+        {THROUGHPUT.map((col) => (
+          <div key={col.step} className="flex flex-col rounded-2xl border border-card-border bg-untamed-black-card/80 p-4">
+            <p className="font-condensed text-xs uppercase tracking-[0.3em] text-[#FFD700]">{col.step}</p>
+            <h3 className="mt-1 font-condensed text-lg font-bold uppercase">{col.title}</h3>
+            <p className="mt-1.5 text-sm text-untamed-white-muted">{col.body}</p>
+            <ul className="mt-4 space-y-2">
+              {col.links.map((link) => (
+                <li key={link.href}>
+                  <Link
+                    href={link.href}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="group flex items-start justify-between gap-3 rounded-xl border border-card-border px-3 py-2.5 transition-colors hover:border-[#FFD700]/50 hover:bg-[#FFD700]/5"
+                  >
+                    <span className="min-w-0">
+                      <span className="block font-condensed text-sm font-bold uppercase text-white">
+                        {link.label}
+                      </span>
+                      <span className="mt-0.5 block truncate font-mono text-[11px] text-[#FFD700]">
+                        {link.href}
+                      </span>
+                      <span className="mt-0.5 block text-xs text-untamed-white-muted">{link.hint}</span>
+                    </span>
+                    <ExternalLink className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted group-hover:text-[#FFD700]" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </SlideShell>
+  )
+}
+
 function BuiltSlide() {
   return (
     <SlideShell
@@ -783,6 +855,7 @@ export const SLIDES: SlideDef[] = [
   { id: 'content', section: 'TheScale', title: 'Content Game Plan', render: () => <ContentPlanSlide /> },
   { id: 'platforms', section: 'TheScale', title: 'Where It Runs', render: () => <PlatformMixSlide /> },
   { id: 'built', section: 'TheAsk', title: 'Already Built', render: () => <BuiltSlide /> },
+  { id: 'throughput', section: 'TheAsk', title: 'Click Through', render: () => <ThroughputSlide /> },
   { id: 'timeline', section: 'TheAsk', title: '30 / 60 / 90', render: () => <TimelineSlide /> },
   { id: 'cmo', section: 'TheAsk', title: 'The CMO Day', render: () => <CmoDaySlide /> },
   { id: 'ask', section: 'TheAsk', title: 'The Ask', render: () => <AskSlide /> },

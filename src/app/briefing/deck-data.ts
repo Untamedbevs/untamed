@@ -11,6 +11,7 @@ export const UNIT_COST = 3500
 export const TEAM_COST = 7000
 export const SHELF_VELOCITY = 3125
 export const DOOR_VELOCITY = SHELF_VELOCITY
+export const CASES_PER_ORDER = 2
 export const SLA_HOURS = 48
 
 export const COLORS = {
@@ -215,6 +216,41 @@ export const FUNNEL_STEPS = [
   { key: 'doors', label: 'Shelves', unit: '' },
 ] as const
 
+export const THROUGHPUT = [
+  {
+    step: '01',
+    title: 'Build the click',
+    body: 'Every paid ad gets a tracked URL before a dollar spends.',
+    links: [
+      { href: '/admin/retail/utm-builder', label: 'UTM builder', hint: 'The link you paste into Meta, Google, or LinkedIn' },
+      { href: '/admin/studio', label: 'Studio', hint: 'Make the creative without an agency' },
+      { href: '/admin/campaigns', label: 'Campaigns', hint: 'Schedule what goes live' },
+    ],
+  },
+  {
+    step: '02',
+    title: 'Ads go to these pages',
+    body: 'Buyer clicks the ad and lands here. One form. 48-hour promise.',
+    links: [
+      { href: '/lp/retail/bars', label: 'Bars & restaurants', hint: 'Paid — on-premise' },
+      { href: '/lp/retail/liquor', label: 'Liquor stores', hint: 'Paid — off-premise' },
+      { href: '/lp/retail/distributors', label: 'Distributors', hint: 'Paid — wholesale' },
+      { href: '/retail', label: 'Retail', hint: 'Organic and referral wholesale page' },
+      { href: '/distribute', label: 'Distribute', hint: 'Referral-tracked B2B pitch' },
+    ],
+  },
+  {
+    step: '03',
+    title: 'Leads go here',
+    body: 'The form writes the record, emails Joe, and starts the 48-hour clock.',
+    links: [
+      { href: '/admin/retail', label: 'Workbench', hint: 'Kanban, SLA, which ad created them' },
+      { href: '/admin/retail/performance', label: 'Performance', hint: 'Spend → shelves on one page' },
+      { href: '/admin/owners', label: 'Owner guide', hint: 'The same map, always available' },
+    ],
+  },
+] as const
+
 export const ALREADY_BUILT = [
   { label: 'First-party attribution', detail: 'Visitor + session + UTM + click IDs land on every retail lead' },
   { label: 'Campaign landing pages', detail: '/lp/retail/bars, liquor, distributors — plus the UTM builder' },
@@ -238,6 +274,7 @@ export const ASSUMPTIONS = [
   { item: 'Contact SLA', value: '80–90% of leads reached within 48 hours' },
   { item: 'Qualify rate', value: '30% of contacted are the right buyer with real interest' },
   { item: 'Close rate', value: '25% of qualified become a shelf — product actually carried (30% upside)' },
+  { item: 'Opening order', value: `${CASES_PER_ORDER} cases average when a retailer first carries Untamed` },
   { item: 'Shelf velocity', value: `$${SHELF_VELOCITY.toLocaleString()} annual revenue per retail location (existing financial model)` },
   { item: 'Sales team output', value: '$7,000 / month currently producing ~0 documented shelves' },
   { item: 'CMO bottleneck', value: 'At $7k+ media, add a closer — do not add another walker' },
