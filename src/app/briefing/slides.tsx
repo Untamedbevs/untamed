@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import {
@@ -12,13 +13,10 @@ import {
   Gauge,
   Images,
   Megaphone,
-  Radio,
   Repeat,
   Target,
-  Timer,
   Unplug,
   User,
-  Workflow,
   X,
 } from 'lucide-react'
 import {
@@ -45,7 +43,6 @@ import {
   type FunnelScenario,
 } from './deck-data'
 import {
-  CanHero,
   DeckCover,
   SlideFrame,
   SpiritCard,
@@ -53,6 +50,7 @@ import {
   type SlideTheme,
 } from '@/components/deck/brand'
 import { drinks } from '@/lib/drinks'
+import { siteAssetAbsoluteUrl } from '@/lib/site-assets'
 
 const SECTION_THEMES: Record<string, SlideTheme> = {
   TheQuestion: {
@@ -224,7 +222,14 @@ function MachineSlide() {
           </div>
         ))}
         <div className="hidden items-end pl-1 md:flex">
-          <CanHero drink={drinks[0]} size="sm" />
+          <Image
+            src={siteAssetAbsoluteUrl(drinks[0].boxImageFront)}
+            alt={`${drinks[0].name} pack`}
+            width={160}
+            height={200}
+            className="h-20 w-auto drop-shadow-xl"
+            unoptimized
+          />
         </div>
       </div>
       <p className="mt-3 font-condensed text-xs uppercase tracking-widest text-untamed-white-muted">
@@ -322,30 +327,73 @@ function HeadToHeadSlide() {
 
 function InstrumentedFunnelSlide() {
   const steps = [
-    { icon: Megaphone, title: 'Spend', body: 'Meta + Google, synced daily. You see the dollars.' },
-    { icon: Radio, title: 'Impressions & clicks', body: 'UTM, gclid, fbclid on every session.' },
-    { icon: Target, title: 'Landing page', body: 'Campaign LPs. Form start and form complete as events.' },
-    { icon: Workflow, title: 'Lead', body: 'First-touch waterfall onto the retailer record.' },
-    { icon: Timer, title: 'CMO contact', body: '48-hour SLA clock. Activity log. Next action.' },
-    { icon: Check, title: 'Shelf', body: 'Converted means we are carried. Cost per shelf. Annual velocity.' },
+    {
+      title: 'Spend',
+      figure: money(BASE_UNIT.spend),
+      body: 'Meta + Google. You see the dollars.',
+    },
+    {
+      title: 'Attention',
+      figure: `${compact(BASE_UNIT.impressions)} / ${BASE_UNIT.clicks.toLocaleString()}`,
+      body: 'Impressions and clicks. UTM, gclid, fbclid on every session.',
+    },
+    {
+      title: 'Land',
+      figure: `${Math.round(BASE_UNIT.lpCvr * 100)}%`,
+      body: 'Campaign page. Form start and form complete as events.',
+    },
+    {
+      title: 'Lead',
+      figure: String(BASE_UNIT.leads),
+      body: 'First-touch waterfall onto the retailer record.',
+    },
+    {
+      title: 'Joe',
+      figure: String(BASE_UNIT.contacted),
+      body: '48-hour SLA. Activity log. Next action.',
+    },
+    {
+      title: 'Shelf',
+      figure: String(BASE_UNIT.shelves),
+      body: 'Carried. Cost per shelf. Annual velocity.',
+    },
   ]
   return (
     <SlideShell
       section="TheMachine"
-      title={<>Every step gets a number</>}
-      intro="This is the funnel we instrument. If a dollar cannot be followed from impression to a shelf we sit on, it does not get spent twice."
+      title={<>The machine, in order</>}
+      intro="One sequence. If a dollar cannot be followed from impression to a shelf we sit on, it does not get spent twice."
+      hideAnimal
     >
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {steps.map((s) => (
-          <div key={s.title} className="rounded-2xl border border-card-border bg-untamed-black-card/80 p-5">
-            <div className="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#9B30FF]/15 text-[#9B30FF]">
-              <s.icon className="h-4 w-4" />
-            </div>
-            <h3 className="font-condensed text-base font-bold uppercase">{s.title}</h3>
-            <p className="mt-1.5 text-sm text-untamed-white-muted">{s.body}</p>
-          </div>
-        ))}
+      <div className="relative">
+        <div className="pointer-events-none absolute left-[8%] right-[8%] top-5 hidden h-px bg-gradient-to-r from-[#FF8C2A] via-[#9B30FF] to-[#FFD700] md:block" />
+        <ol className="relative grid grid-cols-2 gap-4 md:grid-cols-6 md:gap-3">
+          {steps.map((s, i) => {
+            const d = spiritAt(i)
+            return (
+              <li key={s.title} className="relative">
+                <div
+                  className="relative z-10 mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full border-2 bg-untamed-black font-condensed text-sm font-bold"
+                  style={{ borderColor: d.colorLight, color: d.colorLight, boxShadow: `0 0 24px -6px ${d.colorGlow}` }}
+                >
+                  {String(i + 1).padStart(2, '0')}
+                </div>
+                <SpiritCard drink={d} className="p-3 text-center md:p-4">
+                  <p className="font-condensed text-xs uppercase tracking-widest" style={{ color: d.colorLight }}>
+                    {s.title}
+                  </p>
+                  <p className="mt-1 font-condensed text-2xl font-bold text-[#FFD700] md:text-3xl">{s.figure}</p>
+                  <p className="mt-2 text-xs leading-relaxed text-untamed-white-muted">{s.body}</p>
+                </SpiritCard>
+              </li>
+            )
+          })}
+        </ol>
       </div>
+      <p className="mt-6 font-condensed text-lg font-bold uppercase md:text-xl">
+        Dollar in.{' '}
+        <span className="text-gradient-wild">Shelf out.</span>
+      </p>
     </SlideShell>
   )
 }

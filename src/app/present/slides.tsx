@@ -5,6 +5,7 @@ import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { ArrowRight, ExternalLink } from 'lucide-react'
 import { drinks } from '@/lib/drinks'
+import { siteAssetAbsoluteUrl } from '@/lib/site-assets'
 import { ONE_TWO_THREE, WHY_DIFFERENT } from '@/lib/retail/sell'
 import {
   CanHero,
@@ -242,11 +243,12 @@ function CasesSlide({ deck }: { deck: LocationPitch }) {
           {boxes.map((d) => (
             <div key={d.slug} className="relative w-36 md:w-52">
               <Image
-                src={d.boxWithCanImage}
-                alt={`${d.name} case`}
+                src={siteAssetAbsoluteUrl(d.boxImageFront)}
+                alt={`${d.name} pack`}
                 width={420}
                 height={520}
                 className="h-auto w-full drop-shadow-2xl"
+                unoptimized
               />
             </div>
           ))}
