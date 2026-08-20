@@ -1,6 +1,5 @@
 'use client'
 
-import Image from 'next/image'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import {
@@ -45,44 +44,41 @@ import {
   money,
   type FunnelScenario,
 } from './deck-data'
+import {
+  CanHero,
+  DeckCover,
+  SlideFrame,
+  SpiritCard,
+  spiritAt,
+  type SlideTheme,
+} from '@/components/deck/brand'
+import { drinks } from '@/lib/drinks'
 
-const CANS_GROUP = '/brand-kit/cans/cans-group-front.png'
-
-interface SectionTheme {
-  accent: string
-  gradientClass: string
-  animal: string
-}
-
-const SECTION_THEMES: Record<string, SectionTheme> = {
+const SECTION_THEMES: Record<string, SlideTheme> = {
   TheQuestion: {
     accent: '#FFD700',
-    gradientClass: 'text-gradient-wild',
     animal: '/images/animal-lioness.png',
+    scratch: '/images/scratch-lioness.png',
   },
   TheUnit: {
     accent: '#FF8C2A',
-    gradientClass: 'text-gradient-lioness',
     animal: '/images/animal-lioness.png',
   },
   TheMachine: {
     accent: '#9B30FF',
-    gradientClass: 'text-gradient-panther',
     animal: '/images/animal-black-panther.png',
   },
   TheScale: {
     accent: '#E6D800',
-    gradientClass: 'text-gradient-cheetah',
     animal: '/images/animal-cheetah.png',
   },
   TheAsk: {
     accent: '#6B8E23',
-    gradientClass: 'text-gradient-cougar',
     animal: '/images/animal-cougar.png',
   },
 }
 
-function themeFor(section: string): SectionTheme {
+function themeFor(section: string): SlideTheme {
   return SECTION_THEMES[section] ?? SECTION_THEMES.TheAsk
 }
 
@@ -92,103 +88,37 @@ function SlideShell({
   intro,
   children,
   footnote,
+  hideAnimal,
 }: {
   section: string
   title: ReactNode
   intro?: ReactNode
   children: ReactNode
   footnote?: string
+  hideAnimal?: boolean
 }) {
-  const theme = themeFor(section)
   return (
-    <div className="relative flex h-full w-full flex-col overflow-hidden px-6 pb-16 pt-14 sm:px-10 md:px-16 lg:px-24">
-      <div
-        className="pointer-events-none absolute -left-40 -top-40 h-[480px] w-[480px] rounded-full opacity-[0.16] blur-[140px]"
-        style={{ backgroundColor: theme.accent }}
-      />
-      <div className="pointer-events-none absolute -right-16 bottom-0 top-0 flex items-center opacity-[0.07] md:-right-8">
-        <Image
-          src={theme.animal}
-          alt=""
-          width={700}
-          height={700}
-          className="h-[70vh] w-auto max-w-none select-none"
-        />
-      </div>
-      <div className="relative z-10 mx-auto my-auto w-full max-w-6xl">
-        <div className="flex items-center gap-3">
-          <span
-            className="h-[2px] w-10 rounded-full"
-            style={{ background: `linear-gradient(90deg, ${theme.accent}, transparent)` }}
-          />
-          <p
-            className="font-condensed text-xs font-bold uppercase tracking-[0.35em] md:text-sm"
-            style={{ color: theme.accent }}
-          >
-            {section.replace(/([A-Z])/g, ' $1').trim()}
-          </p>
-        </div>
-        <h2 className="animate-scratch mt-2 font-condensed text-3xl font-bold uppercase leading-[1.02] tracking-tight sm:text-4xl md:text-5xl">
-          {title}
-        </h2>
-        {intro && (
-          <p className="mt-3 max-w-3xl text-sm leading-relaxed text-untamed-white-muted md:text-base">
-            {intro}
-          </p>
-        )}
-        <div className="mt-6 md:mt-7">{children}</div>
-        {footnote && <p className="mt-5 text-[11px] leading-relaxed text-muted md:text-xs">{footnote}</p>}
-      </div>
-    </div>
+    <SlideFrame
+      section={section}
+      title={title}
+      intro={intro}
+      footnote={footnote}
+      hideAnimal={hideAnimal}
+      theme={themeFor(section)}
+    >
+      {children}
+    </SlideFrame>
   )
 }
 
 function CoverSlide() {
   return (
-    <div className="relative flex h-full w-full flex-col items-center overflow-hidden px-6 text-center">
-      <div className="pointer-events-none absolute -left-32 -top-32 h-[420px] w-[420px] rounded-full bg-[#9B30FF] opacity-[0.14] blur-[130px]" />
-      <div className="pointer-events-none absolute -right-32 top-1/3 h-[420px] w-[420px] rounded-full bg-[#FFD700] opacity-[0.10] blur-[130px]" />
-      <div className="relative z-10 flex flex-1 flex-col items-center justify-center pb-[28vh]">
-        <Image
-          src="/images/logo-mark.png"
-          alt="Untamed Beverages logo"
-          width={120}
-          height={120}
-          className="h-16 w-16 md:h-20 md:w-20"
-          priority
-        />
-        <h1 className="mt-4 font-headline text-5xl uppercase tracking-wide sm:text-6xl md:text-7xl">
-          Untamed
-        </h1>
-        <div className="mt-3 flex items-center gap-4">
-          <span className="h-px w-10 bg-gradient-to-r from-transparent to-[#FFD700] md:w-16" />
-          <p className="font-condensed text-sm font-bold uppercase tracking-[0.3em] text-untamed-silver md:text-xl">
-            Retail Lead Engine
-          </p>
-          <span className="h-px w-10 bg-gradient-to-l from-transparent to-[#FFD700] md:w-16" />
-        </div>
-        <p className="mt-6 max-w-xl text-sm text-untamed-white-muted md:text-base">
-          What $3,500 of inbound demand does versus $3,500 of one salesperson.
-        </p>
-        <p className="mt-6 font-condensed text-[11px] uppercase tracking-[0.3em] text-muted md:text-xs">
-          Owner Briefing — Confidential
-        </p>
-      </div>
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-0 flex justify-center">
-        <Image
-          src={CANS_GROUP}
-          alt="Untamed martini can lineup"
-          width={1400}
-          height={640}
-          className="h-auto w-[60%] max-w-xl translate-y-[26%] select-none md:max-w-2xl"
-          style={{
-            maskImage: 'linear-gradient(to bottom, black 55%, transparent 96%)',
-            WebkitMaskImage: 'linear-gradient(to bottom, black 55%, transparent 96%)',
-          }}
-          priority
-        />
-      </div>
-    </div>
+    <DeckCover
+      scratch="/images/scratch-panther.png"
+      eyebrow="Retail Lead Engine"
+      sub="What $3,500 of inbound demand does versus $3,500 of one salesperson."
+      footer="Owner Briefing — Confidential"
+    />
   )
 }
 
@@ -204,12 +134,12 @@ function QuestionSlide() {
           { label: 'Monthly burn', value: money(TEAM_COST), sub: 'two people × $3,500' },
           { label: 'Documented shelves', value: '0', sub: 'accounts actually carrying us' },
           { label: 'Cost per shelf', value: '∞', sub: 'undefined when output is zero' },
-        ].map((c) => (
-          <div key={c.label} className="rounded-2xl border border-card-border bg-untamed-black-card/80 p-6">
+        ].map((c, i) => (
+          <SpiritCard key={c.label} drink={spiritAt(i)} className="p-6">
             <p className="font-condensed text-xs uppercase tracking-[0.25em] text-muted">{c.label}</p>
             <p className="mt-2 font-condensed text-4xl font-bold text-[#FFD700] md:text-5xl">{c.value}</p>
             <p className="mt-2 text-sm text-untamed-white-muted">{c.sub}</p>
-          </div>
+          </SpiritCard>
         ))}
       </div>
       <p className="mt-8 font-condensed text-xl font-bold uppercase md:text-2xl">
@@ -279,41 +209,52 @@ function MachineSlide() {
       title={<>What $3,500 buys as a machine</>}
       intro={`Base-case at the same unit cost as one salesperson. Each new shelf opens at ${CASES_PER_ORDER} cases. Every lead has a source. Joe works inbound within 48 hours.`}
       footnote={DISCLAIMER}
+      hideAnimal
     >
       <div className="flex flex-wrap items-stretch gap-2 md:gap-3">
         {steps.map((s, i) => (
           <div key={s.label} className="flex items-center gap-2 md:gap-3">
-            <div className="min-w-[5.25rem] rounded-2xl border border-card-border bg-untamed-black-card/80 px-3 py-4 text-center md:min-w-[6.25rem] md:px-4">
+            <SpiritCard drink={spiritAt(i)} className="min-w-[5.25rem] px-3 py-4 text-center md:min-w-[6.25rem] md:px-4">
               <p className="font-condensed text-2xl font-bold text-[#FFD700] md:text-3xl">{s.value}</p>
               <p className="mt-1 font-condensed text-[10px] uppercase tracking-widest text-muted">{s.label}</p>
-            </div>
+            </SpiritCard>
             {i < steps.length - 1 && (
               <ArrowRight className="hidden h-4 w-4 shrink-0 text-muted sm:block" />
             )}
           </div>
         ))}
+        <div className="hidden items-end pl-1 md:flex">
+          <CanHero drink={drinks[0]} size="sm" />
+        </div>
       </div>
       <p className="mt-3 font-condensed text-xs uppercase tracking-widest text-untamed-white-muted">
         Average opening order · {CASES_PER_ORDER} cases per shelf
       </p>
       <div className="mt-6 grid gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl border border-card-border p-5">
+        <SpiritCard drink={spiritAt(0)}>
           <p className="font-condensed text-xs uppercase tracking-widest text-muted">Cost per lead</p>
           <p className="mt-1 font-condensed text-3xl font-bold">{money(BASE_UNIT.cpl)}</p>
-        </div>
-        <div className="rounded-2xl border border-card-border p-5">
+        </SpiritCard>
+        <SpiritCard drink={spiritAt(1)}>
           <p className="font-condensed text-xs uppercase tracking-widest text-muted">Cost per shelf</p>
           <p className="mt-1 font-condensed text-3xl font-bold">{money(BASE_UNIT.costPerShelf)}</p>
-        </div>
-        <div className="rounded-2xl border border-card-border p-5">
+        </SpiritCard>
+        <SpiritCard drink={spiritAt(2)}>
           <p className="font-condensed text-xs uppercase tracking-widest text-muted">Opening cases</p>
           <p className="mt-1 font-condensed text-3xl font-bold">{openingCases}</p>
           <p className="mt-1 text-xs text-untamed-white-muted">
             {BASE_UNIT.shelves} shelves × {CASES_PER_ORDER} cases
           </p>
-        </div>
+        </SpiritCard>
       </div>
-      <div className="mt-4 rounded-2xl border border-[#FFD700]/40 bg-[#FFD700]/5 p-5">
+      <div
+        className="mt-4 rounded-2xl border p-5"
+        style={{
+          borderColor: 'rgba(255, 215, 0, 0.55)',
+          boxShadow: '0 0 60px -16px rgba(255, 215, 0, 0.45)',
+          background: 'linear-gradient(135deg, rgba(255,215,0,0.12), rgba(255,140,42,0.06))',
+        }}
+      >
         <p className="font-condensed text-xs uppercase tracking-widest text-[#FFD700]">
           Annual velocity from this month
         </p>
@@ -646,9 +587,11 @@ function ThroughputSlide() {
       intro="Ads go to these landing pages. Leads show up here. Open any link — these are the live screens, not mockups. Admin pages ask you to sign in."
     >
       <div className="grid gap-4 md:grid-cols-3">
-        {THROUGHPUT.map((col) => (
-          <div key={col.step} className="flex flex-col rounded-2xl border border-card-border bg-untamed-black-card/80 p-4">
-            <p className="font-condensed text-xs uppercase tracking-[0.3em] text-[#FFD700]">{col.step}</p>
+        {THROUGHPUT.map((col, i) => (
+          <SpiritCard key={col.step} drink={spiritAt(i)} className="flex flex-col p-4">
+            <p className="font-condensed text-xs uppercase tracking-[0.3em]" style={{ color: spiritAt(i).colorLight }}>
+              {col.step}
+            </p>
             <h3 className="mt-1 font-condensed text-lg font-bold uppercase">{col.title}</h3>
             <p className="mt-1.5 text-sm text-untamed-white-muted">{col.body}</p>
             <ul className="mt-4 space-y-2">
@@ -674,7 +617,7 @@ function ThroughputSlide() {
                 </li>
               ))}
             </ul>
-          </div>
+          </SpiritCard>
         ))}
       </div>
     </SlideShell>
@@ -689,8 +632,8 @@ function BuiltSlide() {
       intro="The stack is live. Attribution, campaign pages, Joe’s workbench, the funnel dashboard, referrals, and the content engine are in the product today. What’s left is pointing paid media at it and putting Joe on inbound."
     >
       <div className="grid gap-3 sm:grid-cols-2">
-        {ALREADY_BUILT.map((b) => (
-          <div key={b.label} className="flex items-start gap-3 rounded-2xl border border-card-border p-4">
+        {ALREADY_BUILT.map((b, i) => (
+          <SpiritCard key={b.label} drink={spiritAt(i)} className="flex items-start gap-3 p-4">
             <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#6B8E23]/20">
               <Check className="h-3.5 w-3.5 text-[#6B8E23]" />
             </span>
@@ -698,9 +641,13 @@ function BuiltSlide() {
               <p className="font-condensed text-sm font-bold uppercase">{b.label}</p>
               <p className="mt-0.5 text-sm text-untamed-white-muted">{b.detail}</p>
             </div>
-          </div>
+          </SpiritCard>
         ))}
       </div>
+      <p className="mt-6 font-condensed text-xl font-bold uppercase md:text-2xl">
+        Already built.{' '}
+        <span className="text-gradient-wild">Not turned on.</span>
+      </p>
     </SlideShell>
   )
 }

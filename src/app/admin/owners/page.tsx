@@ -69,6 +69,13 @@ const AREAS: {
     accent: '#FFD700',
   },
   {
+    href: '/present',
+    title: 'Location decks',
+    body: 'On-premise and off-premise pitches for the owner in the room. Print to PDF.',
+    icon: Store,
+    accent: '#FF8C2A',
+  },
+  {
     href: '/admin/retail',
     title: 'Retail workbench',
     body: 'Where Joe lives. New leads, 48-hour SLA, status, notes, and which ad created each account.',
@@ -140,6 +147,8 @@ const PUBLIC_PAGES: { href: string; title: string; body: string }[] = [
   { href: '/lp/retail/liquor', title: '/lp/retail/liquor', body: 'Paid landing page for liquor stores.' },
   { href: '/lp/retail/distributors', title: '/lp/retail/distributors', body: 'Paid landing page for distributors.' },
   { href: '/briefing', title: '/briefing', body: 'Owner briefing. Not public. Do not index.' },
+  { href: '/present/on-premise', title: '/present/on-premise', body: 'Pitch for bar and restaurant owners.' },
+  { href: '/present/off-premise', title: '/present/off-premise', body: 'Pitch for liquor store owners.' },
 ]
 
 export default function OwnerGuidePage() {

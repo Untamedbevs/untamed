@@ -235,6 +235,8 @@ export const THROUGHPUT = [
       { href: '/lp/retail/bars', label: 'Bars & restaurants', hint: 'Paid — on-premise' },
       { href: '/lp/retail/liquor', label: 'Liquor stores', hint: 'Paid — off-premise' },
       { href: '/lp/retail/distributors', label: 'Distributors', hint: 'Paid — wholesale' },
+      { href: '/present/on-premise', label: 'On-premise deck', hint: 'Pitch the bar or restaurant owner in the room' },
+      { href: '/present/off-premise', label: 'Off-premise deck', hint: 'Pitch the liquor store owner in the room' },
       { href: '/retail', label: 'Retail', hint: 'Organic and referral wholesale page' },
       { href: '/distribute', label: 'Distribute', hint: 'Referral-tracked B2B pitch' },
     ],
