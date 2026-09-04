@@ -95,6 +95,10 @@ export function Navigation() {
                 Shop
               </a>
 
+              <Link href="/locations" className={NAV_LINK_CLASSES}>
+                Location Finder
+              </Link>
+
               <Link href="/about" className={NAV_LINK_CLASSES}>
                 About
               </Link>
@@ -186,6 +190,13 @@ export function Navigation() {
             >
               Shop All
             </a>
+            <Link
+              href="/locations"
+              onClick={() => setMobileOpen(false)}
+              className={MOBILE_LINK_CLASSES}
+            >
+              Location Finder
+            </Link>
             <div className="w-16 h-px bg-card-border my-2" />
             <Link
               href="/about"

@@ -36,6 +36,7 @@ import {
   Link2,
   BarChart3,
   Map,
+  MapPin,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { LucideIcon } from 'lucide-react'
@@ -64,6 +65,7 @@ const ALL_NAV_ITEMS: NavItem[] = [
     icon: Building2,
     children: [
       { href: '/admin/retail', label: 'Workbench', icon: Building2 },
+      { href: '/admin/retail/locations', label: 'Locations', icon: MapPin },
       { href: '/admin/retail/performance', label: 'Performance', icon: BarChart3 },
       { href: '/admin/retail/utm-builder', label: 'UTM Builder', icon: Link2 },
     ],

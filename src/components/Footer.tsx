@@ -73,6 +73,9 @@ export function Footer() {
               Retail
             </h3>
             <div className="flex flex-col gap-3 text-sm text-untamed-white-muted">
+              <Link href="/locations" className="hover:text-untamed-white transition-colors duration-300">
+                Find Untamed
+              </Link>
               <Link href="/retail" className="hover:text-untamed-white transition-colors duration-300">
                 Carry <span className="font-headline">Untamed</span>
               </Link>
@@ -97,6 +100,9 @@ export function Footer() {
               More
             </h3>
             <div className="flex flex-col gap-3 text-sm text-untamed-white-muted">
+              <Link href="/locations" className="hover:text-untamed-white transition-colors duration-300">
+                Find Untamed
+              </Link>
               <Link href="/about" className="hover:text-untamed-white transition-colors duration-300">
                 Our Story
               </Link>

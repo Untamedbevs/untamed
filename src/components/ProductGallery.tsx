@@ -31,6 +31,7 @@ function getGalleryItems(drink: Drink): GalleryItem[] {
     { type: 'image', src: cdnUrl(drink.canImageFrontAndBack), alt: `${drink.name} Front & Back`, label: 'Both Sides' },
     { type: 'image', src: cdnUrl(drink.boxImageFront), alt: `${drink.name} Pack Front`, label: 'Pack Front' },
     { type: 'image', src: cdnUrl(drink.boxImageBack), alt: `${drink.name} Pack Back`, label: 'Pack Back' },
+    { type: 'image', src: cdnUrl(drink.boxWithCanImage), alt: `${drink.name} Pack with Can`, label: 'Pack + Can' },
   ]
 }
 
@@ -108,12 +109,12 @@ export function ProductGallery({ drink }: ProductGalleryProps) {
       </div>
 
       {/* Thumbnails */}
-      <div className="flex gap-2 overflow-x-auto pb-1 max-w-full px-1">
+      <div className="flex flex-wrap justify-center gap-2 pb-1 w-full max-w-xl px-1">
         {items.map((item, idx) => (
           <button
             key={idx}
             onClick={() => handleSelect(idx)}
-            className="relative shrink-0 w-16 h-16 md:w-20 md:h-20 rounded-lg overflow-hidden border-2 transition-all duration-300 bg-untamed-black-card"
+            className="relative shrink-0 w-14 h-14 md:w-16 md:h-16 rounded-lg overflow-hidden border-2 transition-all duration-300 bg-untamed-black-card"
             style={{
               borderColor: idx === activeIndex ? drink.color : 'rgba(255,255,255,0.1)',
               boxShadow: idx === activeIndex ? `0 0 12px ${drink.colorGlow}` : 'none',

@@ -176,6 +176,13 @@ export default function AdminRetailWorkbenchPage() {
         </div>
         <div className="flex gap-2">
           <Link
+            href="/admin/retail/locations"
+            className="inline-flex items-center gap-2 rounded-lg border border-[#2A2A2A] px-3 py-2 text-sm text-white hover:bg-[#1A1A1A]"
+          >
+            <MapPin className="h-4 w-4 text-[#FFD700]" />
+            Locations
+          </Link>
+          <Link
             href="/admin/retail/performance"
             className="inline-flex items-center gap-2 rounded-lg border border-[#2A2A2A] px-3 py-2 text-sm text-white hover:bg-[#1A1A1A]"
           >

@@ -378,6 +378,34 @@ iframe[src*="cart."] {
 
 /* Hide AccelPay's native cart icon — we have our own in the nav.
    Use clip instead of display:none so we can still .click() it from JS. */
+.untamed-map-pin {
+  background: transparent;
+  border: none;
+}
+
+.untamed-map-popup .leaflet-popup-content-wrapper {
+  background: #141414;
+  color: #fafafa;
+  border-radius: 12px;
+  border: 1px solid #2a2a2a;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+}
+
+.untamed-map-popup .leaflet-popup-content {
+  margin: 10px 14px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.untamed-map-popup .leaflet-popup-tip {
+  background: #141414;
+}
+
+.leaflet-container {
+  background: #111;
+  font-family: inherit;
+}
+
 .accelpay-view-cart,
 .bc-cartcount-wrapper {
   position: fixed !important;

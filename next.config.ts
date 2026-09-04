@@ -80,6 +80,16 @@ const nextConfig: NextConfig = {
           '/distribute?utm_source=qr&utm_medium=referral&utm_campaign=distributor_program',
         permanent: false,
       },
+      {
+        source: '/where-to-buy',
+        destination: '/locations',
+        permanent: false,
+      },
+      {
+        source: '/find-us',
+        destination: '/locations',
+        permanent: false,
+      },
     ]
   },
 }

@@ -13,6 +13,7 @@ import {
   Radio,
   Share2,
   Store,
+  MapPin,
   Target,
   Timer,
   Trophy,
@@ -83,6 +84,13 @@ const AREAS: {
     accent: '#FF8C2A',
   },
   {
+    href: '/admin/retail/locations',
+    title: 'Store locator',
+    body: 'Paste an address, look it up, publish the door. Public map at /locations with Apple Maps and Google Maps links.',
+    icon: MapPin,
+    accent: '#9B30FF',
+  },
+  {
     href: '/admin/retail/performance',
     title: 'Performance',
     body: 'The scoreboard. Spend through doors. Log ad spend here until Google and Meta sync automatically.',
@@ -141,6 +149,7 @@ const AREAS: {
 ]
 
 const PUBLIC_PAGES: { href: string; title: string; body: string }[] = [
+  { href: '/locations', title: '/locations', body: 'Public store locator. Apple Maps and Google Maps links. No Google API key.' },
   { href: '/retail', title: '/retail', body: 'Brand wholesale page. Organic and referral traffic.' },
   { href: '/distribute', title: '/distribute', body: 'Referral-tracked B2B variant of the same pitch.' },
   { href: '/lp/retail/bars', title: '/lp/retail/bars', body: 'Paid landing page for bar and restaurant buyers.' },

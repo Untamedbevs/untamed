@@ -4,7 +4,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { ArrowDown, Mail, Building2 } from 'lucide-react'
+import { ArrowDown, Mail, Building2, MapPin } from 'lucide-react'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
 import { DrinkCard } from '@/components/DrinkCard'
@@ -51,7 +51,6 @@ export default function HomePage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
             >
-              {/* Brand Logo */}
               <div className="flex flex-col items-center mb-6">
                 <Image
                   src="https://media.untamedbeverages.com/media/Site_Assets/Graphics/1780139299257-untamed_coaster_design-v2.png"
@@ -64,7 +63,6 @@ export default function HomePage() {
                 />
               </div>
 
-              {/* Tagline */}
               <p className="text-2xl md:text-3xl lg:text-4xl font-light text-untamed-white mb-4 italic">
                 Get In Touch With Your{' '}
                 <span className="font-wild cyber-brush-fix not-italic text-gradient-wild text-3xl md:text-4xl lg:text-5xl">
@@ -72,13 +70,11 @@ export default function HomePage() {
                 </span>
               </p>
 
-              {/* Sub-tagline */}
               <p className="text-untamed-white-muted text-base md:text-lg tracking-wider mb-10">
                 Chill it. Shake it.{' '}
                 <span className="font-wild cyber-brush-fix text-untamed-white text-xl md:text-2xl">Unleash it!</span>
               </p>
 
-              {/* CTA Buttons */}
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <a
                   href="/shop"
@@ -87,6 +83,15 @@ export default function HomePage() {
                     hover:shadow-[0_0_30px_rgba(155,48,255,0.4)] active:scale-95"
                 >
                   Shop Now
+                </a>
+                <a
+                  href="/locations"
+                  className="px-8 py-3 border border-[#9B30FF50] text-[#C084FC] font-medium text-base rounded-full
+                    hover:border-[#9B30FF] hover:bg-[#9B30FF10] transition-all duration-300 active:scale-95
+                    inline-flex items-center gap-2"
+                >
+                  <MapPin className="w-4 h-4" />
+                  Find Untamed
                 </a>
                 <a
                   href="/retail"
@@ -100,7 +105,6 @@ export default function HomePage() {
               </div>
             </motion.div>
 
-            {/* Scroll indicator */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -624,7 +628,7 @@ export default function HomePage() {
                 <span className="font-wild cyber-brush-fix text-gradient-wild">Wild Side</span>
               </h2>
               <p className="text-untamed-white-muted text-lg md:text-xl mb-10 max-w-xl mx-auto">
-                Order direct, join the rewards program, or carry <span className="font-headline">Untamed</span> in your business.
+                Order direct, find a store, or carry <span className="font-headline">Untamed</span> in your business.
               </p>
 
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
@@ -636,6 +640,15 @@ export default function HomePage() {
                     inline-flex items-center gap-2"
                 >
                   Shop All Flavors
+                </a>
+                <a
+                  href="/locations"
+                  className="px-8 py-3 border border-[#9B30FF50] text-[#C084FC] font-medium text-base rounded-full
+                    hover:border-[#9B30FF] hover:bg-[#9B30FF10] transition-all duration-300 active:scale-95
+                    inline-flex items-center gap-2"
+                >
+                  <MapPin className="w-4 h-4" />
+                  Find Untamed
                 </a>
                 <a
                   href="/retail"
