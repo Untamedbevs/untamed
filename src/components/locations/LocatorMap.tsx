@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react'
 import 'leaflet/dist/leaflet.css'
 import type { GeoPoint, PublicRetailLocation } from '@/lib/retail/locations'
-import { formatAddress } from '@/lib/retail/locations'
+import { formatAddress, isOnPremiseLocation } from '@/lib/retail/locations'
 
 interface LocatorMapProps {
   locations: PublicRetailLocation[]
@@ -14,9 +14,10 @@ interface LocatorMapProps {
 
 const FLORIDA: [number, number] = [27.8, -81.7]
 
-function pinHtml(selected: boolean) {
-  const fill = selected ? '#FFD700' : '#9B30FF'
-  return `<span style="display:block;width:18px;height:18px;border-radius:9999px;background:${fill};border:2px solid #FAFAFA;box-shadow:0 0 0 4px rgba(155,48,255,0.25)"></span>`
+function pinHtml(selected: boolean, onPremise: boolean) {
+  const fill = selected ? '#FFD700' : onPremise ? '#FF8C2A' : '#9B30FF'
+  const glow = onPremise ? 'rgba(255,140,42,0.28)' : 'rgba(155,48,255,0.25)'
+  return `<span style="display:block;width:18px;height:18px;border-radius:9999px;background:${fill};border:2px solid #FAFAFA;box-shadow:0 0 0 4px ${glow}"></span>`
 }
 
 export function LocatorMap({ locations, selectedId, origin, onSelect }: LocatorMapProps) {
@@ -61,7 +62,7 @@ export function LocatorMap({ locations, selectedId, origin, onSelect }: LocatorM
         const marker = L.marker([loc.latitude, loc.longitude], {
           icon: L.divIcon({
             className: 'untamed-map-pin',
-            html: pinHtml(selected),
+            html: pinHtml(selected, isOnPremiseLocation(loc.location_type)),
             iconSize: [18, 18],
             iconAnchor: [9, 9],
           }),

@@ -3,6 +3,7 @@ export const LOCATION_TYPES = [
   'bar',
   'restaurant',
   'grocery',
+  'resort',
   'other',
 ] as const
 
@@ -13,7 +14,19 @@ export const LOCATION_TYPE_LABELS: Record<RetailLocationType, string> = {
   bar: 'Bar',
   restaurant: 'Restaurant',
   grocery: 'Grocery',
+  resort: 'Resort',
   other: 'Other',
+}
+
+export const ON_PREMISE_TYPES: readonly RetailLocationType[] = [
+  'bar',
+  'restaurant',
+  'resort',
+  'other',
+]
+
+export function isOnPremiseLocation(type: RetailLocationType): boolean {
+  return (ON_PREMISE_TYPES as readonly string[]).includes(type)
 }
 
 export interface RetailLocation {
