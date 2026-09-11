@@ -7,9 +7,10 @@ interface ShippingRatesProps {
   accentColor?: string
 }
 
-const TIERS = [
-  { range: '2–3 boxes', price: '$21.99', perBox: '$7.33–$11.00' },
-  { range: '4–7 boxes', price: '$43.99', perBox: '$6.28–$11.00' },
+const TIERS: { range: string; price: string; perBox: string | null }[] = [
+  { range: '2–6 boxes', price: '$19.95', perBox: '$3.33–$9.98' },
+  { range: '7–12 boxes', price: '$39.95', perBox: '$3.33–$5.71' },
+  { range: '13+ boxes', price: 'Free', perBox: null },
 ]
 
 /**
@@ -26,16 +27,18 @@ export function ShippingRates({ compact = false, accentColor }: ShippingRatesPro
             Shipping &bull; Continental US
           </span>
         </div>
-        <div className="grid grid-cols-2 gap-2 text-sm">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 text-sm">
           {TIERS.map((tier) => (
             <div key={tier.range} className="flex flex-col">
               <span className="text-untamed-white font-medium">{tier.range}</span>
-              <span className="text-untamed-white-muted text-xs">{tier.price} shipping</span>
+              <span className="text-untamed-white-muted text-xs">
+                {tier.perBox ? `${tier.price} shipping` : 'Free shipping'}
+              </span>
             </div>
           ))}
         </div>
         <p className="text-untamed-white-muted/60 text-xs mt-2">
-          Minimum order: 2 boxes &bull; Save per box by ordering more
+          Minimum order: 2 boxes &bull; Free shipping on 13+
         </p>
       </div>
     )
@@ -58,7 +61,9 @@ export function ShippingRates({ compact = false, accentColor }: ShippingRatesPro
               <Package className="w-4 h-4 text-untamed-white-muted" />
               <div>
                 <p className="text-untamed-white font-medium">{tier.range}</p>
-                <p className="text-untamed-white-muted text-xs">{tier.perBox} per box</p>
+                {tier.perBox && (
+                  <p className="text-untamed-white-muted text-xs">{tier.perBox} per box</p>
+                )}
               </div>
             </div>
             <p className="text-untamed-white font-bold text-lg">{tier.price}</p>
@@ -68,7 +73,7 @@ export function ShippingRates({ compact = false, accentColor }: ShippingRatesPro
 
       <div className="px-6 py-3 bg-untamed-black-light/30">
         <p className="text-untamed-white-muted text-xs text-center">
-          Order more boxes to lower your per-box shipping cost. Each box contains 4 cans (8 cocktails).
+          Free shipping on 13+ boxes. Each box contains 4 cans (8 cocktails).
         </p>
       </div>
     </div>
