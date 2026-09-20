@@ -1,4 +1,4 @@
-const GRAPH_API = 'https://graph.facebook.com/v21.0'
+const GRAPH_API = 'https://graph.facebook.com/v26.0'
 
 function getEnv() {
   const token = process.env.META_PAGE_ACCESS_TOKEN

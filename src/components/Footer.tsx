@@ -70,7 +70,7 @@ export function Footer() {
           {/* For Business */}
           <div>
             <h3 className="text-untamed-white font-semibold uppercase tracking-wider text-sm mb-4">
-              Retail
+              Partners
             </h3>
             <div className="flex flex-col gap-3 text-sm text-untamed-white-muted">
               <Link href="/locations" className="hover:text-untamed-white transition-colors duration-300">
@@ -87,6 +87,9 @@ export function Footer() {
               </Link>
               <Link href="/retail#distributors" className="hover:text-untamed-white transition-colors duration-300">
                 For Distributors
+              </Link>
+              <Link href="/influencers" className="hover:text-untamed-white transition-colors duration-300">
+                Creator Partnerships
               </Link>
               <Link href="/referral" className="hover:text-untamed-white transition-colors duration-300">
                 Referral Program

@@ -37,6 +37,7 @@ import {
   BarChart3,
   Map,
   MapPin,
+  Sparkles,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { LucideIcon } from 'lucide-react'
@@ -67,9 +68,11 @@ const ALL_NAV_ITEMS: NavItem[] = [
       { href: '/admin/retail', label: 'Workbench', icon: Building2 },
       { href: '/admin/retail/locations', label: 'Locations', icon: MapPin },
       { href: '/admin/retail/performance', label: 'Performance', icon: BarChart3 },
+      { href: '/admin/retail/ads', label: 'Meta Ads', icon: Megaphone },
       { href: '/admin/retail/utm-builder', label: 'UTM Builder', icon: Link2 },
     ],
   },
+  { href: '/admin/influencers', label: 'Creators', icon: Sparkles },
   {
     href: '/admin/crm',
     label: 'CRM',

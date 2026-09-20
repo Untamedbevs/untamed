@@ -84,6 +84,17 @@ export default function ContactPage() {
             <p className="text-untamed-white-muted text-base md:text-lg max-w-lg mx-auto">
               Questions, partnerships, press inquiries, or just want to say hello — we&apos;d love to hear from you.
             </p>
+            <p className="text-sm text-untamed-white-muted/80 mt-4">
+              Retailers and bars:{' '}
+              <a href="/retail" className="text-[#FF8C2A] hover:underline">
+                carry Untamed
+              </a>
+              . Creators:{' '}
+              <a href="/influencers" className="text-[#9B30FF] hover:underline">
+                apply to partner
+              </a>
+              .
+            </p>
           </motion.div>
 
           {submitted ? (

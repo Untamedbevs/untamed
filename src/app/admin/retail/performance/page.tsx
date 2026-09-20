@@ -122,6 +122,12 @@ export default function RetailPerformancePage() {
           <p className="text-sm text-[#999]">Spend through doors. First-party attribution is the source of truth.</p>
         </div>
         <div className="flex items-center gap-2">
+          <Link
+            href="/admin/retail/ads"
+            className="rounded-lg border border-[#2A2A2A] px-3 py-1.5 text-sm text-[#A0A0A0] hover:text-white"
+          >
+            Meta Ads
+          </Link>
           {[7, 30, 90].map((d) => (
             <button
               key={d}

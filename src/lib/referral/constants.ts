@@ -4,6 +4,7 @@ export const RESERVED_CODES = new Set([
   'distribute', 'distributor', 'profile', 'settings', 'account',
   'help', 'support', 'blog', 'about', 'contact', 'terms', 'privacy',
   'untamed', 'black-panther', 'cheetah', 'cougar', 'lioness',
+  'influencers', 'influencer', 'creators', 'creator', 'collab',
 ])
 
 export const CODE_REGEX = /^[a-z0-9][a-z0-9-]{0,18}[a-z0-9]$/

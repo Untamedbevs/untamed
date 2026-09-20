@@ -26,8 +26,8 @@ const FUNNEL: { step: string; detail: string; href: string; label: string }[] = 
   {
     step: '1. Make the ad',
     detail: 'Ideas, studio, and campaigns feed Meta and Google without an agency.',
-    href: '/admin/studio',
-    label: 'Studio',
+    href: '/admin/retail/ads',
+    label: 'Meta Ads',
   },
   {
     step: '2. Send a tracked link',
@@ -151,6 +151,7 @@ const AREAS: {
 const PUBLIC_PAGES: { href: string; title: string; body: string }[] = [
   { href: '/locations', title: '/locations', body: 'Public store locator. Apple Maps and Google Maps links. No Google API key.' },
   { href: '/retail', title: '/retail', body: 'Brand wholesale page. Organic and referral traffic.' },
+  { href: '/influencers', title: '/influencers', body: 'Creator partnership page. Instagram bio: /r/collab.' },
   { href: '/distribute', title: '/distribute', body: 'Referral-tracked B2B variant of the same pitch.' },
   { href: '/lp/retail/bars', title: '/lp/retail/bars', body: 'Paid landing page for bar and restaurant buyers.' },
   { href: '/lp/retail/liquor', title: '/lp/retail/liquor', body: 'Paid landing page for liquor stores.' },

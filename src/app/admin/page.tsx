@@ -12,6 +12,7 @@ import {
   TrendingUp,
   Loader2,
   Building2,
+  Sparkles,
 } from 'lucide-react'
 
 interface DashboardStats {
@@ -20,6 +21,7 @@ interface DashboardStats {
   totalCampaigns: number
   activeCampaigns: number
   retailLeads: number
+  creatorLeads: number
 }
 
 interface RecentIdea {
@@ -65,7 +67,7 @@ export default function AdminDashboard() {
     async function loadDashboard() {
       const supabase = createClient()
 
-      const [ideasCount, mediaCount, campaignsCount, activeCampaignsCount, ideas, campaigns, retailRes] =
+      const [ideasCount, mediaCount, campaignsCount, activeCampaignsCount, ideas, campaigns, retailRes, creatorRes] =
         await Promise.all([
           supabase.from('ideas').select('*', { count: 'exact', head: true }),
           supabase.from('media').select('*', { count: 'exact', head: true }),
@@ -86,6 +88,7 @@ export default function AdminDashboard() {
             .order('scheduled_date', { ascending: true, nullsFirst: false })
             .limit(5),
           fetch('/api/admin/retail').then((r) => r.json()).catch(() => ({ total: 0 })),
+          fetch('/api/admin/influencers').then((r) => r.json()).catch(() => ({ total: 0 })),
         ])
 
       setStats({
@@ -94,6 +97,7 @@ export default function AdminDashboard() {
         totalCampaigns: campaignsCount.count ?? 0,
         activeCampaigns: activeCampaignsCount.count ?? 0,
         retailLeads: retailRes.total ?? 0,
+        creatorLeads: creatorRes.total ?? 0,
       })
       setRecentIdeas(ideas.data ?? [])
       setUpcomingCampaigns(campaigns.data ?? [])
@@ -117,6 +121,13 @@ export default function AdminDashboard() {
       icon: Building2,
       color: '#FF8C2A',
       href: '/admin/retail',
+    },
+    {
+      label: 'Creator Apps',
+      value: stats?.creatorLeads ?? 0,
+      icon: Sparkles,
+      color: '#9B30FF',
+      href: '/admin/influencers',
     },
     {
       label: 'Total Ideas',

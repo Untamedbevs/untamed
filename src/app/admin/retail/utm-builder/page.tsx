@@ -10,7 +10,7 @@ export default function UtmBuilderPage() {
   const [path, setPath] = useState('/lp/retail/bars')
   const [source, setSource] = useState('meta')
   const [medium, setMedium] = useState('cpc')
-  const [campaign, setCampaign] = useState('fl_bars_q3')
+  const [campaign, setCampaign] = useState('fl_retail_bars')
   const [content, setContent] = useState('')
   const [term, setTerm] = useState('')
   const [copied, setCopied] = useState(false)
@@ -69,6 +69,17 @@ export default function UtmBuilderPage() {
           }`}
         >
           /retail
+        </button>
+        <button
+          type="button"
+          onClick={() => setPath('/influencers')}
+          className={`rounded-full border px-3 py-1.5 text-xs ${
+            path === '/influencers'
+              ? 'border-[#9B30FF] bg-[#9B30FF]/10 text-[#9B30FF]'
+              : 'border-[#2A2A2A] text-[#999] hover:text-white'
+          }`}
+        >
+          /influencers
         </button>
       </div>
 

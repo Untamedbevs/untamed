@@ -6,13 +6,13 @@ import { createHash } from 'crypto'
  *
  * Env:
  *   NEXT_PUBLIC_META_PIXEL_ID
- *   META_CAPI_ACCESS_TOKEN
+ *   META_CAPI_ACCESS_TOKEN (falls back to META_ACCESS_TOKEN)
  *   META_TEST_EVENT_CODE (optional)
  */
 
-const GRAPH_VERSION = 'v21.0'
+const GRAPH_VERSION = 'v26.0'
 const PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID
-const ACCESS_TOKEN = process.env.META_CAPI_ACCESS_TOKEN
+const ACCESS_TOKEN = process.env.META_CAPI_ACCESS_TOKEN || process.env.META_ACCESS_TOKEN
 const TEST_EVENT_CODE = process.env.META_TEST_EVENT_CODE
 
 export type MetaCapiEventName = 'Lead' | 'PageView' | 'Contact' | 'CompleteRegistration'

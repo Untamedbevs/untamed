@@ -90,6 +90,28 @@ const nextConfig: NextConfig = {
         destination: '/locations',
         permanent: false,
       },
+      {
+        source: '/creators',
+        destination: '/influencers',
+        permanent: false,
+      },
+      {
+        source: '/collab',
+        destination: '/influencers',
+        permanent: false,
+      },
+      {
+        source: '/r/collab',
+        destination:
+          '/influencers?utm_source=social&utm_medium=link&utm_campaign=creator_partnerships',
+        permanent: false,
+      },
+      {
+        source: '/r/influencers',
+        destination:
+          '/influencers?utm_source=social&utm_medium=link&utm_campaign=creator_partnerships',
+        permanent: false,
+      },
     ]
   },
 }
