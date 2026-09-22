@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { randomUUID } from 'crypto'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { sendMetaCapiEvent } from '@/lib/tracking/meta-capi'
 import { z } from 'zod'
 
 const SUBJECTS = ['general', 'partnership', 'media', 'distribution', 'support', 'feedback'] as const
@@ -75,6 +77,27 @@ export async function POST(request: NextRequest) {
       })
 
     if (insertError) throw insertError
+
+    // Meta CAPI Contact — server-only (no matching browser event), so no
+    // dedup pair needed. Never blocks the submission.
+    try {
+      const [firstName, ...rest] = data.name.trim().split(/\s+/)
+      await sendMetaCapiEvent({
+        eventName: 'Contact',
+        eventId: `contact:${randomUUID()}`,
+        eventSourceUrl: 'https://untamedbevs.com/contact',
+        userData: {
+          email: data.email,
+          firstName: firstName || null,
+          lastName: rest.join(' ') || null,
+          clientIpAddress: ip !== 'unknown' ? ip : null,
+          clientUserAgent: request.headers.get('user-agent'),
+        },
+        customData: { content_category: data.subject },
+      })
+    } catch (capiErr) {
+      console.error('[contact] Meta CAPI failed:', capiErr)
+    }
 
     return NextResponse.json({ success: true })
   } catch (err) {

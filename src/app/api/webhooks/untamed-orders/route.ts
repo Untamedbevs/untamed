@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { creditOnlineOrder, parseAccelPaySale } from '@/lib/loyalty/orders'
+import { creditOnlineOrder, parseAccelPaySale, type ParsedSale } from '@/lib/loyalty/orders'
 import { captureWebhookEvent } from '@/lib/shop/webhook-capture'
+import { sendMetaCapiEvent } from '@/lib/tracking/meta-capi'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -52,10 +53,48 @@ export async function POST(request: NextRequest) {
 
   try {
     const result = await creditOnlineOrder(admin, sale)
+    // First delivery of this sale → report the Purchase to Meta. Duplicate
+    // means a webhook retry we've already processed; skip so we don't re-send
+    // (event_id would dedupe on Meta's side anyway, belt and suspenders).
+    if (result.status !== 'duplicate') {
+      await sendPurchaseToMeta(sale)
+    }
     return NextResponse.json({ ok: true, result: result.status })
   } catch (err) {
     console.error('[webhooks/untamed-orders] processing failed:', err)
     return NextResponse.json({ error: 'Processing failed' }, { status: 500 })
+  }
+}
+
+/**
+ * Meta Conversions API Purchase — the shop runs on AccelPay, so the browser
+ * never sees the order confirmation; this server event is the only Purchase
+ * signal. event_id is derived from the AccelPay sale id, so retries dedupe.
+ * Never blocks order processing.
+ */
+async function sendPurchaseToMeta(sale: ParsedSale): Promise<void> {
+  if (!sale.email || sale.totalCents <= 0) return
+  try {
+    const [firstName, ...rest] = (sale.name || '').trim().split(/\s+/)
+    await sendMetaCapiEvent({
+      eventName: 'Purchase',
+      eventId: `purchase:${sale.saleId}`,
+      eventSourceUrl: 'https://untamedbevs.com/shop',
+      userData: {
+        email: sale.email,
+        firstName: firstName || null,
+        lastName: rest.join(' ') || null,
+      },
+      customData: {
+        value: sale.totalCents / 100,
+        currency: 'USD',
+        content_type: 'product',
+        num_items: sale.packCount,
+        order_id: String(sale.saleId),
+      },
+    })
+  } catch (err) {
+    console.error('[webhooks/untamed-orders] Meta CAPI Purchase failed:', err)
   }
 }
 
