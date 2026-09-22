@@ -57,6 +57,14 @@ export const CONTENT_IDEAS = [
   'A night out that still looks like a martini, not a seltzer',
 ]
 
+/** One line per spirit — what a creator actually films. */
+export const ON_CAMERA: Record<string, string> = {
+  'black-panther': 'Espresso after dinner. Dark enough that one pour finishes the shot.',
+  cheetah: 'Lemon Drop on a rooftop. Bright, fast, and impossible to miss on camera.',
+  cougar: 'Dirty with a steak. Savory, adult, and nothing like a seltzer.',
+  lioness: 'Peach and rosemary. The beautiful one that still drinks like a martini.',
+}
+
 export const FILMS_WELL = [
   {
     title: 'It’s actually a martini',

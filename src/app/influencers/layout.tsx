@@ -7,11 +7,16 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Create with Untamed',
     description:
-      'Creator partnerships for a premium canned vodka martini. Apply with your handle. We review the actual page.',
-    images: ['/images/logo-mark.png'],
+      'Four wild vodka martinis. A ritual that films. Creator partnerships for people whose audience is 21+ and whose content has taste.',
+    images: [
+      'https://media.untamedbeverages.com/media/Site_Assets/Graphics/1780139299257-untamed_coaster_design-v2.png',
+    ],
   },
   twitter: {
-    images: ['/images/logo-mark.png'],
+    card: 'summary_large_image',
+    images: [
+      'https://media.untamedbeverages.com/media/Site_Assets/Graphics/1780139299257-untamed_coaster_design-v2.png',
+    ],
   },
 }
 
