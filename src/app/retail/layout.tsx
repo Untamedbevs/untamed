@@ -8,10 +8,15 @@ export const metadata: Metadata = {
     title: 'Carry Untamed | Retail & Distribution',
     description:
       'Premium RTS vodka martinis with the best per-drink value on the market. Learn why retailers, bars, and distributors are choosing Untamed.',
-    images: ['/images/logo-mark.png'],
+    images: [
+      'https://media.untamedbeverages.com/media/Site_Assets/Graphics/1780139299257-untamed_coaster_design-v2.png',
+    ],
   },
   twitter: {
-    images: ['/images/logo-mark.png'],
+    card: 'summary_large_image',
+    images: [
+      'https://media.untamedbeverages.com/media/Site_Assets/Graphics/1780139299257-untamed_coaster_design-v2.png',
+    ],
   },
 }
 

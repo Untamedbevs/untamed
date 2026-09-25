@@ -2,6 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { Building2, Store, Truck, User, Utensils } from 'lucide-react'
 import Link from 'next/link'
@@ -12,11 +13,12 @@ import {
   ActivationIdeas,
   AdvantageGrid,
   OneTwoThree,
-  ProductCans,
   PromiseToPartners,
   SectionIntro,
+  SpiritLineup,
   WhyDifferent,
 } from '@/components/retail/SellSections'
+import { siteAssetAbsoluteUrl } from '@/lib/site-assets'
 import {
   DISTRIBUTOR_ADVANTAGES,
   ON_PREMISE_ADVANTAGES,
@@ -52,58 +54,95 @@ function DistributeContent() {
       <Navigation />
       <InquiryModal open={modalOpen} onClose={closeModal} referrerName={referrerName} />
 
-      <div className="pt-8 pb-16">
-        <section className="px-4 sm:px-6 lg:px-8 mb-20">
-          <div className="max-w-7xl mx-auto text-center">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-            >
-              <div
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium mb-6"
-                style={{ backgroundColor: '#FF8C2A1A', color: ORANGE }}
+      <main>
+        <section className="relative overflow-hidden">
+          <div className="absolute inset-0">
+            <div className="absolute inset-0 bg-gradient-to-b from-untamed-black via-untamed-black to-untamed-black-light" />
+            <div className="absolute inset-0 opacity-20">
+              <Image
+                src={siteAssetAbsoluteUrl('/images/scratch-lioness.png')}
+                alt=""
+                fill
+                className="object-cover"
+                priority
+                aria-hidden="true"
+                unoptimized
+              />
+            </div>
+            <div className="absolute inset-0 bg-gradient-to-b from-untamed-black/40 via-transparent to-untamed-black" />
+            <div className="absolute top-1/4 right-[12%] w-96 h-96 rounded-full blur-[150px] opacity-25 bg-lioness" />
+            <div className="absolute bottom-0 left-[10%] w-80 h-80 rounded-full blur-[140px] opacity-15 bg-panther" />
+          </div>
+
+          <div className="relative z-10 px-4 sm:px-6 lg:px-8 pt-10 pb-8 md:pt-16 md:pb-4">
+            <div className="max-w-5xl mx-auto text-center">
+              <motion.div
+                initial={{ opacity: 0, y: 24 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.7 }}
               >
-                <Building2 className="w-4 h-4" />
-                Retail &amp; Distribution
-              </div>
+                <Image
+                  src="https://media.untamedbeverages.com/media/Site_Assets/Graphics/1780139299257-untamed_coaster_design-v2.png"
+                  alt="Untamed Beverages"
+                  width={400}
+                  height={400}
+                  className="w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44 mx-auto mb-6 rounded-full"
+                  priority
+                  unoptimized
+                />
 
-              <h1 className="font-condensed text-4xl sm:text-6xl lg:text-7xl font-bold text-white uppercase mb-6">
-                Carry <span className="font-headline" style={{ color: ORANGE }}>Untamed</span><br />
-                in Your Business
-              </h1>
-              <p className="text-lg sm:text-xl text-untamed-white-muted max-w-3xl mx-auto mb-10">
-                Premium canned vodka martinis that customers remember, reorder, and recommend.
-                Join the growing network of retailers, bars, restaurants, and distributors carrying Untamed.
-              </p>
-
-              <div className="flex flex-col items-center gap-6 mb-12">
-                <InquiryCTA label="Connect With Us" onClick={openModal} />
-                <div className="flex flex-wrap justify-center gap-3">
-                  <a href="#retailers" className="px-5 py-2.5 rounded-full border border-[#FF8C2A40] text-[#FF8C2A] text-sm font-medium hover:bg-[#FF8C2A1A] transition-colors">
-                    For Retailers
-                  </a>
-                  <a href="#on-premise" className="px-5 py-2.5 rounded-full border border-[#FF8C2A40] text-[#FF8C2A] text-sm font-medium hover:bg-[#FF8C2A1A] transition-colors">
-                    For Bars &amp; Restaurants
-                  </a>
-                  <a href="#distributors" className="px-5 py-2.5 rounded-full border border-[#FF8C2A40] text-[#FF8C2A] text-sm font-medium hover:bg-[#FF8C2A1A] transition-colors">
-                    For Distributors
-                  </a>
-                </div>
-                <Link
-                  href="/portal/login"
-                  className="inline-flex items-center gap-1.5 text-sm text-untamed-white-muted hover:text-white transition-colors"
+                <div
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium mb-6"
+                  style={{ backgroundColor: '#FF8C2A1A', color: ORANGE }}
                 >
-                  <User className="w-4 h-4" />
-                  Existing partner? <span className="underline underline-offset-2">Sign in to your portal</span>
-                </Link>
-              </div>
-            </motion.div>
+                  <Building2 className="w-4 h-4" />
+                  Retail &amp; Distribution
+                </div>
 
-            <ProductCans />
+                <h1 className="font-condensed text-5xl sm:text-6xl lg:text-8xl font-bold text-white uppercase tracking-wide leading-[0.9] mb-5">
+                  Carry{' '}
+                  <span className="font-headline text-gradient-lioness">Untamed</span>
+                  <br />
+                  in Your Business
+                </h1>
+                <p className="text-lg sm:text-xl text-untamed-white-muted max-w-2xl mx-auto mb-4">
+                  Premium canned vodka martinis that customers remember, reorder, and recommend.
+                  Join the growing network of retailers, bars, restaurants, and distributors carrying Untamed.
+                </p>
+                <p className="text-untamed-white-muted text-base md:text-lg tracking-wider mb-10">
+                  Chill it. Shake it.{' '}
+                  <span className="font-wild cyber-brush-fix text-untamed-white text-2xl md:text-3xl">
+                    Unleash it!
+                  </span>
+                </p>
+
+                <div className="flex flex-col items-center gap-5">
+                  <InquiryCTA label="Connect With Us" onClick={openModal} />
+                  <div className="flex flex-wrap justify-center gap-3">
+                    <a href="#retailers" className="px-5 py-2.5 rounded-full border border-[#FF8C2A40] text-[#FF8C2A] text-sm font-medium hover:bg-[#FF8C2A1A] transition-colors">
+                      For Retailers
+                    </a>
+                    <a href="#on-premise" className="px-5 py-2.5 rounded-full border border-[#FF8C2A40] text-[#FF8C2A] text-sm font-medium hover:bg-[#FF8C2A1A] transition-colors">
+                      For Bars &amp; Restaurants
+                    </a>
+                    <a href="#distributors" className="px-5 py-2.5 rounded-full border border-[#FF8C2A40] text-[#FF8C2A] text-sm font-medium hover:bg-[#FF8C2A1A] transition-colors">
+                      For Distributors
+                    </a>
+                  </div>
+                  <Link
+                    href="/portal/login"
+                    className="inline-flex items-center gap-1.5 text-sm text-untamed-white-muted hover:text-white transition-colors"
+                  >
+                    <User className="w-4 h-4" />
+                    Existing partner? <span className="underline underline-offset-2">Sign in to your portal</span>
+                  </Link>
+                </div>
+              </motion.div>
+            </div>
           </div>
         </section>
 
+        <SpiritLineup />
         <OneTwoThree />
         <PromiseToPartners />
 
@@ -163,7 +202,7 @@ function DistributeContent() {
 
         <WhyDifferent />
 
-        <section className="px-4 sm:px-6 lg:px-8">
+        <section className="px-4 sm:px-6 lg:px-8 pb-20">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -182,7 +221,7 @@ function DistributeContent() {
             </div>
           </motion.div>
         </section>
-      </div>
+      </main>
 
       <Footer />
     </div>

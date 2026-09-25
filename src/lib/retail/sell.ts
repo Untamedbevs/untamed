@@ -201,6 +201,14 @@ export const WHY_DIFFERENT = [
   },
 ]
 
+/** One line per spirit for buyers — what the SKU does on a shelf or a menu. */
+export const SHELF_LINES: Record<string, string> = {
+  'black-panther': 'Espresso after dinner. The SKU that anchors the set.',
+  cheetah: 'Lemon Drop. Bright, familiar, and the easy yes.',
+  cougar: 'Classic Dirty. Savory enough to read as a real martini.',
+  lioness: 'Peach and rosemary. The one that makes the lineup feel designed.',
+}
+
 export const ONE_TWO_THREE = {
   items: [
     { num: '1', label: 'Can', detail: '12 oz, 15% ABV' },
