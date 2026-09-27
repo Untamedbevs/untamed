@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Mail, User, Loader2, ArrowRight, CheckCircle, KeyRound } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { PORTAL_OTP_LENGTH } from '@/lib/auth/portal-otp'
 import type { Drink } from '@/lib/drinks'
 
 interface JoinFormProps {
@@ -59,33 +60,29 @@ export function JoinForm({
     setError('')
     setInfo('')
 
-    const origin =
-      typeof window !== 'undefined' ? window.location.origin : ''
-    const emailRedirectTo = `${origin}/portal/auth/callback?returnTo=${encodeURIComponent(
-      redirectTo
-    )}`
-
-    const { error: otpError } = await supabase.auth.signInWithOtp({
-      email: email.trim(),
-      options: {
-        shouldCreateUser: true,
-        emailRedirectTo,
-        data: {
-          first_name: firstName.trim() || null,
-          favorite_drink_slug: drink?.slug || null,
-          visitor_id: visitorId || null,
+    const res = await fetch('/api/portal/magic-link', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: email.trim(),
+        returnTo: redirectTo,
+        metadata: {
+          first_name: firstName.trim(),
+          favorite_drink_slug: drink?.slug || '',
+          visitor_id: visitorId || '',
         },
-      },
+      }),
     })
+    const body = await res.json().catch(() => ({}))
 
-    if (otpError) {
-      setError(readableError(otpError.message))
+    if (!res.ok) {
+      setError(readableError(body.error || 'Could not send the sign-in email.'))
       setLoading(false)
       return
     }
 
     setInfo(
-      `Check ${email.trim()} — tap the sign-in link to finish. If your email also included a 6-digit code, you can enter it below instead.`
+      `Check ${email.trim()} — tap the sign-in link to finish. If your email also included an 8-digit code, you can enter it below instead.`
     )
     setStep('code')
     setLoading(false)
@@ -141,11 +138,13 @@ export function JoinForm({
           <input
             type="text"
             inputMode="numeric"
-            pattern="\d{6}"
-            maxLength={6}
-            placeholder="6-digit code"
+            pattern={`\\d{${PORTAL_OTP_LENGTH}}`}
+            maxLength={PORTAL_OTP_LENGTH}
+            placeholder="8-digit code"
             value={code}
-            onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+            onChange={(e) =>
+              setCode(e.target.value.replace(/\D/g, '').slice(0, PORTAL_OTP_LENGTH))
+            }
             required
             autoFocus
             className="w-full pl-12 pr-4 py-3.5 bg-untamed-black-light border border-card-border rounded-xl text-white text-center text-xl tracking-[0.4em] font-mono placeholder:text-muted placeholder:tracking-normal placeholder:text-base focus:outline-none transition-colors"
@@ -156,7 +155,7 @@ export function JoinForm({
 
         <button
           type="submit"
-          disabled={loading || code.length !== 6}
+          disabled={loading || code.length !== PORTAL_OTP_LENGTH}
           className="w-full flex items-center justify-center gap-2 py-3.5 rounded-full font-bold text-black uppercase tracking-wider transition-all duration-300 hover:scale-[1.02] hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
           style={{ backgroundColor: color, boxShadow: `0 0 20px ${glow}` }}
         >

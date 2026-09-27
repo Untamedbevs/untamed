@@ -97,10 +97,10 @@ function LoyaltyLandingInner({ drink }: LoyaltyLandingProps) {
 
   const joinSubcopy =
     intent === 'ugc'
-      ? "Enter your name and email. We'll send a 6-digit code — no password needed — and drop you right where you can post your photo or video."
+      ? "Enter your name and email. We'll send a 8-digit code — no password needed — and drop you right where you can post your photo or video."
       : intent === 'refer'
-        ? "Enter your name and email. We'll send a 6-digit code — no password needed — and hand you your personal share link."
-        : "Enter your name and email. We'll send a 6-digit code — no password needed — and you're in."
+        ? "Enter your name and email. We'll send a 8-digit code — no password needed — and hand you your personal share link."
+        : "Enter your name and email. We'll send a 8-digit code — no password needed — and you're in."
 
   return (
     <>

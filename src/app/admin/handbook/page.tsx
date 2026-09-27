@@ -393,7 +393,7 @@ function Loyalty() {
           </>,
           <>
             They get a <strong>branded Untamed email</strong> with a one-tap{' '}
-            <strong>sign-in link</strong> (and a <strong>6-digit code</strong> as
+            <strong>sign-in link</strong> (and a <strong>8-digit code</strong> as
             a backup). Clicking the link &mdash; or entering the code on the
             page &mdash; confirms them. <strong>No password required.</strong>
           </>,
@@ -556,7 +556,7 @@ function Login() {
           (the branded Untamed email).
         </li>
         <li>
-          <strong>6-digit code</strong> &mdash; the same email includes a code
+          <strong>8-digit code</strong> &mdash; the same email includes a code
           they can type in if they can&apos;t click the link (e.g. a different
           device).
         </li>

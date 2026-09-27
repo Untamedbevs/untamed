@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { PORTAL_OTP_LENGTH } from '@/lib/auth/portal-otp'
 import {
   AlertCircle,
   CheckCircle,
@@ -62,7 +63,7 @@ function PortalLoginForm() {
     if (hasOtpError) {
       setMode('code')
       setError(
-        'Your magic link expired or was pre-opened. Enter the 6-digit code from your email instead.'
+        'Your magic link expired or was pre-opened. Enter the 8-digit code from your email instead.'
       )
     }
   }, [])
@@ -114,26 +115,24 @@ function PortalLoginForm() {
     setError('')
     setInfo('')
 
-    const origin =
-      typeof window !== 'undefined' ? window.location.origin : ''
-    const redirectTo = `${origin}/portal/auth/callback?returnTo=${encodeURIComponent(returnTo)}`
-
-    const { error: otpError } = await supabase.auth.signInWithOtp({
-      email: email.trim(),
-      options: {
-        emailRedirectTo: redirectTo,
-        shouldCreateUser: true,
-      },
+    const res = await fetch('/api/portal/magic-link', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: email.trim(),
+        returnTo,
+      }),
     })
+    const body = await res.json().catch(() => ({}))
 
-    if (otpError) {
-      setError(readableError(otpError.message))
+    if (!res.ok) {
+      setError(readableError(body.error || 'Could not send the sign-in email.'))
       setLoading(false)
       return
     }
 
     setInfo(
-      `Check ${email.trim()} for a sign-in link or 6-digit code. The link expires in 15 minutes.`
+      `Check ${email.trim()} for a sign-in link or 8-digit code. The link expires in 60 minutes.`
     )
     setMode('code')
     setLoading(false)
@@ -278,7 +277,7 @@ function PortalLoginForm() {
             <form onSubmit={handleSendMagicLink} className="space-y-5">
               <EmailField email={email} setEmail={setEmail} />
               <p className="text-xs text-[#A0A0A0]">
-                We&apos;ll email you a sign-in link and a 6-digit code. Ordered
+                We&apos;ll email you a sign-in link and an 8-digit code. Ordered
                 before? Use your checkout email — your account and points are
                 already waiting. New here? We&apos;ll create your account
                 automatically.
@@ -320,27 +319,29 @@ function PortalLoginForm() {
                   htmlFor="code"
                   className="block text-sm font-medium text-[#A0A0A0] mb-2"
                 >
-                  6-digit code
+                  8-digit code
                 </label>
                 <input
                   id="code"
                   type="text"
                   inputMode="numeric"
-                  pattern="\d{6}"
-                  maxLength={6}
+                  pattern={`\\d{${PORTAL_OTP_LENGTH}}`}
+                  maxLength={PORTAL_OTP_LENGTH}
                   value={code}
                   onChange={(e) =>
-                    setCode(e.target.value.replace(/\D/g, '').slice(0, 6))
+                    setCode(
+                      e.target.value.replace(/\D/g, '').slice(0, PORTAL_OTP_LENGTH)
+                    )
                   }
                   required
                   autoFocus
-                  className="w-full bg-[#0A0A0A] border border-[#2A2A2A] rounded-xl px-4 py-3 text-center text-2xl tracking-[0.5em] font-mono text-white placeholder-[#666] focus:outline-none focus:border-[#9B30FF] transition-colors"
-                  placeholder="000000"
+                  className="w-full bg-[#0A0A0A] border border-[#2A2A2A] rounded-xl px-4 py-3 text-center text-xl tracking-[0.35em] font-mono text-white placeholder-[#666] focus:outline-none focus:border-[#9B30FF] transition-colors"
+                  placeholder="00000000"
                 />
               </div>
               <button
                 type="submit"
-                disabled={loading || code.length !== 6 || !email}
+                disabled={loading || code.length !== PORTAL_OTP_LENGTH || !email}
                 className="w-full bg-[#9B30FF] text-white font-semibold rounded-full px-6 py-3 flex items-center justify-center gap-2 hover:bg-[#7E22CE] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? (

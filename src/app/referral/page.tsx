@@ -142,7 +142,7 @@ export default function ReferralPage() {
                   </h2>
                 </div>
                 <p className="text-sm text-untamed-white-muted mb-4">
-                  Enter your name and email. We&apos;ll send a 6-digit code
+                  Enter your name and email. We&apos;ll send a 8-digit code
                   &mdash; no password needed &mdash; and drop you straight into
                   your referral dashboard.
                 </p>
