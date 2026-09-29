@@ -109,6 +109,9 @@ export function Footer() {
               <Link href="/about" className="hover:text-untamed-white transition-colors duration-300">
                 Our Story
               </Link>
+              <Link href="/videos" className="hover:text-untamed-white transition-colors duration-300">
+                Videos
+              </Link>
               <Link href="/rewards" className="hover:text-untamed-white transition-colors duration-300">
                 Join the Pack
               </Link>
