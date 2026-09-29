@@ -18,7 +18,6 @@ const APPROVED_ADS = [21, 23, 39, 40, 41, 43, 44, 50, 62, 64, 65, 70, 74, 75, 76
 const WHATSAPP_CLIPS = [
   { title: 'August 24, 3:40 PM', filename: 'August 24 3-40 PM.mp4', path: '/videos/whatsapp-2026-08-24-154053.mp4' },
   { title: 'August 24, 3:46 PM', filename: 'August 24 3-46 PM.mp4', path: '/videos/whatsapp-2026-08-24-154653.mp4' },
-  { title: 'August 24, 3:48 PM', filename: 'August 24 3-48 PM.mp4', path: '/videos/whatsapp-2026-08-24-154847.mp4' },
   { title: 'August 24, 3:50 PM', filename: 'August 24 3-50 PM.mp4', path: '/videos/whatsapp-2026-08-24-155003.mp4' },
 ]
 
