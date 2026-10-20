@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resolveReferralCode } from '@/lib/referral/helpers'
 import { applyOrderAttribution } from '@/lib/tracking/order-attribution'
+import { sendOrderPurchaseToMeta } from '@/lib/tracking/order-meta-purchase'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -17,7 +18,14 @@ export const runtime = 'nodejs'
  * `loyalty_orders` row, so fabricated sale ids can never credit anything.
  */
 export async function POST(request: NextRequest) {
-  let body: { saleId?: unknown; visitorId?: unknown; refCode?: unknown }
+  let body: {
+    saleId?: unknown
+    visitorId?: unknown
+    refCode?: unknown
+    fbp?: unknown
+    fbc?: unknown
+    pageUrl?: unknown
+  }
   try {
     body = await request.json()
   } catch {
@@ -38,11 +46,14 @@ export async function POST(request: NextRequest) {
       ? body.refCode.trim()
       : null
 
-  if (!visitorFingerprint && !refCode) {
-    return NextResponse.json(
-      { error: 'visitorId or refCode is required' },
-      { status: 400 }
-    )
+  const text = (value: unknown, max: number) =>
+    typeof value === 'string' && value.trim() ? value.trim().slice(0, max) : null
+  const browser = {
+    fbp: text(body.fbp, 200),
+    fbc: text(body.fbc, 500),
+    event_source_url: text(body.pageUrl, 1000),
+    client_ip: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null,
+    client_user_agent: text(request.headers.get('user-agent'), 1000),
   }
 
   try {
@@ -57,7 +68,7 @@ export async function POST(request: NextRequest) {
 
     const { data: existing } = await admin
       .from('loyalty_order_attributions')
-      .select('id, visitor_fingerprint, ref_code')
+      .select('id, visitor_fingerprint, ref_code, fbp, fbc, client_ip, client_user_agent, event_source_url')
       .eq('accelpay_sale_id', saleId)
       .maybeSingle()
 
@@ -69,6 +80,9 @@ export async function POST(request: NextRequest) {
       }
       if (!existing.ref_code && validRefCode) {
         update.ref_code = validRefCode
+      }
+      for (const [key, value] of Object.entries(browser)) {
+        if (value && !existing[key as keyof typeof existing]) update[key] = value
       }
       if (Object.keys(update).length > 0) {
         await admin
@@ -83,6 +97,7 @@ export async function POST(request: NextRequest) {
           accelpay_sale_id: saleId,
           visitor_fingerprint: visitorFingerprint,
           ref_code: validRefCode,
+          ...browser,
         })
       // A concurrent insert (unique violation) is fine; the row now exists.
       if (insertError && (insertError as { code?: string }).code !== '23505') {
@@ -91,6 +106,7 @@ export async function POST(request: NextRequest) {
     }
 
     await applyOrderAttribution(admin, saleId)
+    await sendOrderPurchaseToMeta(admin, saleId)
 
     return NextResponse.json({ ok: true })
   } catch (err) {

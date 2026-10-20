@@ -9,10 +9,15 @@ import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
 import { DrinkCard } from '@/components/DrinkCard'
 import { HomeCommunityStrip } from '@/components/community/HomeCommunityStrip'
+import { HolidayHero } from '@/components/holiday/HolidayHero'
+import { HolidayMoments } from '@/components/holiday/HolidayMoments'
+import { isHolidayPromoActive } from '@/lib/promo/holiday'
 import { drinks } from '@/lib/drinks'
 import { siteAssetAbsoluteUrl } from '@/lib/site-assets'
 
 export default function HomePage() {
+  const promoActive = isHolidayPromoActive()
+
   return (
     <>
       <Navigation />
@@ -118,6 +123,8 @@ export default function HomePage() {
             </motion.div>
           </div>
         </section>
+
+        {promoActive && <HolidayHero />}
 
         {/* ============================================
             LIVE LIFE UNTAMED SECTION
@@ -269,6 +276,8 @@ export default function HomePage() {
             </motion.div>
           </div>
         </section>
+
+        {promoActive && <HolidayMoments />}
 
         {/* ============================================
             THE 1-2-3 ADVANTAGE SECTION

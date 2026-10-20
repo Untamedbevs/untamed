@@ -35,11 +35,14 @@ export interface MetaUserData {
   fbp?: string | null
   clientIpAddress?: string | null
   clientUserAgent?: string | null
+  externalId?: string | null
 }
 
 export interface MetaCapiEvent {
   eventName: MetaCapiEventName
   eventId: string
+  /** Unix seconds; defaults to now. Meta rejects events older than 7 days. */
+  eventTime?: number
   eventSourceUrl?: string | null
   userData: MetaUserData
   customData?: Record<string, unknown>
@@ -88,6 +91,8 @@ function buildHashedUserData(u: MetaUserData): Record<string, unknown> {
   if (u.fbp) data.fbp = u.fbp
   if (u.clientIpAddress) data.client_ip_address = u.clientIpAddress
   if (u.clientUserAgent) data.client_user_agent = u.clientUserAgent
+  const externalId = hashField(u.externalId, (v) => v)
+  if (externalId) data.external_id = [externalId]
   return data
 }
 
@@ -111,7 +116,7 @@ export async function sendMetaCapiEvent(
     data: [
       {
         event_name: event.eventName,
-        event_time: Math.floor(Date.now() / 1000),
+        event_time: event.eventTime ?? Math.floor(Date.now() / 1000),
         event_id: event.eventId,
         action_source: 'website',
         ...(event.eventSourceUrl ? { event_source_url: event.eventSourceUrl } : {}),

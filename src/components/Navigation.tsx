@@ -15,6 +15,8 @@ import { drinks } from '@/lib/drinks'
 import { createClient } from '@/lib/supabase/client'
 import { siteAssetAbsoluteUrl } from '@/lib/site-assets'
 import { NavCartButton } from '@/components/NavCartButton'
+import { HolidayPromoBar } from '@/components/holiday/HolidayPromoBar'
+import { isHolidayPromoActive } from '@/lib/promo/holiday'
 
 type DropdownId = 'drinks' | null
 
@@ -53,10 +55,16 @@ export function Navigation() {
 
   const portalHref = isAuthed ? '/portal' : '/portal/login'
   const portalLabel = isAuthed ? 'My Portal' : 'Sign In'
+  const promoActive = isHolidayPromoActive()
+  // Promo bar is h-9 (2.25rem); fold it into the header offset when shown.
+  const headerOffset = promoActive
+    ? 'calc(var(--site-header-offset) + 2.25rem)'
+    : 'var(--site-header-offset)'
 
   return (
     <>
       <header className="absolute top-0 left-0 right-0 z-50">
+        {promoActive && <HolidayPromoBar />}
         <nav>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-16 md:h-20">
@@ -166,11 +174,11 @@ export function Navigation() {
       </header>
 
       {/* Reserve space for the absolute header (nav + banner) so content isn't covered */}
-      <div className="h-[var(--site-header-offset)] shrink-0" aria-hidden="true" />
+      <div className="shrink-0" style={{ height: headerOffset }} aria-hidden="true" />
 
       {/* Mobile Menu */}
       {mobileOpen && (
-        <div className="fixed inset-0 z-40 bg-untamed-black/98 pt-[var(--site-header-offset)] px-6 overflow-y-auto">
+        <div className="fixed inset-0 z-40 bg-untamed-black/98 px-6 overflow-y-auto" style={{ paddingTop: headerOffset }}>
           <div className="flex flex-col items-center gap-7 pt-12 pb-12">
             {drinks.map((drink) => (
               <a

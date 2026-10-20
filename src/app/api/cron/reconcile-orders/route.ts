@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { accelPayConfigured, fetchRecentSales } from '@/lib/shop/accelpay-api'
 import { creditOnlineOrder, parseAccelPaySale } from '@/lib/loyalty/orders'
+import { sweepPendingMetaPurchases } from '@/lib/tracking/order-meta-purchase'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -19,7 +20,8 @@ export async function GET(request: NextRequest) {
   }
 
   if (!accelPayConfigured()) {
-    return NextResponse.json({ ok: true, skipped: 'ACCELPAY_API_TOKEN not set' })
+    const metaPurchasesSent = await sweepPendingMetaPurchases(createAdminClient())
+    return NextResponse.json({ ok: true, skipped: 'ACCELPAY_API_TOKEN not set', metaPurchasesSent })
   }
 
   // Look back 3 days by default; AccelPay times are UTC unix seconds.
@@ -59,6 +61,8 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  const metaPurchasesSent = await sweepPendingMetaPurchases(admin)
+
   return NextResponse.json({
     ok: true,
     scanned: sales.length,
@@ -66,5 +70,6 @@ export async function GET(request: NextRequest) {
     pending,
     duplicate,
     skipped,
+    metaPurchasesSent,
   })
 }

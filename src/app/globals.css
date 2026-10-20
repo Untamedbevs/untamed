@@ -417,3 +417,42 @@ iframe[src*="cart."] {
   clip: rect(0, 0, 0, 0) !important;
 }
 
+
+/* ============================================
+   Holiday Blast promotion
+   ============================================ */
+
+@keyframes holiday-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.animate-holiday-marquee {
+  animation: holiday-marquee 38s linear infinite;
+}
+
+@keyframes holiday-shimmer {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+/* Gold foil headline: brand gold run through all four flavor accents */
+.text-holiday-foil {
+  background: linear-gradient(90deg, #FFD700, #FFA500, #FF8C2A, #E6D800, #FFD700, #C68BFF, #FFD700);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: holiday-shimmer 6s linear infinite;
+}
+
+.holiday-flavor-rule {
+  background: linear-gradient(90deg, #9B30FF, #E6D800, #8DB33A, #FF8C2A);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-holiday-marquee,
+  .text-holiday-foil {
+    animation: none;
+  }
+}

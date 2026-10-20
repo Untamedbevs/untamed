@@ -4,10 +4,12 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Instagram } from 'lucide-react'
 import { drinks } from '@/lib/drinks'
+import { HolidayFooterBand } from '@/components/holiday/HolidayFooterBand'
 
 export function Footer() {
   return (
     <footer className="bg-untamed-black border-t border-card-border">
+      <HolidayFooterBand />
       <div className="max-w-screen-2xl mx-auto px-6 sm:px-8 lg:px-12 py-12 md:py-16">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-10 md:gap-12">
           {/* Brand */}

@@ -10,6 +10,8 @@ import { Footer } from '@/components/Footer'
 import { AddToCartButton } from '@/components/AddToCartButton'
 import { ProductGallery } from '@/components/ProductGallery'
 import { ShippingRates } from '@/components/ShippingRates'
+import { HolidayShippingCallout } from '@/components/holiday/HolidayShippingCallout'
+import { ShippingStates } from '@/components/ShippingStates'
 import { drinks } from '@/lib/drinks'
 import { siteAssetAbsoluteUrl } from '@/lib/site-assets'
 
@@ -105,6 +107,7 @@ export function DrinkDetailPage({ drink }: DrinkDetailPageProps) {
 
                 {/* Add to Cart */}
                 <div className="mt-8">
+                  <HolidayShippingCallout />
                   <p className="text-untamed-white text-2xl md:text-3xl font-bold mb-4">
                     $24.00 <span className="text-untamed-white-muted text-base font-normal">/ Box</span>
                   </p>
@@ -119,6 +122,7 @@ export function DrinkDetailPage({ drink }: DrinkDetailPageProps) {
                     Minimum order: 2 boxes. Add to cart, then adjust quantity.
                   </p>
                   <ShippingRates compact accentColor={drink.color} />
+                  <ShippingStates compact accentColor={drink.color} />
                 </div>
               </motion.div>
 

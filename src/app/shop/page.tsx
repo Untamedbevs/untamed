@@ -4,18 +4,24 @@ import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { LayoutDashboard, Receipt, Sparkles } from 'lucide-react'
+import { Gift, LayoutDashboard, Receipt, Sparkles } from 'lucide-react'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
 import { AddToCartButton } from '@/components/AddToCartButton'
 import { ProductGallery } from '@/components/ProductGallery'
 import { ShippingRates } from '@/components/ShippingRates'
+import { HolidayHero } from '@/components/holiday/HolidayHero'
+import { HolidayMoments } from '@/components/holiday/HolidayMoments'
+import { BoxMath } from '@/components/holiday/BoxMath'
+import { HOLIDAY_PROMO, isHolidayPromoActive } from '@/lib/promo/holiday'
+import { ShippingStates } from '@/components/ShippingStates'
 import { drinks } from '@/lib/drinks'
 import { siteAssetAbsoluteUrl } from '@/lib/site-assets'
 import { createClient } from '@/lib/supabase/client'
 
 export default function ShopPage() {
   const [isAuthed, setIsAuthed] = useState(false)
+  const promoActive = isHolidayPromoActive()
 
   useEffect(() => {
     const supabase = createClient()
@@ -35,6 +41,8 @@ export default function ShopPage() {
   return (
     <div className="flex flex-col min-h-screen bg-untamed-black">
       <Navigation />
+
+      {promoActive && <HolidayHero ctaHref="#products" />}
 
       <div className="flex-1 pt-8 pb-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
@@ -107,8 +115,27 @@ export default function ShopPage() {
             </div>
           )}
 
+          {/* Holiday free-shipping strip, right above the buy buttons */}
+          {promoActive && (
+            <div className="mb-8 grid grid-cols-1 md:grid-cols-[1fr_minmax(0,26rem)] gap-6 items-center rounded-2xl border border-[#FFD700]/40 bg-gradient-to-r from-[#FFD700]/15 via-untamed-black-card to-untamed-black-card px-6 py-5">
+              <div className="flex items-start gap-3">
+                <Gift className="w-6 h-6 text-[#FFD700] shrink-0 mt-1" aria-hidden="true" />
+                <div>
+                  <p className="font-headline text-[#FFD700] text-lg tracking-wider">Holiday Blast</p>
+                  <p className="font-condensed font-bold uppercase text-untamed-white text-2xl sm:text-3xl tracking-wide leading-tight">
+                    Build a {HOLIDAY_PROMO.freeShippingBoxes}-box mix. Ship it free.
+                  </p>
+                  <p className="text-untamed-white-muted text-sm mt-1">
+                    Free shipping on ${HOLIDAY_PROMO.freeShippingThreshold}+ &bull; Ships to {HOLIDAY_PROMO.shippingRegion} &bull; Through Dec 31
+                  </p>
+                </div>
+              </div>
+              <BoxMath size="sm" />
+            </div>
+          )}
+
           {/* Product Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+          <div id="products" className="scroll-mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
             {drinks.map((drink, index) => (
               <motion.div
                 key={drink.slug}
@@ -189,15 +216,23 @@ export default function ShopPage() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
-            className="mt-14 max-w-2xl mx-auto"
+            className="mt-14 max-w-2xl mx-auto space-y-6"
           >
             <ShippingRates />
+            <ShippingStates />
           </motion.div>
 
+        </div>
+      </div>
+
+      {promoActive && <HolidayMoments ctaHref="#products" />}
+
+      <div className="pb-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
           {/* ============================================
               DETAILED SYNOPSIS SECTIONS
               ============================================ */}
-          <div className="mt-20 space-y-16">
+          <div className="mt-4 space-y-16">
             {drinks.map((drink, index) => (
               <motion.div
                 key={`synopsis-${drink.slug}`}

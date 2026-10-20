@@ -1,6 +1,7 @@
 'use client'
 
 import { Truck, Package } from 'lucide-react'
+import { HOLIDAY_PROMO, isHolidayPromoActive } from '@/lib/promo/holiday'
 
 interface ShippingRatesProps {
   compact?: boolean
@@ -13,22 +14,34 @@ const TIERS: { range: string; price: string; perBox: string | null }[] = [
   { range: '13+ boxes', price: 'Free', perBox: null },
 ]
 
+const FREE_AT = HOLIDAY_PROMO.freeShippingBoxes
+const HOLIDAY_TIERS: typeof TIERS = [
+  { range: `2–${FREE_AT - 1} boxes`, price: '$19.95', perBox: `$${(19.95 / (FREE_AT - 1)).toFixed(2)}–$9.98` },
+  { range: `${FREE_AT}+ boxes`, price: 'Free', perBox: null },
+]
+
 /**
  * Displays shipping rate tiers to help customers make informed
  * decisions about order quantity. Minimum order is 2 boxes.
  */
 export function ShippingRates({ compact = false, accentColor }: ShippingRatesProps) {
+  const holiday = isHolidayPromoActive()
+  const tiers = holiday ? HOLIDAY_TIERS : TIERS
+  const freeNote = holiday
+    ? `Holiday Blast: free shipping on $${HOLIDAY_PROMO.freeShippingThreshold}+ (${FREE_AT}+ boxes)`
+    : 'Free shipping on 13+'
+
   if (compact) {
     return (
       <div className="rounded-xl border border-card-border bg-untamed-black-card/50 p-4 mt-4">
         <div className="flex items-center gap-2 mb-2">
           <Truck className="w-4 h-4 text-untamed-white-muted" />
           <span className="text-xs uppercase tracking-wider font-medium text-untamed-white-muted">
-            Shipping &bull; Continental US
+            Shipping &bull; 42 states + DC
           </span>
         </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 text-sm">
-          {TIERS.map((tier) => (
+        <div className={`grid grid-cols-1 gap-3 text-sm ${holiday ? 'sm:grid-cols-2' : 'sm:grid-cols-3'}`}>
+          {tiers.map((tier) => (
             <div key={tier.range} className="flex flex-col">
               <span className="text-untamed-white font-medium">{tier.range}</span>
               <span className="text-untamed-white-muted text-xs">
@@ -38,7 +51,7 @@ export function ShippingRates({ compact = false, accentColor }: ShippingRatesPro
           ))}
         </div>
         <p className="text-untamed-white-muted/60 text-xs mt-2">
-          Minimum order: 2 boxes &bull; Free shipping on 13+
+          Minimum order: 2 boxes &bull; {freeNote}
         </p>
       </div>
     )
@@ -50,12 +63,12 @@ export function ShippingRates({ compact = false, accentColor }: ShippingRatesPro
         <Truck className="w-5 h-5" style={{ color: accentColor || '#C68BFF' }} />
         <div>
           <h3 className="text-untamed-white font-bold text-base">Shipping Rates</h3>
-          <p className="text-untamed-white-muted text-xs">Continental US &bull; Minimum order: 2 boxes</p>
+          <p className="text-untamed-white-muted text-xs">42 states + DC &bull; Minimum order: 2 boxes</p>
         </div>
       </div>
 
       <div className="divide-y divide-card-border">
-        {TIERS.map((tier) => (
+        {tiers.map((tier) => (
           <div key={tier.range} className="px-6 py-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Package className="w-4 h-4 text-untamed-white-muted" />
@@ -73,7 +86,7 @@ export function ShippingRates({ compact = false, accentColor }: ShippingRatesPro
 
       <div className="px-6 py-3 bg-untamed-black-light/30">
         <p className="text-untamed-white-muted text-xs text-center">
-          Free shipping on 13+ boxes. Each box contains 4 cans (8 cocktails).
+          {holiday ? `${freeNote}.` : 'Free shipping on 13+ boxes.'} Each box contains 4 cans (8 cocktails).
         </p>
       </div>
     </div>
