@@ -14,7 +14,7 @@ import { HolidayHero } from '@/components/holiday/HolidayHero'
 import { HolidayMoments } from '@/components/holiday/HolidayMoments'
 import { BoxMath } from '@/components/holiday/BoxMath'
 import { HOLIDAY_PROMO, isHolidayPromoActive } from '@/lib/promo/holiday'
-import { ShippingStates } from '@/components/ShippingStates'
+import { ShippingStates, SHIP_CHECK_HREF } from '@/components/ShippingStates'
 import { drinks } from '@/lib/drinks'
 import { siteAssetAbsoluteUrl } from '@/lib/site-assets'
 import { createClient } from '@/lib/supabase/client'
@@ -126,7 +126,10 @@ export default function ShopPage() {
                     Build a {HOLIDAY_PROMO.freeShippingBoxes}-box mix. Ship it free.
                   </p>
                   <p className="text-untamed-white-muted text-sm mt-1">
-                    Free shipping on ${HOLIDAY_PROMO.freeShippingThreshold}+ &bull; Ships to {HOLIDAY_PROMO.shippingRegion} &bull; Through Dec 31
+                    Free shipping on ${HOLIDAY_PROMO.freeShippingThreshold}+ &bull; <a href={SHIP_CHECK_HREF} className="underline decoration-dotted underline-offset-4 hover:text-untamed-white transition-colors">Ships to {HOLIDAY_PROMO.shippingRegion}</a> &bull; Through Dec 31
+                  </p>
+                  <p className="text-[#FFD700]/90 text-sm font-medium mt-0.5">
+                    {HOLIDAY_PROMO.autoApplyNote}
                   </p>
                 </div>
               </div>

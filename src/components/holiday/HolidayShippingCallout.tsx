@@ -13,9 +13,10 @@ export function HolidayShippingCallout() {
         <Gift className="w-4 h-4 text-[#FFD700]" aria-hidden="true" />
         <span className="font-headline text-[#FFD700] text-lg tracking-wider">Holiday Blast</span>
       </div>
-      <p className="font-condensed font-bold uppercase text-untamed-white text-2xl tracking-wide leading-tight mb-4">
+      <p className="font-condensed font-bold uppercase text-untamed-white text-2xl tracking-wide leading-tight">
         Free shipping on ${HOLIDAY_PROMO.freeShippingThreshold}+
       </p>
+      <p className="text-[#FFD700]/90 text-sm font-medium mt-1 mb-4">{HOLIDAY_PROMO.autoApplyNote}</p>
       <BoxMath size="sm" />
     </div>
   )

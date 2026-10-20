@@ -28,7 +28,7 @@ export function ShippingRates({ compact = false, accentColor }: ShippingRatesPro
   const holiday = isHolidayPromoActive()
   const tiers = holiday ? HOLIDAY_TIERS : TIERS
   const freeNote = holiday
-    ? `Holiday Blast: free shipping on $${HOLIDAY_PROMO.freeShippingThreshold}+ (${FREE_AT}+ boxes)`
+    ? `Holiday Blast: free shipping on $${HOLIDAY_PROMO.freeShippingThreshold}+ (${FREE_AT}+ boxes), auto-applied in cart`
     : 'Free shipping on 13+'
 
   if (compact) {
@@ -86,7 +86,7 @@ export function ShippingRates({ compact = false, accentColor }: ShippingRatesPro
 
       <div className="px-6 py-3 bg-untamed-black-light/30">
         <p className="text-untamed-white-muted text-xs text-center">
-          {holiday ? `${freeNote}.` : 'Free shipping on 13+ boxes.'} Each box contains 4 cans (8 cocktails).
+          {holiday ? `${freeNote}, no code needed.` : 'Free shipping on 13+ boxes.'} Each box contains 4 cans (8 cocktails).
         </p>
       </div>
     </div>

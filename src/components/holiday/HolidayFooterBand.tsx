@@ -35,7 +35,7 @@ export function HolidayFooterBand() {
             Wrap up something wild.
           </p>
           <p className="mt-2 text-sm sm:text-base font-medium text-untamed-black/75">
-            Free shipping on ${HOLIDAY_PROMO.freeShippingThreshold}+ &mdash; that&apos;s {HOLIDAY_PROMO.freeShippingBoxes} boxes, any flavors.
+            Free shipping on ${HOLIDAY_PROMO.freeShippingThreshold}+ &mdash; that&apos;s {HOLIDAY_PROMO.freeShippingBoxes} boxes, any flavors. {HOLIDAY_PROMO.autoApplyNote}
           </p>
         </div>
 

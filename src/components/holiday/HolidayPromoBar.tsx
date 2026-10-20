@@ -3,6 +3,7 @@ import { HOLIDAY_PROMO } from '@/lib/promo/holiday'
 const TICKER = [
   'Holiday Blast',
   `Free shipping on $${HOLIDAY_PROMO.freeShippingThreshold}+`,
+  'Auto-applied in cart, no code needed',
   `That’s just ${HOLIDAY_PROMO.freeShippingBoxes} boxes`,
   'Holiday season is martini season',
   'Mix any flavors',
@@ -24,7 +25,7 @@ export function HolidayPromoBar() {
     <a
       href="/shop"
       className="group relative block h-9 overflow-hidden bg-[#FFD700] text-untamed-black"
-      aria-label={`Holiday Blast: free shipping on orders of $${HOLIDAY_PROMO.freeShippingThreshold} or more. Shop now.`}
+      aria-label={`Holiday Blast: free shipping on orders of $${HOLIDAY_PROMO.freeShippingThreshold} or more, auto-applied in cart with no code needed. Shop now.`}
     >
       <div className="holiday-flavor-rule absolute inset-x-0 bottom-0 h-[3px]" aria-hidden="true" />
       <div className="flex h-full w-max items-center animate-holiday-marquee group-hover:[animation-play-state:paused]" aria-hidden="true">

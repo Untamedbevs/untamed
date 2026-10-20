@@ -27,7 +27,7 @@ export function HolidayMoments({ ctaHref = '/shop' }: HolidayMomentsProps) {
             <span className="font-headline text-holiday-foil">Every Moment</span>
           </h2>
           <p className="text-untamed-white-muted text-lg max-w-2xl mx-auto">
-            Parties, gifts, hosting, midnight. Stack {HOLIDAY_PROMO.freeShippingBoxes} boxes and shipping&apos;s free.
+            Parties, gifts, hosting, midnight. Stack {HOLIDAY_PROMO.freeShippingBoxes} boxes and shipping&apos;s free. {HOLIDAY_PROMO.autoApplyNote}
           </p>
         </motion.div>
 

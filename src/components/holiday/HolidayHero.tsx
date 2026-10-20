@@ -7,6 +7,7 @@ import { drinks } from '@/lib/drinks'
 import { siteAssetAbsoluteUrl } from '@/lib/site-assets'
 import { HOLIDAY_MOMENTS, HOLIDAY_PROMO } from '@/lib/promo/holiday'
 import { BoxMath } from '@/components/holiday/BoxMath'
+import { SHIP_CHECK_HREF } from '@/components/ShippingStates'
 
 interface HolidayHeroProps {
   /** Where the primary CTA goes — "#products" on the shop page, "/shop" elsewhere. */
@@ -53,7 +54,7 @@ export function HolidayHero({ ctaHref = '/shop' }: HolidayHeroProps) {
               Holiday Blast
             </p>
 
-            <div className="min-h-[9.5rem] sm:min-h-[11rem] md:min-h-[12.5rem]">
+            <div className="min-h-[6.5rem] sm:min-h-[8rem] md:min-h-[9.25rem]">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={moment.key}
@@ -68,7 +69,14 @@ export function HolidayHero({ ctaHref = '/shop' }: HolidayHeroProps) {
                   >
                     {moment.eyebrow}
                   </p>
-                  <h2 className="font-condensed font-bold uppercase text-untamed-white text-4xl sm:text-5xl md:text-6xl leading-[0.95] tracking-wide">
+                  <h2
+                    className={`font-condensed font-bold uppercase text-untamed-white leading-[0.95] tracking-wide ${
+                      // Long lines (host gifts) drop a size so every headline stays at two lines
+                      moment.headline.length > 36
+                        ? 'text-[1.65rem] sm:text-4xl md:text-[2.75rem]'
+                        : 'text-4xl sm:text-5xl md:text-6xl'
+                    }`}
+                  >
                     {moment.headline}
                   </h2>
                 </motion.div>
@@ -92,7 +100,9 @@ export function HolidayHero({ ctaHref = '/shop' }: HolidayHeroProps) {
                 {moment.cta} &rarr;
               </a>
               <span className="text-untamed-white-muted text-sm text-center sm:text-left">
-                Free shipping on ${HOLIDAY_PROMO.freeShippingThreshold}+ &bull; Ships to {HOLIDAY_PROMO.shippingRegion}
+                Free shipping on ${HOLIDAY_PROMO.freeShippingThreshold}+ &bull; <a href={SHIP_CHECK_HREF} className="underline decoration-dotted underline-offset-4 hover:text-untamed-white transition-colors">Ships to {HOLIDAY_PROMO.shippingRegion}</a>
+                <br />
+                <span className="text-[#FFD700]/90 font-medium">{HOLIDAY_PROMO.autoApplyNote}</span>
               </span>
             </div>
 
@@ -167,7 +177,7 @@ export function HolidayHero({ ctaHref = '/shop' }: HolidayHeroProps) {
         </div>
 
         <p className="mt-10 text-center text-untamed-white-muted/60 text-xs">
-          Free shipping on orders ${HOLIDAY_PROMO.freeShippingThreshold}+ shipped to {HOLIDAY_PROMO.shippingRegion}, through Dec 31.
+          Free shipping on orders ${HOLIDAY_PROMO.freeShippingThreshold}+ shipped to {HOLIDAY_PROMO.shippingRegion}, through Dec 31. Auto-applied in cart; no code needed.
           21+ &bull; Enjoy responsibly.
         </p>
       </div>

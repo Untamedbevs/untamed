@@ -20,6 +20,8 @@ export const HOLIDAY_PROMO = {
   freeShippingBoxes: 4,
   /** Matches the coverage shown by ShippingRates / ShippingStates. */
   shippingRegion: '42 states + DC',
+  /** Free shipping applies itself at checkout; say so wherever the offer appears. */
+  autoApplyNote: 'Auto-applied in cart. No code needed.',
 }
 
 export function isHolidayPromoActive(now: Date = new Date()): boolean {

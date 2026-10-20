@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { MapPin, Check, X } from 'lucide-react'
 
 interface ShippingStatesProps {
@@ -38,6 +38,10 @@ const TILES: [string, string, number, number][] = [
   ['HI', 'Hawaii', 0, 7], ['TX', 'Texas', 4, 7], ['FL', 'Florida', 9, 7],
 ]
 
+/** Anchor for "Ships to 42 states + DC" links; lands on the full checker on /shop. */
+export const SHIP_CHECK_ID = 'ship-check'
+export const SHIP_CHECK_HREF = `/shop#${SHIP_CHECK_ID}`
+
 const SORTED_TILES = [...TILES].sort((a, b) => a[1].localeCompare(b[1]))
 
 /**
@@ -47,12 +51,25 @@ const SORTED_TILES = [...TILES].sort((a, b) => a[1].localeCompare(b[1]))
  */
 export function ShippingStates({ compact = false, accentColor = '#C68BFF' }: ShippingStatesProps) {
   const [selected, setSelected] = useState<string>('')
+  const selectRef = useRef<HTMLSelectElement>(null)
+
+  // Arriving via a "Ships to 42 states + DC" link: focus the picker so they can check right away.
+  useEffect(() => {
+    if (compact) return
+    const focusIfTargeted = () => {
+      if (window.location.hash === `#${SHIP_CHECK_ID}`) selectRef.current?.focus({ preventScroll: true })
+    }
+    focusIfTargeted()
+    window.addEventListener('hashchange', focusIfTargeted)
+    return () => window.removeEventListener('hashchange', focusIfTargeted)
+  }, [compact])
   const selectedTile = TILES.find((t) => t[0] === selected)
   const ships = selected ? SHIPPING_STATES.has(selected) : null
 
   return (
     <div
-      className={`border border-card-border overflow-hidden ${
+      id={compact ? undefined : SHIP_CHECK_ID}
+      className={`scroll-mt-28 border border-card-border overflow-hidden ${
         compact ? 'mt-4 rounded-xl bg-untamed-black-card/50' : 'rounded-2xl bg-untamed-black-card'
       }`}
     >
@@ -122,6 +139,7 @@ export function ShippingStates({ compact = false, accentColor = '#C68BFF' }: Shi
           Check your state
         </label>
         <select
+          ref={selectRef}
           id={compact ? 'ship-state-compact' : 'ship-state'}
           value={selected}
           onChange={(e) => setSelected(e.target.value)}
