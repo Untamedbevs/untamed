@@ -428,7 +428,7 @@ iframe[src*="cart."] {
 }
 
 .animate-holiday-marquee {
-  animation: holiday-marquee 38s linear infinite;
+  animation: holiday-marquee 56s linear infinite;
 }
 
 @keyframes holiday-shimmer {
