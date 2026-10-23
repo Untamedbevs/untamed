@@ -1,0 +1,17 @@
+Use your built-in image generation tool to create ONE landscape image (1536x1024) that is a sprite sheet: a 4-column x 2-row grid of 8 separate ROUND achievement medallions, each centered in its own equal cell, all in one consistent style (circular enamel-and-metal medallions with a thick beveled gold rim).
+
+Art direction (applies to every item): premium mobile-game achievement art fused with a bold craft-cocktail brand. Clean, graphic, slightly illustrative shapes with rich metallic shading and crisp edges. Dark obsidian/black bases with brand accents: royal purple #9B30FF, gold #FFD700 to amber #FFA500, and the four flavor colors - cheetah yellow #D4D700, cougar olive green #6B8E23, lioness orange #E87511, panther purple #7B2D8E. Recurring brand motif: three diagonal claw-scratch slashes. Big cats are fierce, stylized, and front-facing. ABSOLUTELY NO text, letters, numbers, logos, or watermarks anywhere.
+
+Cells, left-to-right, top row then bottom row:
+1. PANTHER PACK: deep purple enamel medallion with a fierce black panther head.
+2. CHEETAH SPRINT: bright yellow enamel medallion with a cheetah head and motion speed streaks.
+3. COUGAR CREW: olive green enamel medallion with a cougar (mountain lion) head.
+4. LIONESS PRIDE: orange enamel medallion with a lioness head.
+5. FULL PRIDE: medallion quartered into purple, yellow, olive green, and orange segments, one paw print in each quarter.
+6. HOT STREAK: black medallion with a paw print engulfed in orange and gold flames.
+7. PACK BUILDER: dark teal-black medallion with a ring of many paw prints spreading outward from the center.
+8. BIG GAME: gold medallion with a golden trophy cup shaped like a martini glass, three claw scratches behind it.
+
+Background: a true transparent background (PNG with alpha) if your image tool supports it. If it does not, use a perfectly flat, uniform pure white #FFFFFF background with zero texture, gradient, vignette, floor, or cast shadow. Items must NOT touch each other or the image edges; leave generous empty space around each one. No drop shadows or outer glows bleeding outside the items.
+
+When the image is generated, copy the final PNG file into this working directory as ./trophies.png (it is saved under ~/.codex/generated_images). Then reply with the saved path and whether the PNG has a transparent background.
