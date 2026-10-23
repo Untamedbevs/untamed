@@ -5,9 +5,11 @@ import Image from 'next/image'
 import { AlertCircle, Loader2, LogIn } from 'lucide-react'
 import { signIn, type SignInState } from '../actions'
 
-const initialState: SignInState = { error: null, username: '' }
+const DEMO_EMAIL = 'staff@untamed.demo'
 
-export function LoginForm() {
+/** In demo mode any text (or nothing) signs in, so the fields come pre-filled. */
+export function LoginForm({ demo }: { demo: boolean }) {
+  const initialState: SignInState = { error: null, username: demo ? DEMO_EMAIL : '' }
   const [state, formAction, pending] = useActionState(signIn, initialState)
 
   return (
@@ -41,11 +43,11 @@ export function LoginForm() {
           <input
             id="username"
             name="username"
-            type="email"
+            type={demo ? 'text' : 'email'}
             key={state.username}
             defaultValue={state.username}
             autoComplete="email"
-            required
+            required={!demo}
             className="w-full rounded-xl bg-[#0A0A0A] border border-[#2A2A2A] px-4 py-3 text-white placeholder:text-[#555] focus:outline-none focus:border-[#9B30FF] focus:ring-1 focus:ring-[#9B30FF]"
           />
         </div>
@@ -57,11 +59,18 @@ export function LoginForm() {
             id="password"
             name="password"
             type="password"
+            defaultValue={demo ? 'demo' : undefined}
             autoComplete="current-password"
-            required
+            required={!demo}
             className="w-full rounded-xl bg-[#0A0A0A] border border-[#2A2A2A] px-4 py-3 text-white placeholder:text-[#555] focus:outline-none focus:border-[#9B30FF] focus:ring-1 focus:ring-[#9B30FF]"
           />
         </div>
+
+        {demo && (
+          <p className="rounded-xl border border-[#FFD700]/25 bg-[#FFD700]/[0.06] px-3 py-2 text-xs text-[#FFD700]/90">
+            Demo access: type anything (or nothing) and hit Enter the wild.
+          </p>
+        )}
 
         {state.error && (
           <p role="alert" className="flex items-center gap-2 text-sm text-red-400">

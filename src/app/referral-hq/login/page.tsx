@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
-import { getSessionUser, hqEnabled } from '@/lib/referral-hq/auth'
+import { getSessionUser, hqEnabled, isDemoLogin } from '@/lib/referral-hq/auth'
 import { LoginForm } from './LoginForm'
 import '../hq.css'
 
@@ -25,7 +25,7 @@ export default async function ReferralHqLoginPage() {
         aria-hidden
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(10,10,10,0.55),#0A0A0A_75%)]"
       />
-      <LoginForm />
+      <LoginForm demo={isDemoLogin()} />
     </div>
   )
 }

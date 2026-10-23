@@ -5,9 +5,10 @@ A local-only mock-up of a gamified referral dashboard: referrers earn Wild Credi
 Demo data only. Nothing reads or writes Supabase.
 
 - Run `npm.cmd run dev`, then open http://localhost:3003/referral-hq.
-- Login: set `REFERRAL_HQ_USERNAME` and `REFERRAL_HQ_PASSWORD` in `.env.local`. When
-  they're unset, local dev uses the fallback in `src/lib/referral-hq/auth.ts`. In
-  production (including Vercel previews) the route returns 404 until both are set.
+- Login: demo mode. On local dev and Vercel preview links, any text (or nothing) signs
+  in. The fields come pre-filled, so just hit **Enter the wild**. The live production
+  site stays locked (404). Setting `REFERRAL_HQ_USERNAME` and `REFERRAL_HQ_PASSWORD`
+  switches to a single real login instead.
 - No time to run it? Watch the videos in `showcase/`.
 - **My Territory** (`/referral-hq`): the referrer dashboard. Use **Demo progress**
   (bottom right) to simulate 0–300 packs and watch the map fill in.
