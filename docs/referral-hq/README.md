@@ -4,7 +4,28 @@ A local-only mock-up of a gamified referral dashboard: referrers earn Wild Credi
 4-pack sold through their code and climb seven ranks on a fog-of-war territory map.
 Demo data only. Nothing reads or writes Supabase.
 
-- Run `npm.cmd run dev`, then open http://localhost:3003/referral-hq.
+## Try it on your machine
+
+You need Node.js 22+ and access to the GitHub repo. No `.env.local` or other setup is
+needed for this page.
+
+```bash
+git clone https://github.com/Untamedbevs/untamed.git
+cd untamed
+git checkout codex/untamed-local-setup
+npm ci
+npm run dev
+```
+
+(On Windows PowerShell, use `npm.cmd` instead of `npm`. Already have the repo? Run
+`git fetch` and `git checkout codex/untamed-local-setup` instead of cloning.)
+
+Then open http://localhost:3003/referral-hq, click **Yes, I'm 21+**, and hit
+**Enter the wild**. Use **Demo progress** (bottom right) to watch the map build from
+0 to 250 packs.
+
+## Details
+
 - Login: demo mode. On local dev and Vercel preview links, any text (or nothing) signs
   in. The fields come pre-filled, so just hit **Enter the wild**. The live production
   site stays locked (404). Setting `REFERRAL_HQ_USERNAME` and `REFERRAL_HQ_PASSWORD`
