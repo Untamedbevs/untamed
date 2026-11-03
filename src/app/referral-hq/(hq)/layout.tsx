@@ -4,8 +4,6 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import { resolveStaff } from '@/lib/auth/resolve-staff'
-import { HqNav } from './HqNav'
-import '../hq.css'
 
 export const metadata: Metadata = {
   title: 'Referral HQ | Untamed Beverages',
@@ -15,7 +13,7 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic'
 
 export default async function ReferralHqLayout({ children }: { children: React.ReactNode }) {
-  // Staff-only while it runs on demo data. Real referrers will move onto the portal login.
+  // Staff-only preview on demo data. Members will see these pieces in the portal once the program launches.
   if (!(await resolveStaff())) redirect('/admin/login')
 
   // overflow-x-clip (not hidden) so the sticky header still sticks to the viewport.
@@ -29,7 +27,6 @@ export default async function ReferralHqLayout({ children }: { children: React.R
               Referral HQ
             </span>
           </Link>
-          <HqNav />
           <Link
             href="/admin"
             className="ml-auto flex items-center gap-2 text-sm text-[#A0A0A0] hover:text-white transition-colors"
@@ -40,7 +37,7 @@ export default async function ReferralHqLayout({ children }: { children: React.R
         </div>
       </header>
       <div className="border-b border-[#FFD700]/20 bg-[#FFD700]/[0.06] text-center text-[11px] uppercase tracking-[0.2em] text-[#FFD700]/80 py-1.5 px-4">
-        Mock-up · demo data · reward numbers are draft
+        Staff preview · demo member · not live for members yet
       </div>
       <main className="mx-auto max-w-7xl px-4 lg:px-6 py-6 lg:py-8">{children}</main>
     </div>

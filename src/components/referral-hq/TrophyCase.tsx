@@ -1,23 +1,20 @@
 import Image from 'next/image'
-import { format, parseISO } from 'date-fns'
 import { Award } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import {
-  TROPHIES,
-  formatCredit,
-  trophyArt,
-  trophyProgress,
-  type Progress,
-} from '@/lib/referral-hq/program'
+import { TROPHIES, formatDay, trophyArt, trophyProgress, type Progress } from '@/lib/referral-hq/program'
 
+/** Badges earned from engagement. With `locked`, a preview where nothing is earned yet. */
 export function TrophyCase({
   progress,
-  earnedDates,
+  earnedDates = {},
+  locked = false,
 }: {
   progress: Progress
-  earnedDates: Record<string, string>
+  earnedDates?: Record<string, string>
+  locked?: boolean
 }) {
-  const earnedCount = TROPHIES.filter((t) => trophyProgress(t, progress) >= t.goal).length
+  const valueOf = (t: (typeof TROPHIES)[number]) => (locked ? 0 : trophyProgress(t, progress))
+  const earnedCount = TROPHIES.filter((t) => valueOf(t) >= t.goal).length
 
   return (
     <section className="rounded-3xl border border-[#2A2A2A] bg-[#141414] p-5 sm:p-6 h-full">
@@ -26,7 +23,10 @@ export function TrophyCase({
           <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#A0A0A0]">
             <Award className="w-3.5 h-3.5" /> Trophy case
           </h2>
-          <p className="text-sm text-[#A0A0A0] mt-1">Side hunts that pay bonus Wild Credit.</p>
+          <p className="text-sm text-[#A0A0A0] mt-1">
+            Badges for joining, bringing in friends, and telling your story. Bragging rights only: no points, no
+            prizes.
+          </p>
         </div>
         <p className="font-display text-2xl font-bold text-white tabular-nums">
           {earnedCount}
@@ -34,9 +34,9 @@ export function TrophyCase({
         </p>
       </div>
 
-      <ul className="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <ul className="mt-5 grid grid-cols-2 sm:grid-cols-3 gap-3">
         {TROPHIES.map((t) => {
-          const value = trophyProgress(t, progress)
+          const value = valueOf(t)
           const earned = value >= t.goal
           const date = earnedDates[t.id]
           return (
@@ -50,7 +50,7 @@ export function TrophyCase({
               )}
             >
               <Image
-                src={trophyArt(t.id)}
+                src={trophyArt(t)}
                 alt=""
                 width={112}
                 height={112}
@@ -65,7 +65,7 @@ export function TrophyCase({
               <p className="mt-0.5 text-[11px] leading-snug text-[#777]">{t.description}</p>
               {earned ? (
                 <p className="mt-2 text-[11px] font-semibold text-[#FFD700]">
-                  +{formatCredit(t.bonusCredit)} · {date ? format(parseISO(date), 'MMM d') : 'Unlocked'}
+                  {date ? `Earned ${formatDay(date)}` : 'Earned'}
                 </p>
               ) : (
                 <div className="mt-2 w-full">
@@ -76,7 +76,7 @@ export function TrophyCase({
                     />
                   </div>
                   <p className="mt-1 text-[11px] text-[#777] tabular-nums">
-                    {value}/{t.goal} · +{formatCredit(t.bonusCredit)}
+                    {value}/{t.goal}
                   </p>
                 </div>
               )}

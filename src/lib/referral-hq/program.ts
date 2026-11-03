@@ -1,286 +1,216 @@
 /**
- * Referral HQ — milestone program (DRAFT for client review).
+ * Referral HQ: the ranks, badges and art behind the member portal
+ * (/portal, /portal/referrals, /portal/rewards).
  *
- * Every number here is a proposal to iterate on with Untamed, not a committed
- * offer. The UI reads everything from this file, so tuning a threshold, rate,
- * or reward is a one-line change.
+ * Untamed sells spirits, so this follows the live program's guardrails
+ * (src/lib/rewards/program.ts): ranks climb on engagement points only, earned
+ * by enrolling, by friends who complete 21+ enrollment, by approved or
+ * featured content, and by points staff add by hand. Purchase points spend
+ * the same way but never count toward rank. Ranks and badges are recognition
+ * only: they award no points and no merchandise. Merch comes from the rewards
+ * catalog (src/lib/loyalty/constants.ts), never alcohol.
+ *
+ * Point amounts and caps are imported from the live program; the UI reads
+ * everything else from this file.
  */
+
+import { POINTS, type Reward } from '@/lib/loyalty/constants'
+import { CAPS } from '@/lib/rewards/program'
+import type { IneligibleReason } from '@/lib/rewards/eligibility'
+
+export { PROGRAM_NAME, PROGRAM_RULES_PATH } from '@/lib/rewards/program'
 
 export const ASSET_BASE = '/images/referral-hq'
 
-/** Base reward: Wild Credit earned per 4-pack sold through a referral code. */
-export const BASE_CREDIT_PER_PACK = 10
+/** Friends a referrer can be rewarded for per calendar year (Program Rules). */
+export const REFERRALS_PER_YEAR = CAPS.REFERRAL_CREDITS_PER_YEAR
 
-export type RewardArt =
-  | 'coins'
-  | 'four-pack'
-  | 'hat'
-  | 'hoodie'
-  | 'key'
-  | 'vip'
-  | 'credit-coin'
+/** Retail value of rewards a member can receive per calendar year, in cents. */
+export const ANNUAL_REWARD_CAP_CENTS = CAPS.ANNUAL_REWARD_VALUE_CENTS
+
+export const ENGAGEMENT = {
+  enrolled: POINTS.SIGNUP_BONUS,
+  /** When a friend joins through the member's link and completes 21+ enrollment. */
+  friendJoined: POINTS.REFERRAL_SIGNUP,
+  postApproved: POINTS.PER_UGC_APPROVED,
+  /** Total for a featured post, including its approval points. */
+  postFeatured: POINTS.PER_UGC_FEATURED,
+} as const
+
+/**
+ * Ledger types that count toward rank and badges. Adjustments count only when
+ * positive. Never online_order, receipt_approved or referral_purchase.
+ */
+export const ENGAGEMENT_TYPES = ['signup_bonus', 'referral_signup', 'ugc_approved', 'adjustment'] as const
+
+export function isEngagementEntry(entry: { type: string; points: number }) {
+  if (entry.type === 'adjustment') return entry.points > 0
+  return (ENGAGEMENT_TYPES as readonly string[]).includes(entry.type)
+}
 
 export interface Rank {
   id: string
   name: string
-  /** Lifetime 4-packs sold through the code to reach this rank. */
-  packs: number
-  /** Wild Credit per 4-pack once this rank is reached. */
-  ratePerPack: number
-  /** One-time bonus credit awarded on reaching the rank. */
-  bonusCredit: number
-  /** Physical / experiential unlocks, shown alongside any bonus credit. */
-  unlocks: string[]
-  rewardArt: RewardArt
+  /** Lifetime engagement points to reach this rank. */
+  points: number
   tagline: string
-  /** Marker position on the territory map, as % of the map's width/height. */
+  /** Marker position on the trail map, as % of the map's width/height. */
   map: { x: number; y: number }
 }
 
 export const RANKS: Rank[] = [
-  {
-    id: 'cub',
-    name: 'Cub',
-    packs: 1,
-    ratePerPack: 10,
-    bonusCredit: 0,
-    unlocks: ['Untamed sticker pack', 'Your territory map'],
-    rewardArt: 'credit-coin',
-    tagline: 'First scratch on the map.',
-    map: { x: 9.6, y: 83.5 },
-  },
-  {
-    id: 'prowler',
-    name: 'Prowler',
-    packs: 5,
-    ratePerPack: 10,
-    bonusCredit: 15,
-    unlocks: [],
-    rewardArt: 'coins',
-    tagline: 'They can feel you watching.',
-    map: { x: 26.4, y: 66.4 },
-  },
-  {
-    id: 'stalker',
-    name: 'Stalker',
-    packs: 10,
-    ratePerPack: 10,
-    bonusCredit: 0,
-    unlocks: ['Free 4-pack, any flavor'],
-    rewardArt: 'four-pack',
-    tagline: 'Locked on. Closing in.',
-    map: { x: 36.1, y: 51.3 },
-  },
-  {
-    id: 'hunter',
-    name: 'Hunter',
-    packs: 25,
-    ratePerPack: 12,
-    bonusCredit: 0,
-    unlocks: ['Untamed snapback', 'Credit rate up to $12 / pack'],
-    rewardArt: 'hat',
-    tagline: 'You eat what you hunt.',
-    map: { x: 62.2, y: 47.6 },
-  },
-  {
-    id: 'alpha',
-    name: 'Alpha',
-    packs: 50,
-    ratePerPack: 12,
-    bonusCredit: 75,
-    unlocks: ['Alpha hoodie'],
-    rewardArt: 'hoodie',
-    tagline: 'The pack moves when you move.',
-    map: { x: 70.3, y: 37.1 },
-  },
-  {
-    id: 'apex',
-    name: 'Apex',
-    packs: 100,
-    ratePerPack: 15,
-    bonusCredit: 0,
-    unlocks: ['Credit rate up to $15 / pack', 'Early access to new flavors'],
-    rewardArt: 'key',
-    tagline: 'Nothing hunts you.',
-    map: { x: 82, y: 27.3 },
-  },
-  {
-    id: 'legend',
-    name: 'Legend',
-    packs: 250,
-    ratePerPack: 15,
-    bonusCredit: 250,
-    unlocks: ['VIP pass to an Untamed launch event'],
-    rewardArt: 'vip',
-    tagline: 'They tell stories about you.',
-    map: { x: 91.1, y: 15.1 },
-  },
+  { id: 'cub', name: 'Cub', points: ENGAGEMENT.enrolled, tagline: 'First scratch on the map.', map: { x: 9.6, y: 83.5 } },
+  { id: 'prowler', name: 'Prowler', points: 5_000, tagline: 'They can feel you watching.', map: { x: 26.4, y: 66.4 } },
+  { id: 'stalker', name: 'Stalker', points: 10_000, tagline: 'Locked on. Closing in.', map: { x: 36.1, y: 51.3 } },
+  { id: 'hunter', name: 'Hunter', points: 25_000, tagline: 'You eat what you hunt.', map: { x: 62.2, y: 47.6 } },
+  { id: 'alpha', name: 'Alpha', points: 50_000, tagline: 'The pack moves when you move.', map: { x: 70.3, y: 37.1 } },
+  { id: 'apex', name: 'Apex', points: 100_000, tagline: 'Nothing hunts you.', map: { x: 82, y: 27.3 } },
+  { id: 'legend', name: 'Legend', points: 200_000, tagline: 'They tell stories about you.', map: { x: 91.1, y: 15.1 } },
 ]
 
 export function rankArt(rankId: string) {
   return `${ASSET_BASE}/ranks/${rankId}.webp`
 }
 
-export function rewardArt(art: RewardArt) {
-  return art === 'credit-coin'
-    ? `${ASSET_BASE}/ranks/wild-credit.webp`
-    : `${ASSET_BASE}/rewards/${art}.webp`
+/**
+ * Art for each catalog reward; null shows a branded icon tile. The coaster
+ * set uses the round claw medallion (it was drawn as rank art).
+ */
+export const CATALOG_ART: Record<Reward['id'], string | null> = {
+  coasters: `${ASSET_BASE}/ranks/wild-credit.webp`,
+  koozie: null,
+  apparel: `${ASSET_BASE}/rewards/hat.webp`,
 }
 
-export function trophyArt(trophyId: string) {
-  return `${ASSET_BASE}/trophies/${trophyId}.webp`
-}
+export const CASH_BACK_ART = `${ASSET_BASE}/rewards/coins.webp`
 
-export type Flavor = 'black-panther' | 'cheetah' | 'cougar' | 'lioness'
+/** Trophy art in public/images/referral-hq/trophies/. */
+type TrophyArtId = 'cheetah-sprint' | 'cougar-crew' | 'hot-streak' | 'lioness-pride' | 'pack-builder' | 'panther-pack'
 
-export const FLAVORS: Record<Flavor, { name: string; drink: string; color: string }> = {
-  'black-panther': { name: 'Black Panther', drink: 'Espresso Martini', color: '#9B30FF' },
-  cheetah: { name: 'Cheetah', drink: 'Lemon Drop Martini', color: '#D4D700' },
-  cougar: { name: 'Cougar', drink: 'Classic Dirty Martini', color: '#6B8E23' },
-  lioness: { name: 'Lioness', drink: 'Peach & Rosemary Martini', color: '#E87511' },
-}
+export type TrophyMetric = 'enrolled' | 'friends' | 'posts-approved' | 'posts-featured'
 
-export type TrophyMetric =
-  | { kind: 'flavor'; flavor: Flavor }
-  | { kind: 'all-flavors' }
-  | { kind: 'week-streak' }
-  | { kind: 'unique-customers' }
-  | { kind: 'business-referrals' }
-
+/**
+ * Badges for non-consumption actions only. Recognition, not value: they award
+ * no points and no merchandise, so they add nothing to the annual reward cap.
+ */
 export interface Trophy {
   id: string
   name: string
   description: string
   goal: number
   metric: TrophyMetric
-  bonusCredit: number
+  art: TrophyArtId
 }
 
 export const TROPHIES: Trophy[] = [
   {
-    id: 'panther-pack',
-    name: 'Panther Pack',
-    description: 'Sell 10 Black Panther 4-packs',
-    goal: 10,
-    metric: { kind: 'flavor', flavor: 'black-panther' },
-    bonusCredit: 10,
+    id: 'into-the-wild',
+    name: 'Into the Wild',
+    description: 'Join Pack Rewards and confirm you’re 21+',
+    goal: 1,
+    metric: 'enrolled',
+    art: 'cheetah-sprint',
   },
   {
-    id: 'cheetah-sprint',
-    name: 'Cheetah Sprint',
-    description: 'Sell 10 Cheetah 4-packs',
-    goal: 10,
-    metric: { kind: 'flavor', flavor: 'cheetah' },
-    bonusCredit: 10,
-  },
-  {
-    id: 'cougar-crew',
-    name: 'Cougar Crew',
-    description: 'Sell 10 Cougar 4-packs',
-    goal: 10,
-    metric: { kind: 'flavor', flavor: 'cougar' },
-    bonusCredit: 10,
-  },
-  {
-    id: 'lioness-pride',
-    name: 'Lioness Pride',
-    description: 'Sell 10 Lioness 4-packs',
-    goal: 10,
-    metric: { kind: 'flavor', flavor: 'lioness' },
-    bonusCredit: 10,
-  },
-  {
-    id: 'full-pride',
-    name: 'Full Pride',
-    description: 'Move all four flavors through your code',
-    goal: 4,
-    metric: { kind: 'all-flavors' },
-    bonusCredit: 20,
-  },
-  {
-    id: 'hot-streak',
-    name: 'Hot Streak',
-    description: 'Make a sale 4 weeks in a row',
-    goal: 4,
-    metric: { kind: 'week-streak' },
-    bonusCredit: 20,
+    id: 'first-friend',
+    name: 'First Friend',
+    description: 'A friend joins through your link and confirms 21+',
+    goal: 1,
+    metric: 'friends',
+    art: 'cougar-crew',
   },
   {
     id: 'pack-builder',
     name: 'Pack Builder',
-    description: '10 different people buy with your code',
-    goal: 10,
-    metric: { kind: 'unique-customers' },
-    bonusCredit: 25,
+    description: '5 friends join and confirm 21+',
+    goal: 5,
+    metric: 'friends',
+    art: 'pack-builder',
   },
   {
-    id: 'big-game',
-    name: 'Big Game',
-    description: 'Refer a bar, restaurant, or store that places a wholesale order',
+    id: 'pride-leader',
+    name: 'Pride Leader',
+    description: '10 friends join and confirm 21+',
+    goal: 10,
+    metric: 'friends',
+    art: 'lioness-pride',
+  },
+  {
+    id: 'storyteller',
+    name: 'Storyteller',
+    description: 'Your first photo or video is approved',
     goal: 1,
-    metric: { kind: 'business-referrals' },
-    bonusCredit: 100,
+    metric: 'posts-approved',
+    art: 'panther-pack',
+  },
+  {
+    id: 'spotlight',
+    name: 'Spotlight',
+    description: 'Untamed features one of your posts',
+    goal: 1,
+    metric: 'posts-featured',
+    art: 'hot-streak',
   },
 ]
 
-export interface Progress {
-  packsByFlavor: Record<Flavor, number>
-  weekStreak: number
-  uniqueCustomers: number
-  businessReferrals: number
+export function trophyArt(trophy: Trophy) {
+  return `${ASSET_BASE}/trophies/${trophy.art}.webp`
 }
 
-export function totalPacks(p: Progress) {
-  return Object.values(p.packsByFlavor).reduce((sum, n) => sum + n, 0)
+/** Engagement counts behind the badges. Nothing here measures what anyone buys or drinks. */
+export interface Progress {
+  enrolled: boolean
+  /** Friends the member earned referral points for, lifetime. */
+  friendsRewarded: number
+  /** Approved posts that earned points, featured ones included. */
+  postsApproved: number
+  postsFeatured: number
 }
 
 export function trophyProgress(trophy: Trophy, p: Progress) {
-  const m = trophy.metric
-  switch (m.kind) {
-    case 'flavor':
-      return p.packsByFlavor[m.flavor]
-    case 'all-flavors':
-      return Object.values(p.packsByFlavor).filter((n) => n > 0).length
-    case 'week-streak':
-      return p.weekStreak
-    case 'unique-customers':
-      return p.uniqueCustomers
-    case 'business-referrals':
-      return p.businessReferrals
+  switch (trophy.metric) {
+    case 'enrolled':
+      return p.enrolled ? 1 : 0
+    case 'friends':
+      return p.friendsRewarded
+    case 'posts-approved':
+      return p.postsApproved
+    case 'posts-featured':
+      return p.postsFeatured
   }
 }
 
-/** Highest rank reached for a lifetime pack count, or null before the first sale. */
-export function rankFor(packs: number): Rank | null {
+/** Highest rank reached for a lifetime engagement-point total, or null below Cub. */
+export function rankFor(points: number): Rank | null {
   let current: Rank | null = null
   for (const rank of RANKS) {
-    if (packs >= rank.packs) current = rank
+    if (points >= rank.points) current = rank
   }
   return current
 }
 
-export function nextRank(packs: number): Rank | null {
-  return RANKS.find((r) => packs < r.packs) ?? null
+export function nextRank(points: number): Rank | null {
+  return RANKS.find((r) => points < r.points) ?? null
 }
 
-export function ratePerPack(packs: number) {
-  return rankFor(packs)?.ratePerPack ?? BASE_CREDIT_PER_PACK
+export function formatPoints(n: number) {
+  return n.toLocaleString('en-US')
 }
 
-/**
- * Lifetime Wild Credit for a pack count: each pack pays the rate of the rank
- * held once that pack is counted, plus one-time rank and trophy bonuses.
- */
-export function lifetimeCredit(packs: number, earnedTrophyBonus = 0) {
-  let perPack = 0
-  for (let i = 1; i <= packs; i++) perPack += ratePerPack(i)
-  const rankBonus = RANKS.filter((r) => packs >= r.packs).reduce(
-    (sum, r) => sum + r.bonusCredit,
-    0
-  )
-  return { perPack, rankBonus, trophyBonus: earnedTrophyBonus, total: perPack + rankBonus + earnedTrophyBonus }
+/** Short form for tight labels: 1K, 25K, 200K. */
+export function compactPoints(n: number) {
+  return n >= 1_000 ? `${Number((n / 1_000).toFixed(1))}K` : String(n)
 }
 
-export function formatCredit(n: number) {
-  return `$${n.toLocaleString('en-US')}`
+/** Approximate retail value for labels, e.g. "$12" or "$12.50". */
+export function formatRetailValue(cents: number) {
+  return `$${(cents / 100).toFixed(cents % 100 ? 2 : 0)}`
 }
+
+/** Short date for labels, e.g. "Oct 9", in Untamed's time zone so the server and browser agree. */
+export function formatDay(iso: string) {
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'America/New_York' })
+}
+
+/** Members who can fix these themselves on the enrollment form see a locked preview of HQ. */
+export const PREVIEW_REASONS: IneligibleReason[] = ['not_enrolled', 'rules_updated', 'enrollment_expired']

@@ -20,24 +20,31 @@ export const POINTS = {
   PER_UGC_FEATURED: 7_500,
 } as const
 
+/**
+ * `retailValueCents` is the approximate retail value counted toward each
+ * member's annual reward cap; Untamed should confirm the values.
+ */
 export const REWARDS = [
   {
     id: 'coasters',
     name: 'Untamed Coasters',
     description: 'Set of 4 cork-backed coasters, one per big cat.',
     pointsCost: 5_000,
+    retailValueCents: 1_200,
   },
   {
     id: 'koozie',
     name: 'Untamed Koozie',
     description: 'Neoprene can koozie with the Untamed claw logo.',
     pointsCost: 7_500,
+    retailValueCents: 800,
   },
   {
     id: 'apparel',
     name: 'Untamed Apparel',
     description: "Hat or T-shirt in your favorite big cat's colorway.",
     pointsCost: 25_000,
+    retailValueCents: 3_000,
   },
 ] as const
 

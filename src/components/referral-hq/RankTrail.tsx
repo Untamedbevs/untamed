@@ -2,17 +2,19 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
-import { Check, Lock, MapPinned } from 'lucide-react'
+import { Check, Lock, Mountain } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
   ASSET_BASE,
   RANKS,
-  formatCredit,
+  compactPoints,
+  formatDay,
+  formatPoints,
   nextRank,
   rankArt,
-  rewardArt,
   type Rank,
 } from '@/lib/referral-hq/program'
+import './hq.css'
 
 // SVG space matches the 3:2 map art so % positions line up at any width.
 const W = 150
@@ -39,55 +41,67 @@ function trailPath(points: { x: number; y: number }[]) {
 }
 
 /** Fraction of the trail walked, measured by straight-line segment lengths. */
-function walkedFraction(packs: number) {
+function walkedFraction(points: number) {
   const pts = RANKS.map(pt)
   const seg = pts.slice(1).map((p, i) => Math.hypot(p.x - pts[i].x, p.y - pts[i].y))
   const total = seg.reduce((a, b) => a + b, 0)
   let walked = 0
   for (let i = 0; i < seg.length; i++) {
-    const from = RANKS[i].packs
-    const to = RANKS[i + 1].packs
-    if (packs >= to) walked += seg[i]
+    const from = RANKS[i].points
+    const to = RANKS[i + 1].points
+    if (points >= to) walked += seg[i]
     else {
-      if (packs > from) walked += seg[i] * ((packs - from) / (to - from))
+      if (points > from) walked += seg[i] * ((points - from) / (to - from))
       break
     }
   }
   return total ? walked / total : 0
 }
 
-export function TerritoryMap({ packs }: { packs: number }) {
-  const next = nextRank(packs)
+/**
+ * Fog-of-war trail from Cub to Legend: every rank burns back the fog. With
+ * `locked`, it is a preview for members who haven't enrolled yet.
+ */
+export function RankTrail({
+  points,
+  earnedDates = {},
+  locked = false,
+}: {
+  /** Lifetime engagement points. */
+  points: number
+  earnedDates?: Record<string, string>
+  locked?: boolean
+}) {
+  const next = nextRank(points)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const selected = RANKS.find((r) => r.id === selectedId) ?? next ?? RANKS[RANKS.length - 1]
 
   const path = trailPath(RANKS.map(pt))
-  const walked = walkedFraction(packs)
-  const reachedCount = RANKS.filter((r) => packs >= r.packs).length
+  const walked = walkedFraction(points)
+  const reachedCount = RANKS.filter((r) => points >= r.points).length
 
   return (
     <section className="rounded-3xl border border-[#2A2A2A] bg-[#141414] overflow-hidden">
-      <div className="flex flex-wrap items-end justify-between gap-3 px-5 pt-5 sm:px-6">
-        <div>
-          <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#A0A0A0]">
-            <MapPinned className="w-3.5 h-3.5" /> Your territory
-          </h2>
-          <p className="font-wild text-3xl sm:text-4xl text-white mt-1 leading-none">Claim the summit</p>
-          <p className="text-sm text-[#A0A0A0] mt-1.5">
-            Every milestone burns back the fog. {reachedCount} of {RANKS.length} regions claimed.
-          </p>
-        </div>
+      <div className="px-5 pt-5 sm:px-6">
+        <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#A0A0A0]">
+          <Mountain className="w-3.5 h-3.5" /> The trail
+        </h2>
+        <p className="font-wild text-3xl sm:text-4xl text-white mt-1 leading-none">Claim the summit</p>
+        <p className="text-sm text-[#A0A0A0] mt-1.5">
+          {locked
+            ? 'Join Pack Rewards above to get on the map. Every rank burns back the fog.'
+            : `Every rank burns back the fog. ${reachedCount} of ${RANKS.length} ranks claimed.`}
+        </p>
       </div>
 
       <div className="mt-4 px-2 sm:px-4">
         <div className="relative aspect-[3/2] w-full overflow-hidden rounded-2xl bg-[#07040c]">
           <Image
             src={`${ASSET_BASE}/map.jpg`}
-            alt="Territory map: a trail from the jungle up to a moonlit summit"
+            alt="Trail map: a path from the jungle up to a moonlit summit"
             fill
-            sizes="(min-width: 1280px) 1200px, 100vw"
+            sizes="(min-width: 1280px) 1100px, 100vw"
             className="object-cover"
-            priority
           />
 
           <svg viewBox={`0 0 ${W} ${H}`} className="absolute inset-0 h-full w-full" aria-hidden>
@@ -98,10 +112,10 @@ export function TerritoryMap({ packs }: { packs: number }) {
               <mask id="hq-fog-mask" maskUnits="userSpaceOnUse" x="0" y="0" width={W} height={H}>
                 <rect width={W} height={H} fill="white" />
                 <g filter="url(#hq-fog-blur)">
-                  {/* The trailhead is always visible so new referrers see where to start. */}
+                  {/* The trailhead is always visible so new members see where to start. */}
                   <circle cx={pt(RANKS[0]).x - 4} cy={pt(RANKS[0]).y + 6} r={12} fill="black" />
                   {RANKS.map((r) => {
-                    const reached = packs >= r.packs
+                    const reached = points >= r.points
                     const isNext = next?.id === r.id
                     const p = pt(r)
                     return (
@@ -141,7 +155,7 @@ export function TerritoryMap({ packs }: { packs: number }) {
           </svg>
 
           {RANKS.map((r) => {
-            const reached = packs >= r.packs
+            const reached = points >= r.points
             const isNext = next?.id === r.id
             const isSelected = selected.id === r.id
             return (
@@ -151,7 +165,7 @@ export function TerritoryMap({ packs }: { packs: number }) {
                 onClick={() => setSelectedId(r.id)}
                 className="group absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center focus:outline-none"
                 style={{ left: `${r.map.x}%`, top: `${r.map.y}%` }}
-                aria-label={`${r.name}: ${r.packs} packs${reached ? ', claimed' : ''}`}
+                aria-label={`${r.name}: ${formatPoints(r.points)} engagement points${reached ? ', claimed' : ''}`}
                 aria-pressed={isSelected}
               >
                 <span
@@ -191,7 +205,7 @@ export function TerritoryMap({ packs }: { packs: number }) {
                         : 'bg-black/60 text-[#888]'
                   )}
                 >
-                  {r.name} · {r.packs}
+                  {r.name} · {compactPoints(r.points)}
                 </span>
               </button>
             )
@@ -199,54 +213,55 @@ export function TerritoryMap({ packs }: { packs: number }) {
         </div>
       </div>
 
-      <MilestoneDetail rank={selected} packs={packs} />
+      <MilestoneDetail rank={selected} points={points} earnedAt={earnedDates[selected.id]} locked={locked} />
     </section>
   )
 }
 
-function MilestoneDetail({ rank, packs }: { rank: Rank; packs: number }) {
-  const reached = packs >= rank.packs
-  const lines = [
-    rank.bonusCredit ? `${formatCredit(rank.bonusCredit)} bonus Wild Credit` : null,
-    ...rank.unlocks,
-  ].filter(Boolean) as string[]
+function MilestoneDetail({
+  rank,
+  points,
+  earnedAt,
+  locked,
+}: {
+  rank: Rank
+  points: number
+  earnedAt?: string
+  locked: boolean
+}) {
+  const reached = points >= rank.points
 
   return (
-    <div className="m-2 sm:m-4 mt-3 rounded-2xl border border-[#2A2A2A] bg-[#0A0A0A]/70 p-4 flex flex-col sm:flex-row sm:items-center gap-4">
-      <div className="flex items-center gap-4 min-w-0 flex-1">
-        <Image
-          src={rankArt(rank.id)}
-          alt=""
-          width={72}
-          height={72}
-          className={cn('h-16 w-16 shrink-0 object-contain', !reached && 'grayscale brightness-75')}
-        />
-        <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#A0A0A0]">
-            {rank.packs} lifetime 4-packs
-          </p>
-          <p className="font-wild text-3xl text-white leading-none mt-1">{rank.name}</p>
-          <p className="text-xs text-[#888] mt-1 italic">“{rank.tagline}”</p>
-        </div>
+    <div className="m-2 sm:m-4 mt-3 rounded-2xl border border-[#2A2A2A] bg-[#0A0A0A]/70 p-4 flex items-center gap-4">
+      <Image
+        src={rankArt(rank.id)}
+        alt=""
+        width={72}
+        height={72}
+        className={cn('h-14 w-14 sm:h-16 sm:w-16 shrink-0 object-contain', !reached && 'grayscale brightness-75')}
+      />
+      <div className="min-w-0 flex-1">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#A0A0A0]">
+          {formatPoints(rank.points)} engagement points
+        </p>
+        <p className="font-wild text-3xl text-white leading-none mt-1">{rank.name}</p>
+        <p className="text-xs text-[#888] mt-1 italic">“{rank.tagline}”</p>
       </div>
-      <div className="flex items-center gap-3 sm:max-w-[55%]">
-        <Image src={rewardArt(rank.rewardArt)} alt="" width={64} height={64} className="h-14 w-14 shrink-0 object-contain" />
-        <ul className="space-y-0.5">
-          {lines.map((l) => (
-            <li key={l} className="text-sm text-white">{l}</li>
-          ))}
-          <li className="text-xs text-[#888]">Earning {formatCredit(rank.ratePerPack)} per 4-pack at this rank</li>
-        </ul>
-        <span
-          className={cn(
-            'ml-auto shrink-0 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider',
-            reached ? 'bg-[#FFD700]/15 text-[#FFD700]' : 'bg-[#2A2A2A] text-[#A0A0A0]'
-          )}
-        >
-          {reached ? <Check className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
-          {reached ? 'Claimed' : `${rank.packs - packs} to go`}
-        </span>
-      </div>
+      <span
+        className={cn(
+          'shrink-0 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider',
+          reached ? 'bg-[#FFD700]/15 text-[#FFD700]' : 'bg-[#2A2A2A] text-[#A0A0A0]'
+        )}
+      >
+        {reached ? <Check className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
+        {reached
+          ? earnedAt
+            ? `Claimed ${formatDay(earnedAt)}`
+            : 'Claimed'
+          : locked
+            ? 'Locked'
+            : `${compactPoints(rank.points - points)} to go`}
+      </span>
     </div>
   )
 }
