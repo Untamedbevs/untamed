@@ -1,0 +1,17 @@
+Use your built-in image generation tool to create ONE landscape image (1536x1024) that is a sprite sheet: a 4-column x 2-row grid of 8 separate game badges, each centered in its own equal cell, all in one consistent style that visibly escalates in prestige from cell 1 to cell 7.
+
+Art direction (applies to every item): premium mobile-game achievement art fused with a bold craft-cocktail brand. Clean, graphic, slightly illustrative shapes with rich metallic shading and crisp edges. Dark obsidian/black bases with brand accents: royal purple #9B30FF, gold #FFD700 to amber #FFA500, and the four flavor colors - cheetah yellow #D4D700, cougar olive green #6B8E23, lioness orange #E87511, panther purple #7B2D8E. Recurring brand motif: three diagonal claw-scratch slashes. Big cats are fierce, stylized, and front-facing. ABSOLUTELY NO text, letters, numbers, logos, or watermarks anywhere.
+
+Cells, left-to-right, top row then bottom row:
+1. CUB rank: small rounded copper/bronze badge with a single small cub paw print. Simple and humble.
+2. PROWLER rank: bronze shield with a pair of glowing amber cat eyes peering out of dark jungle leaves.
+3. STALKER rank: brushed silver shield torn by three deep diagonal claw scratches glowing purple inside.
+4. HUNTER rank: silver and royal purple shield with a snarling big cat jaw showing fangs.
+5. ALPHA rank: gold shield crest with a fierce black panther head facing forward, purple gem accents.
+6. APEX rank: ornate gold and royal purple crest, black panther head wearing a crown made of claws, radiant rays behind it.
+7. LEGEND rank: the most ornate - obsidian and gold crest with a regal big cat head inside a radiant gold laurel wreath with small wings, set with four gems in purple, yellow, olive green, and orange.
+8. WILD CREDIT coin: a thick, shiny gold coin embossed with a paw print and three claw scratches.
+
+Background: a true transparent background (PNG with alpha) if your image tool supports it. If it does not, use a perfectly flat, uniform pure white #FFFFFF background with zero texture, gradient, vignette, floor, or cast shadow. Items must NOT touch each other or the image edges; leave generous empty space around each one. No drop shadows or outer glows bleeding outside the items.
+
+When the image is generated, copy the final PNG file into this working directory as ./ranks.png (it is saved under ~/.codex/generated_images). Then reply with the saved path and whether the PNG has a transparent background.

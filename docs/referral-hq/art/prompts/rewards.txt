@@ -1,0 +1,15 @@
+Use your built-in image generation tool to create ONE landscape image (1536x1024) that is a sprite sheet: a 3-column x 2-row grid of 6 separate reward item icons, each centered in its own equal cell, all in one consistent style (glossy 3D game-store item renders, slight three-quarter view, dramatic rim lighting).
+
+Art direction (applies to every item): premium mobile-game achievement art fused with a bold craft-cocktail brand. Clean, graphic, slightly illustrative shapes with rich metallic shading and crisp edges. Dark obsidian/black bases with brand accents: royal purple #9B30FF, gold #FFD700 to amber #FFA500, and the four flavor colors - cheetah yellow #D4D700, cougar olive green #6B8E23, lioness orange #E87511, panther purple #7B2D8E. Recurring brand motif: three diagonal claw-scratch slashes. Big cats are fierce, stylized, and front-facing. ABSOLUTELY NO text, letters, numbers, logos, or watermarks anywhere.
+
+Cells, left-to-right, top row then bottom row:
+1. BONUS CREDIT: a tidy stack of thick gold coins, the top coin embossed with a paw print.
+2. FREE 4-PACK: a cardboard carrier holding four slim tall cocktail cans, one each in purple, yellow, olive green, and orange, cans have only abstract claw-scratch graphics (no words).
+3. MERCH HAT: a black snapback cap with gold embroidered three-claw-scratch emblem on the front.
+4. MERCH HOODIE: a folded black hoodie with large purple claw-scratch graphic.
+5. EARLY ACCESS: an ornate golden key whose bow is shaped like a big cat head with purple gem eyes.
+6. VIP PASS: a glossy black and gold event pass on a purple lanyard, embossed with a paw print.
+
+Background: a true transparent background (PNG with alpha) if your image tool supports it. If it does not, use a perfectly flat, uniform pure white #FFFFFF background with zero texture, gradient, vignette, floor, or cast shadow. Items must NOT touch each other or the image edges; leave generous empty space around each one. No drop shadows or outer glows bleeding outside the items.
+
+When the image is generated, copy the final PNG file into this working directory as ./rewards.png (it is saved under ~/.codex/generated_images). Then reply with the saved path and whether the PNG has a transparent background.

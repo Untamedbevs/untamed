@@ -1,0 +1,5 @@
+Use your built-in image generation tool to create ONE wide landscape illustration (1536x1024) to be used as a game progress map background.
+
+Scene: a wild nighttime territory seen from a high three-quarter angle, like a premium fantasy game world map. Dense dark jungle at the lower left, a moonlit open savanna with a watering hole in the middle, a misty canyon with rocky outcrops, rising to a towering rocky summit ridge at the upper right under a huge glowing moon. A single winding dirt trail snakes clearly from the bottom-left corner up to the summit, passing seven small flat clearings spaced along it where markers could sit. Moody premium palette: deep blacks and charcoal, royal purple #9B30FF glow in the sky and mist, warm gold #FFD700 moonlight rim highlights. Painterly digital art, rich detail but not busy, high contrast, darker toward the edges so UI can sit on top. No text, no labels, no characters or animals, no UI elements, no borders.
+
+When the image is generated, copy the final PNG file into this working directory as ./map.png (it is saved under ~/.codex/generated_images). Then reply with the saved path.
