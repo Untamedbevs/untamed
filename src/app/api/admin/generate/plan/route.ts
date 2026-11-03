@@ -2,6 +2,7 @@ import { generateObject } from 'ai'
 import { z } from 'zod'
 import { NextRequest, NextResponse } from 'next/server'
 import { getBrandPromptContext } from '@/lib/brand-kit'
+import { resolveStaff } from '@/lib/auth/resolve-staff'
 
 const postSchema = z.object({
   posts: z.array(
@@ -18,6 +19,9 @@ const postSchema = z.object({
 })
 
 export async function POST(request: NextRequest) {
+  const staff = await resolveStaff()
+  if (!staff) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   try {
     const body = await request.json()
     const { concept, reference_media_urls, platform_targets, post_count, content_mix, model } = body

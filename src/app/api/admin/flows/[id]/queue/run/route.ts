@@ -7,6 +7,7 @@ import {
   pickNextRunnablePost,
 } from '@/lib/flow/generate-flow-post'
 import { NextRequest, NextResponse } from 'next/server'
+import { resolveStaff } from '@/lib/auth/resolve-staff'
 
 type StepResult =
   | {
@@ -37,6 +38,9 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const staff = await resolveStaff()
+  if (!staff) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const { id: flowId } = await params
   const supabase = createAdminClient()
 

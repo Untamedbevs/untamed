@@ -4,8 +4,12 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { assertVideoInputsValid, buildVideoFalInput } from '@/lib/flow/fal-video-input'
 import { resolveFalVideoModel } from '@/lib/fal-generate-models'
 import { NextRequest, NextResponse } from 'next/server'
+import { resolveStaff } from '@/lib/auth/resolve-staff'
 
 export async function POST(request: NextRequest) {
+  const staff = await resolveStaff()
+  if (!staff) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   let flowPostId: string | undefined
 
   try {

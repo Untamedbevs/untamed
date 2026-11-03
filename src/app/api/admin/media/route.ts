@@ -2,6 +2,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { withResolvedPublicMediaUrl } from '@/lib/media-cdn-url'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import { NextRequest, NextResponse } from 'next/server'
+import { resolveStaff } from '@/lib/auth/resolve-staff'
 
 function getS3Client() {
   return new S3Client({
@@ -14,6 +15,9 @@ function getS3Client() {
 }
 
 export async function GET(request: NextRequest) {
+  const staff = await resolveStaff()
+  if (!staff) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const supabase = createAdminClient()
   const { searchParams } = new URL(request.url)
 
@@ -81,6 +85,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const staff = await resolveStaff()
+  if (!staff) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const supabase = createAdminClient()
   const contentType = request.headers.get('content-type') || ''
 

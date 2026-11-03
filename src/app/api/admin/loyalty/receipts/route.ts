@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { POINTS } from '@/lib/loyalty/constants'
+import { resolveMemberDataStaff } from '@/lib/auth/resolve-staff'
 
 export async function GET(request: NextRequest) {
+  const staff = await resolveMemberDataStaff()
+  if (!staff) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   try {
     const supabase = createAdminClient()
     const { searchParams } = new URL(request.url)
@@ -27,6 +31,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
+  const staff = await resolveMemberDataStaff()
+  if (!staff) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   try {
     const supabase = createAdminClient()
     const { receiptId, action, notes, customPoints } = await request.json()

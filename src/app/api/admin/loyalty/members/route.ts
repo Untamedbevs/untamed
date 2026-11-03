@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { resolveMemberDataStaff } from '@/lib/auth/resolve-staff'
 
 export async function GET(request: NextRequest) {
+  const staff = await resolveMemberDataStaff()
+  if (!staff) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   try {
     const supabase = createAdminClient()
     const { searchParams } = new URL(request.url)

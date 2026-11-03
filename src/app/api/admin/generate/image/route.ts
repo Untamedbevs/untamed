@@ -8,6 +8,7 @@ import {
   targetSizeToNanoAspectRatio,
 } from '@/lib/fal-generate-models'
 import { NextRequest, NextResponse } from 'next/server'
+import { resolveStaff } from '@/lib/auth/resolve-staff'
 
 const BRAND_STYLE_SUFFIX = `Style: ${BRAND_KIT.aesthetic.photography}. Color palette: ${BRAND_KIT.aesthetic.palette}. ${BRAND_KIT.aesthetic.mood}.`
 
@@ -21,6 +22,9 @@ const SIZE_MAP: Record<string, FalImageSize> = {
 }
 
 export async function POST(request: NextRequest) {
+  const staff = await resolveStaff()
+  if (!staff) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   try {
     const body = await request.json()
     const { prompt, image_size = 'square_1_1', flow_post_id, fal_model: falModelRequested } = body

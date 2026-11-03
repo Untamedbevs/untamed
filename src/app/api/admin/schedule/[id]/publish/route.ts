@@ -1,11 +1,15 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { publishToFacebook, publishToInstagram, type PublishResult } from '@/lib/social/meta-publish'
 import { NextRequest, NextResponse } from 'next/server'
+import { resolveStaff } from '@/lib/auth/resolve-staff'
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const staff = await resolveStaff()
+  if (!staff) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const { id } = await params
   const supabase = createAdminClient()
 

@@ -31,3 +31,13 @@ export async function resolveStaff(): Promise<StaffMember | null> {
     return null
   }
 }
+
+/**
+ * Active staff with access to member data (everyone except limited
+ * contractors, matching the loyalty RLS policies). Use for admin APIs that
+ * read or change loyalty members, receipts, points, or referrals.
+ */
+export async function resolveMemberDataStaff(): Promise<StaffMember | null> {
+  const staff = await resolveStaff()
+  return staff && staff.role !== 'contractor_limited' ? staff : null
+}
