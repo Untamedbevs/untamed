@@ -1,10 +1,9 @@
 import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
-import { notFound, redirect } from 'next/navigation'
-import { LogOut } from 'lucide-react'
-import { getSessionUser, hqEnabled } from '@/lib/referral-hq/auth'
-import { signOut } from '../actions'
+import { redirect } from 'next/navigation'
+import { ArrowLeft } from 'lucide-react'
+import { resolveStaff } from '@/lib/auth/resolve-staff'
 import { HqNav } from './HqNav'
 import '../hq.css'
 
@@ -16,8 +15,8 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic'
 
 export default async function ReferralHqLayout({ children }: { children: React.ReactNode }) {
-  if (!hqEnabled()) notFound()
-  if (!(await getSessionUser())) redirect('/referral-hq/login')
+  // Staff-only while it runs on demo data. Real referrers will move onto the portal login.
+  if (!(await resolveStaff())) redirect('/admin/login')
 
   // overflow-x-clip (not hidden) so the sticky header still sticks to the viewport.
   return (
@@ -31,15 +30,13 @@ export default async function ReferralHqLayout({ children }: { children: React.R
             </span>
           </Link>
           <HqNav />
-          <form action={signOut} className="ml-auto">
-            <button
-              type="submit"
-              className="flex items-center gap-2 text-sm text-[#A0A0A0] hover:text-red-400 transition-colors"
-            >
-              <LogOut className="w-4 h-4" />
-              <span className="hidden sm:inline">Sign out</span>
-            </button>
-          </form>
+          <Link
+            href="/admin"
+            className="ml-auto flex items-center gap-2 text-sm text-[#A0A0A0] hover:text-white transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="hidden sm:inline">Admin</span>
+          </Link>
         </div>
       </header>
       <div className="border-b border-[#FFD700]/20 bg-[#FFD700]/[0.06] text-center text-[11px] uppercase tracking-[0.2em] text-[#FFD700]/80 py-1.5 px-4">

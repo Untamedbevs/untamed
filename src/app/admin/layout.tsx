@@ -38,6 +38,7 @@ import {
   Map,
   MapPin,
   Sparkles,
+  Compass,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { LucideIcon } from 'lucide-react'
@@ -60,6 +61,7 @@ const ALL_NAV_ITEMS: NavItem[] = [
   { href: '/admin/loyalty', label: 'Loyalty', icon: Trophy },
   { href: '/admin/ugc', label: 'UGC', icon: Camera },
   { href: '/admin/referrals', label: 'Referrals', icon: Share2 },
+  { href: '/referral-hq', label: 'Referral HQ', icon: Compass },
   {
     href: '/admin/retail',
     label: 'Retail Leads',
