@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import type { PortalMember } from '@/lib/auth/resolve-member'
 
 /**
  * Pack Rewards (21+ enrollment, Referral HQ in the portal, the new redemption
@@ -17,6 +18,15 @@ export async function inRewardsPreview(authUserId: string | null | undefined): P
     .eq('is_active', true)
     .maybeSingle()
   return !!data
+}
+
+/**
+ * Whether a portal page shows the Pack Rewards version. In View As, the admin
+ * chose the version; otherwise it's the staff check above.
+ */
+export async function showsPackRewards(member: PortalMember | null): Promise<boolean> {
+  if (member?.viewAs) return member.viewAs.mode === 'pack-rewards'
+  return inRewardsPreview(member?.authUserId)
 }
 
 /** Same check for pages that have no member context, using the signed-in user. */

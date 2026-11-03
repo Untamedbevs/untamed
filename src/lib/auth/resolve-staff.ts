@@ -41,3 +41,11 @@ export async function resolveMemberDataStaff(): Promise<StaffMember | null> {
   const staff = await resolveStaff()
   return staff && staff.role !== 'contractor_limited' ? staff : null
 }
+
+export const ADMIN_ROLES = ['super_admin', 'admin']
+
+/** Active admins and super admins, not contractors. Use for admin-only tools such as View As. */
+export async function resolveAdmin(): Promise<StaffMember | null> {
+  const staff = await resolveStaff()
+  return staff && ADMIN_ROLES.includes(staff.role) ? staff : null
+}

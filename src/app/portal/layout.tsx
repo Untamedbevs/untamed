@@ -8,6 +8,7 @@ import {
   Camera,
   ChevronLeft,
   ChevronRight,
+  Eye,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -21,6 +22,14 @@ import {
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
+
+/** From /api/portal/view-as while an admin views the portal as a member. */
+type ViewAsStatus = {
+  active: true
+  mode: 'current' | 'pack-rewards'
+  adminEmail: string
+  member: { email: string; firstName: string | null }
+}
 
 type NavItem = {
   href: string
@@ -51,9 +60,22 @@ export default function PortalLayout({
   const [mobileOpen, setMobileOpen] = useState(false)
   const [email, setEmail] = useState<string | null>(null)
   const [firstName, setFirstName] = useState<string | null>(null)
+  const [viewAs, setViewAs] = useState<ViewAsStatus | null>(null)
 
   useEffect(() => {
     async function loadUser() {
+      // An admin in View As sees the member's name, not their own.
+      const status = (await fetch('/api/portal/view-as')
+        .then((res) => res.json())
+        .catch(() => null)) as ViewAsStatus | null
+      if (status?.active) {
+        setViewAs(status)
+        setEmail(status.member.email)
+        setFirstName(status.member.firstName)
+        return
+      }
+      setViewAs(null)
+
       const supabase = createClient()
       const {
         data: { user },
@@ -76,6 +98,12 @@ export default function PortalLayout({
     await supabase.auth.signOut()
     router.push('/portal/login')
     router.refresh()
+  }
+
+  async function handleExitViewAs() {
+    const res = await fetch('/api/admin/view-as', { method: 'DELETE' }).catch(() => null)
+    const data = await res?.json().catch(() => null)
+    window.location.href = data?.redirectTo || '/admin/view-as'
   }
 
   if (
@@ -209,17 +237,31 @@ export default function PortalLayout({
               </span>
             </div>
           )}
-          <button
-            onClick={handleSignOut}
-            className={cn(
-              'flex items-center gap-2 text-sm text-[#A0A0A0] hover:text-red-400 transition-colors',
-              collapsed && 'justify-center'
-            )}
-            title={collapsed ? 'Sign Out' : undefined}
-          >
-            <LogOut className="w-4 h-4" />
-            {!collapsed && 'Sign Out'}
-          </button>
+          {viewAs ? (
+            <button
+              onClick={handleExitViewAs}
+              className={cn(
+                'flex items-center gap-2 text-sm text-[#FFD700] hover:text-white transition-colors',
+                collapsed && 'justify-center'
+              )}
+              title={collapsed ? 'Exit View As' : undefined}
+            >
+              <Eye className="w-4 h-4" />
+              {!collapsed && 'Exit View As'}
+            </button>
+          ) : (
+            <button
+              onClick={handleSignOut}
+              className={cn(
+                'flex items-center gap-2 text-sm text-[#A0A0A0] hover:text-red-400 transition-colors',
+                collapsed && 'justify-center'
+              )}
+              title={collapsed ? 'Sign Out' : undefined}
+            >
+              <LogOut className="w-4 h-4" />
+              {!collapsed && 'Sign Out'}
+            </button>
+          )}
         </div>
       </aside>
 
@@ -229,6 +271,23 @@ export default function PortalLayout({
           collapsed ? 'lg:ml-[68px]' : 'lg:ml-64'
         )}
       >
+        {viewAs && (
+          <div className="sticky top-0 z-40 flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-[#FFD700]/30 bg-[#2A2410] px-4 py-2 text-sm text-[#FFE680] lg:px-6">
+            <Eye className="h-4 w-4 shrink-0" />
+            <span className="min-w-0">
+              Viewing as <strong className="text-white">{viewAs.member.firstName || viewAs.member.email}</strong>
+              <span className="text-[#FFE680]/70"> ({viewAs.member.email})</span>
+              {' · '}
+              {viewAs.mode === 'pack-rewards' ? 'Pack Rewards preview' : 'their current portal'} · read-only
+            </span>
+            <button
+              onClick={handleExitViewAs}
+              className="ml-auto rounded-full border border-[#FFD700]/40 px-3 py-1 text-xs font-semibold text-white hover:bg-[#FFD700]/10"
+            >
+              Exit View As
+            </button>
+          </div>
+        )}
         <header className="sticky top-0 z-30 bg-[#0A0A0A]/80 backdrop-blur-md border-b border-[#2A2A2A] h-16 flex items-center px-4 lg:px-6">
           <button
             onClick={() => setMobileOpen(true)}
@@ -240,7 +299,17 @@ export default function PortalLayout({
             {currentLabel}
           </h2>
         </header>
-        <main className="p-4 lg:p-6">{children}</main>
+        <main className="p-4 lg:p-6">
+          {viewAs && pathname.startsWith('/portal/account') ? (
+            // Password and sign-in settings belong to whoever is signed in (the admin), so they stay hidden.
+            <div className="max-w-xl rounded-2xl border border-[#2A2A2A] bg-[#141414] p-6 text-sm text-[#A0A0A0]">
+              Account settings are hidden in View As. This member signs in as{' '}
+              <span className="text-white">{viewAs.member.email}</span>.
+            </div>
+          ) : (
+            children
+          )}
+        </main>
       </div>
     </div>
   )

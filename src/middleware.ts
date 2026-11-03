@@ -1,7 +1,21 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { VIEW_AS_COOKIE } from '@/lib/auth/view-as-cookie'
 
 export async function middleware(request: NextRequest) {
+  // View As is read-only: while an admin views the portal as a member, refuse
+  // every portal write. Other portal API requests pass straight through.
+  if (request.nextUrl.pathname.startsWith('/api/portal/')) {
+    const isRead = request.method === 'GET' || request.method === 'HEAD'
+    if (!isRead && request.cookies.has(VIEW_AS_COOKIE)) {
+      return NextResponse.json(
+        { error: 'VIEW_AS_READ_ONLY', message: 'View As is read-only. Exit View As to make changes.' },
+        { status: 403 }
+      )
+    }
+    return NextResponse.next()
+  }
+
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -67,5 +81,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/portal/:path*'],
+  matcher: ['/admin/:path*', '/portal/:path*', '/api/portal/:path*'],
 }

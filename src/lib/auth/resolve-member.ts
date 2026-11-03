@@ -1,6 +1,9 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { ensureMemberForAuthUser } from '@/lib/auth/link-identities'
+import { resolveAdmin } from '@/lib/auth/resolve-staff'
+import { readViewAs, type ViewAsMode } from '@/lib/auth/view-as'
 import { MEMBER_PROGRAM_COLUMNS, type MemberProgramFields } from '@/lib/rewards/eligibility'
 
 export interface PortalLoyaltyMember extends MemberProgramFields {
@@ -37,13 +40,26 @@ export interface PortalMember {
   loyaltyMember: PortalLoyaltyMember | null
   distributorLeads: PortalDistributorLead[]
   referralParticipant: PortalReferralParticipant | null
+  /** Set when an admin is viewing the portal as this member (read-only). */
+  viewAs?: { mode: ViewAsMode; adminEmail: string }
 }
+
+const LOYALTY_COLUMNS = `id, email, first_name, points_balance, favorite_drink_slug, created_at, ${MEMBER_PROGRAM_COLUMNS}`
+const DISTRIBUTOR_COLUMNS = 'id, email, business_name, contact_name, status, created_at'
+const PARTICIPANT_COLUMNS =
+  'id, referral_code, display_name, is_active, consumer_signups, distributor_leads, paid_conversions'
+
+/** Matches no auth user, so per-user lookups for a member without a login find nothing. */
+const NO_AUTH_USER = '00000000-0000-0000-0000-000000000000'
 
 /**
  * Resolve the current authenticated end-user (loyalty + distributor identities).
  * Returns null if not authenticated. Returns a `PortalMember` even when the
  * user has no loyalty/distributor record yet (so the portal can show a
  * "Join the loyalty program" CTA).
+ *
+ * When an active admin has a View As session, returns the member they are
+ * viewing instead (see src/lib/auth/view-as.ts).
  */
 export async function resolveMember(): Promise<PortalMember | null> {
   try {
@@ -55,9 +71,20 @@ export async function resolveMember(): Promise<PortalMember | null> {
 
     const admin = createAdminClient()
 
+    const viewAs = await readViewAs(user.id)
+    if (viewAs) {
+      const viewer = await resolveAdmin()
+      if (viewer) {
+        return await resolveViewAsMember(admin, viewAs.memberId, {
+          mode: viewAs.mode,
+          adminEmail: viewer.email,
+        })
+      }
+    }
+
     let loyaltyRes = await admin
       .from('loyalty_members')
-      .select(`id, email, first_name, points_balance, favorite_drink_slug, created_at, ${MEMBER_PROGRAM_COLUMNS}`)
+      .select(LOYALTY_COLUMNS)
       .eq('auth_user_id', user.id)
       .maybeSingle()
 
@@ -78,14 +105,14 @@ export async function resolveMember(): Promise<PortalMember | null> {
       })
       loyaltyRes = await admin
         .from('loyalty_members')
-        .select(`id, email, first_name, points_balance, favorite_drink_slug, created_at, ${MEMBER_PROGRAM_COLUMNS}`)
+        .select(LOYALTY_COLUMNS)
         .eq('auth_user_id', user.id)
         .maybeSingle()
     }
 
     const distributorRes = await admin
       .from('distributor_leads')
-      .select('id, email, business_name, contact_name, status, created_at')
+      .select(DISTRIBUTOR_COLUMNS)
       .eq('auth_user_id', user.id)
       .order('created_at', { ascending: false })
 
@@ -93,9 +120,7 @@ export async function resolveMember(): Promise<PortalMember | null> {
     if (loyaltyRes.data?.id) {
       const { data: rp } = await admin
         .from('referral_participants')
-        .select(
-          'id, referral_code, display_name, is_active, consumer_signups, distributor_leads, paid_conversions'
-        )
+        .select(PARTICIPANT_COLUMNS)
         .eq('loyalty_member_id', loyaltyRes.data.id)
         .maybeSingle()
       referralParticipant = rp || null
@@ -110,6 +135,47 @@ export async function resolveMember(): Promise<PortalMember | null> {
     }
   } catch {
     return null
+  }
+}
+
+/** A member's portal identities for View As. Read-only: never provisions or links anything. */
+async function resolveViewAsMember(
+  admin: SupabaseClient,
+  memberId: string,
+  viewAs: NonNullable<PortalMember['viewAs']>
+): Promise<PortalMember | null> {
+  const { data } = await admin
+    .from('loyalty_members')
+    .select(`${LOYALTY_COLUMNS}, auth_user_id`)
+    .eq('id', memberId)
+    .maybeSingle()
+  if (!data) return null
+  const { auth_user_id: authUserId, ...loyaltyMember } = data as unknown as PortalLoyaltyMember & {
+    auth_user_id: string | null
+  }
+
+  const distributorLeads = authUserId
+    ? (
+        await admin
+          .from('distributor_leads')
+          .select(DISTRIBUTOR_COLUMNS)
+          .eq('auth_user_id', authUserId)
+          .order('created_at', { ascending: false })
+      ).data
+    : []
+  const { data: referralParticipant } = await admin
+    .from('referral_participants')
+    .select(PARTICIPANT_COLUMNS)
+    .eq('loyalty_member_id', memberId)
+    .maybeSingle()
+
+  return {
+    authUserId: authUserId || NO_AUTH_USER,
+    email: loyaltyMember.email,
+    loyaltyMember,
+    distributorLeads: distributorLeads || [],
+    referralParticipant: referralParticipant || null,
+    viewAs,
   }
 }
 

@@ -39,6 +39,7 @@ import {
   MapPin,
   Sparkles,
   Compass,
+  Eye,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { LucideIcon } from 'lucide-react'
@@ -62,6 +63,7 @@ const ALL_NAV_ITEMS: NavItem[] = [
   { href: '/admin/ugc', label: 'UGC', icon: Camera },
   { href: '/admin/referrals', label: 'Referrals', icon: Share2 },
   { href: '/referral-hq', label: 'Referral HQ', icon: Compass },
+  { href: '/admin/view-as', label: 'View As', icon: Eye },
   {
     href: '/admin/retail',
     label: 'Retail Leads',
@@ -105,8 +107,14 @@ const SUPER_ADMIN_ITEMS: NavItem[] = [
 
 const RESTRICTED_PATHS = ['/admin/loyalty', '/admin/ugc', '/admin/financial']
 
+/** Admins and super admins only (not contractors). */
+const ADMIN_ONLY_PATHS = ['/admin/view-as']
+
 function getNavItems(role: string | undefined): NavItem[] {
   let items = ALL_NAV_ITEMS
+  if (role !== 'admin' && role !== 'super_admin') {
+    items = items.filter((item) => !ADMIN_ONLY_PATHS.includes(item.href))
+  }
   if (role === 'contractor_limited') {
     items = items.filter(
       (item) => !RESTRICTED_PATHS.some((p) => item.href.startsWith(p))

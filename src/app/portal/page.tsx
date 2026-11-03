@@ -14,7 +14,7 @@ import {
   XCircle,
 } from 'lucide-react'
 import { CopyLinkButton } from './CopyLinkButton'
-import { inRewardsPreview } from '@/lib/rewards/preview'
+import { showsPackRewards } from '@/lib/rewards/preview'
 import { PortalHomePreview } from './_preview/HomePreview'
 
 export const dynamic = 'force-dynamic'
@@ -28,7 +28,7 @@ interface UgcRow {
 
 export default async function PortalDashboardPage() {
   const member = await resolveMember()
-  if (await inRewardsPreview(member?.authUserId)) return <PortalHomePreview />
+  if (await showsPackRewards(member)) return <PortalHomePreview />
 
   if (!member) {
     return (
