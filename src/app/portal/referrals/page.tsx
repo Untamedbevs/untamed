@@ -8,11 +8,14 @@ import {
 } from '@/lib/referral/helpers'
 import type { ReferralInvite } from '@/lib/referral/types'
 import { PortalReferralsClient } from './PortalReferralsClient'
+import { inRewardsPreview } from '@/lib/rewards/preview'
+import { PortalReferralsPreview } from '../_preview/ReferralsPreview'
 
 export const dynamic = 'force-dynamic'
 
 export default async function PortalReferralsPage() {
   const member = await resolveMember()
+  if (await inRewardsPreview(member?.authUserId)) return <PortalReferralsPreview />
 
   if (!member) {
     return (

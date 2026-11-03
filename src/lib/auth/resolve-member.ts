@@ -1,8 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { ensureMemberForAuthUser } from '@/lib/auth/link-identities'
+import { MEMBER_PROGRAM_COLUMNS, type MemberProgramFields } from '@/lib/rewards/eligibility'
 
-export interface PortalLoyaltyMember {
+export interface PortalLoyaltyMember extends MemberProgramFields {
   id: string
   email: string
   first_name: string | null
@@ -56,7 +57,7 @@ export async function resolveMember(): Promise<PortalMember | null> {
 
     let loyaltyRes = await admin
       .from('loyalty_members')
-      .select('id, email, first_name, points_balance, favorite_drink_slug, created_at')
+      .select(`id, email, first_name, points_balance, favorite_drink_slug, created_at, ${MEMBER_PROGRAM_COLUMNS}`)
       .eq('auth_user_id', user.id)
       .maybeSingle()
 
@@ -77,7 +78,7 @@ export async function resolveMember(): Promise<PortalMember | null> {
       })
       loyaltyRes = await admin
         .from('loyalty_members')
-        .select('id, email, first_name, points_balance, favorite_drink_slug, created_at')
+        .select(`id, email, first_name, points_balance, favorite_drink_slug, created_at, ${MEMBER_PROGRAM_COLUMNS}`)
         .eq('auth_user_id', user.id)
         .maybeSingle()
     }
@@ -103,7 +104,7 @@ export async function resolveMember(): Promise<PortalMember | null> {
     return {
       authUserId: user.id,
       email: user.email,
-      loyaltyMember: loyaltyRes.data || null,
+      loyaltyMember: (loyaltyRes.data as unknown as PortalLoyaltyMember | null) || null,
       distributorLeads: distributorRes.data || [],
       referralParticipant,
     }

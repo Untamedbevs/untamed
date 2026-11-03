@@ -3,6 +3,8 @@ import { Gift, Sparkles } from 'lucide-react'
 import { resolveMember } from '@/lib/auth/resolve-member'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { PortalRewardsClient } from './PortalRewardsClient'
+import { inRewardsPreview } from '@/lib/rewards/preview'
+import { PortalRewardsPreview } from '../_preview/RewardsPreview'
 
 export const dynamic = 'force-dynamic'
 
@@ -39,6 +41,7 @@ export interface PortalLoyaltyRedemption {
 
 export default async function PortalRewardsPage() {
   const member = await resolveMember()
+  if (await inRewardsPreview(member?.authUserId)) return <PortalRewardsPreview />
 
   if (!member) {
     return (

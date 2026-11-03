@@ -13,13 +13,21 @@ earlier draft that paid "Wild Credit" per 4-pack sold, which the legal review ru
 
 ## Where to find it
 
-Right now it's a **staff preview on demo data** at
-https://untamedbeverages.com/referral-hq. Sign in at `/admin/login` and click
-**Referral HQ** in the admin sidebar; anyone who isn't active staff is sent to the admin
-login. Switch between four demo members (not enrolled, new, regular, top referrer) at the
-top. Sections are labeled with the portal page each piece will appear on.
+There are two staff-only views. Members don't see either yet.
 
-Nothing reads or writes Supabase, and members don't see any of it yet.
+**The real member portal, for staff accounts.** Sign in to the member portal at
+https://untamedbeverages.com/portal/login with a staff email (magic link). Staff accounts
+get the Pack Rewards version of `/portal`, `/portal/referrals` and `/portal/rewards` on
+their own real data: 21+ enrollment, rank card, trail map, trophy case, unlock track,
+activity feed, territory map, sharing tools, the new redemption rules, and the cash-back
+preview. The Program Rules page (`/rewards/rules`) is visible to staff only. Everyone else
+gets the current portal, and earning still follows the current flow for every account
+(join bonus at signup, referral points at signup, online-order points at purchase). The
+gate is `inRewardsPreview()` in `src/lib/rewards/preview.ts`.
+
+**Demo members.** https://untamedbeverages.com/referral-hq (admin sidebar →
+**Referral HQ**) shows the same pieces on four made-up members (not enrolled, new,
+regular, top referrer), with no database reads.
 
 ## Where things live
 
@@ -27,8 +35,10 @@ Nothing reads or writes Supabase, and members don't see any of it yet.
 | --- | --- |
 | Ranks, badges, engagement types, catalog art | `src/lib/referral-hq/program.ts` |
 | Demo members for the preview | `src/lib/referral-hq/mock-data.ts` |
-| Real-data loader for the portal (not used yet) | `src/lib/referral-hq/progress.ts` |
-| Program caps, state rules, eligibility | `src/lib/rewards/` |
+| Real-data loader for the portal | `src/lib/referral-hq/progress.ts` |
+| Program caps, state rules, eligibility, enrollment, ledger, staff gate | `src/lib/rewards/` |
+| Staff versions of the portal pages | `src/app/portal/_preview/` |
+| Enrollment and redemption APIs (staff only) | `src/app/api/portal/rewards/{enroll,redeem}/` |
 | Components and motion CSS | `src/components/referral-hq/` |
 | Cash back preview | `src/app/portal/rewards/CashBackPreview.tsx` |
 | Preview page and staff gate | `src/app/referral-hq/(hq)/` |
@@ -37,14 +47,16 @@ Nothing reads or writes Supabase, and members don't see any of it yet.
 
 ## Going live for members
 
-The full program (portal pages on real data, 21+ enrollment, birthdate age gate, public
-Program Rules, database migration `00028_rewards_program_compliance.sql`) was built in a
-separate session on branch `claude/rewards-compliance` and isn't merged yet. Before it
-ships:
+Migration `00028_rewards_program_compliance.sql` is applied in production. The rest of
+the full program was built in a separate session on branch `claude/rewards-compliance`
+and isn't merged: points only at 21+ enrollment, referral credit at the friend's
+enrollment, held order points by state, the birthdate age gate, public Program Rules,
+and switching off referral links for the 22 trade-flagged members (left out of 00028
+here because it changes live referral tracking). Before it ships:
 
 - Have counsel sign off on the program, including cash back before it's more than a preview.
-- Run the migration before deploying the code that reads its columns.
 - Confirm the approximate retail values in `src/lib/loyalty/constants.ts`.
+- Remove the `inRewardsPreview()` gate so members get the new portal.
 
 ## Regenerating art
 
