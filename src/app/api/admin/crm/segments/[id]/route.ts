@@ -41,7 +41,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       filters = parseSegmentFilters(data?.filters)
     }
     if (filters) {
-      const { allowed } = await filterSuppressed(await queryRecipients(filters))
+      const { allowed } = await filterSuppressed(await queryRecipients(filters, { staffId: staff.id }))
       update.last_count = allowed.length
       update.last_counted_at = new Date().toISOString()
     }

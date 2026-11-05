@@ -67,6 +67,7 @@ const AUDIENCE_OPTIONS: { value: Audience; label: string; description: string }[
   { value: 'referrers', label: 'Referrers', description: 'Active referral participants' },
   { value: 'distributors', label: 'Distributor Leads', description: 'B2B retail / distribution prospects' },
   { value: 'all', label: 'All Contacts', description: 'Loyalty + referrers + distributors (deduped)' },
+  { value: 'staff', label: 'Team (internal test)', description: 'Active staff only: send to yourself or the founders first' },
 ]
 
 function insertAtCursor(
@@ -100,7 +101,7 @@ function rowsToFilters(audience: Audience, rows: FilterRow[]): BlastFilters {
     if (isNumberField(f)) {
       const n = parseInt(row.value, 10)
       if (!Number.isNaN(n)) target[f] = n
-    } else if (f === 'has_receipts' || f === 'referrer_active' || f === 'has_referrer') {
+    } else if (f === 'has_receipts' || f === 'referrer_active' || f === 'has_referrer' || f === 'only_me') {
       target[f] = row.value === 'yes'
     } else {
       target[f] = row.value

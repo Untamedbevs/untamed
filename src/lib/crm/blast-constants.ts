@@ -3,7 +3,7 @@
  * Used by both the blast UI and the audience query layer.
  */
 
-export type Audience = 'loyalty' | 'referrers' | 'distributors' | 'all'
+export type Audience = 'loyalty' | 'referrers' | 'distributors' | 'all' | 'staff'
 
 export type FilterField =
   // Loyalty
@@ -27,6 +27,10 @@ export type FilterField =
   // UGC (works on both loyalty + distributor audiences)
   | 'ugc_status'
   | 'min_ugc_submissions'
+  // Team (staff)
+  | 'only_me'
+  | 'staff_role'
+  | 'staff_emails'
   // Shared
   | 'created_after'
   | 'created_before'
@@ -34,7 +38,7 @@ export type FilterField =
 export interface FilterOption {
   value: FilterField
   label: string
-  group: 'loyalty' | 'referrer' | 'distributor' | 'ugc' | 'shared'
+  group: 'loyalty' | 'referrer' | 'distributor' | 'ugc' | 'staff' | 'shared'
 }
 
 export const ALL_FILTER_OPTIONS: FilterOption[] = [
@@ -55,12 +59,17 @@ export const ALL_FILTER_OPTIONS: FilterOption[] = [
   { value: 'has_referrer', label: 'Has Referrer', group: 'distributor' },
   { value: 'ugc_status', label: 'UGC Submission Status', group: 'ugc' },
   { value: 'min_ugc_submissions', label: 'Min UGC Submissions', group: 'ugc' },
+  { value: 'only_me', label: 'Only Me', group: 'staff' },
+  { value: 'staff_role', label: 'Staff Role', group: 'staff' },
+  { value: 'staff_emails', label: 'Specific Emails (comma-separated)', group: 'staff' },
   { value: 'created_after', label: 'Created After', group: 'shared' },
   { value: 'created_before', label: 'Created Before', group: 'shared' },
 ]
 
 export function getFilterOptions(audience: Audience): FilterOption[] {
   return ALL_FILTER_OPTIONS.filter((o) => {
+    if (o.group === 'staff') return audience === 'staff'
+    if (audience === 'staff') return o.group === 'shared'
     if (o.group === 'shared') return true
     if (audience === 'all') return true
     if (o.group === 'loyalty') return audience === 'loyalty'
@@ -114,8 +123,14 @@ export const UGC_STATUS_VALUES = [
   'none',
 ]
 
+export const STAFF_ROLE_VALUES = ['super_admin', 'admin', 'contractor_full', 'contractor_limited']
+
 export function getValueOptions(field: FilterField): string[] | null {
   switch (field) {
+    case 'only_me':
+      return ['yes']
+    case 'staff_role':
+      return STAFF_ROLE_VALUES
     case 'has_receipts':
     case 'referrer_active':
     case 'has_referrer':
@@ -153,7 +168,7 @@ export function isNumberField(field: FilterField): boolean {
 }
 
 export function isTextField(field: FilterField): boolean {
-  return field === 'first_utm_source' || field === 'first_utm_campaign'
+  return field === 'first_utm_source' || field === 'first_utm_campaign' || field === 'staff_emails'
 }
 
 export function formatFilterValue(value: string): string {

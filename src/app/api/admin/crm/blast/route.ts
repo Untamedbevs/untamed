@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Message body is required' }, { status: 400 })
     }
 
-    const allRecipients = await queryRecipients(filters)
+    const allRecipients = await queryRecipients(filters, { staffId: staff.id })
 
     if (allRecipients.length === 0) {
       return NextResponse.json({ error: 'No matching recipients' }, { status: 400 })

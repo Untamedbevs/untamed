@@ -7,7 +7,7 @@
 
 import { createAdminClient } from '@/lib/supabase/admin'
 
-export type Audience = 'loyalty' | 'referrers' | 'distributors' | 'all'
+export type Audience = 'loyalty' | 'referrers' | 'distributors' | 'all' | 'staff'
 
 export interface BlastFilters {
   audience: Audience
@@ -37,6 +37,12 @@ export interface BlastFilters {
   ugc_status?: 'any' | 'pending' | 'approved' | 'featured' | 'rejected' | 'none'
   min_ugc_submissions?: number
 
+  // Team (staff) -- internal test sends; never part of 'all'
+  only_me?: boolean
+  staff_role?: string
+  /** Comma-separated staff emails */
+  staff_emails?: string
+
   // Shared
   created_after?: string
   created_before?: string
@@ -46,7 +52,7 @@ export interface BlastRecipient {
   email: string
   name: string
   firstName: string
-  type: 'loyalty' | 'referrer' | 'distributor'
+  type: 'loyalty' | 'referrer' | 'distributor' | 'staff'
   loyaltyMemberId?: string
   referralParticipantId?: string
   distributorLeadId?: string
@@ -60,8 +66,19 @@ const MAX_ROWS_PER_QUERY = 50_000
 // Top-level query
 // ---------------------------------------------------------------------------
 
-export async function queryRecipients(filters: BlastFilters): Promise<BlastRecipient[]> {
+export interface QueryContext {
+  /** Signed-in staff member; required for the `only_me` filter */
+  staffId?: string
+}
+
+export async function queryRecipients(
+  filters: BlastFilters,
+  ctx: QueryContext = {}
+): Promise<BlastRecipient[]> {
   const admin = createAdminClient()
+
+  if (filters.audience === 'staff') return queryStaff(admin, filters, ctx)
+
   const recipients: BlastRecipient[] = []
   const seenEmails = new Set<string>()
 
@@ -103,6 +120,55 @@ export async function queryRecipients(filters: BlastFilters): Promise<BlastRecip
   }
 
   return recipients
+}
+
+// ---------------------------------------------------------------------------
+// Team (active staff) -- for sending a real campaign to admins first
+// ---------------------------------------------------------------------------
+
+async function queryStaff(
+  supabase: SupabaseAdmin,
+  filters: BlastFilters,
+  ctx: QueryContext
+): Promise<BlastRecipient[]> {
+  if (filters.only_me && !ctx.staffId) return []
+
+  let query = supabase
+    .from('staff')
+    .select('id, email, full_name, role, created_at')
+    .eq('is_active', true)
+    .not('email', 'is', null)
+
+  if (filters.only_me) query = query.eq('id', ctx.staffId!)
+  if (filters.staff_role) query = query.eq('role', filters.staff_role)
+  if (filters.staff_emails) {
+    const emails = filters.staff_emails
+      .split(/[,\s;]+/)
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean)
+    if (emails.length === 0) return []
+    query = query.in('email', emails)
+  }
+  if (filters.created_after) query = query.gte('created_at', filters.created_after)
+  if (filters.created_before) query = query.lte('created_at', filters.created_before)
+
+  const { data, error } = await query
+  if (error || !data) return []
+
+  const seen = new Set<string>()
+  return data
+    .filter((s) => {
+      const key = s.email.toLowerCase()
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+    .map((s) => ({
+      email: s.email,
+      name: s.full_name || s.email,
+      firstName: (s.full_name || '').split(' ')[0] || '',
+      type: 'staff' as const,
+    }))
 }
 
 // ---------------------------------------------------------------------------

@@ -214,6 +214,7 @@ export default function TemplatesPage() {
                       <option value="referrers">Referrers</option>
                       <option value="distributors">Distributor leads</option>
                       <option value="all">All contacts</option>
+                      <option value="staff">Team (internal test)</option>
                     </select>
                   </Field>
                 )}

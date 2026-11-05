@@ -1,7 +1,7 @@
 import { CRM_SENDERS } from '@/lib/crm/senders'
 
 const KINDS = new Set(['campaign', 'transactional'])
-const AUDIENCES = new Set(['loyalty', 'referrers', 'distributors', 'all'])
+const AUDIENCES = new Set(['loyalty', 'referrers', 'distributors', 'all', 'staff'])
 const SENDERS = new Set<string>(CRM_SENDERS.map((s) => s.id))
 
 export function slugify(s: string): string {

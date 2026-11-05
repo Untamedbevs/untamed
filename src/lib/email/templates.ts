@@ -27,7 +27,7 @@ export interface EmailTemplate {
   body: string
   preheader: string | null
   sender_id: string | null
-  default_audience: 'loyalty' | 'referrers' | 'distributors' | 'all' | null
+  default_audience: 'loyalty' | 'referrers' | 'distributors' | 'all' | 'staff' | null
   is_archived: boolean
   created_at: string
   updated_at: string
