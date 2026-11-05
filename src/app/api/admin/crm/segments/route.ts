@@ -2,11 +2,11 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { resolveStaff } from '@/lib/auth/resolve-staff'
+import { resolveMemberDataStaff } from '@/lib/auth/resolve-staff'
 import { parseSegmentFilters } from '@/lib/crm/segments'
 
 export async function GET() {
-  const staff = await resolveStaff()
+  const staff = await resolveMemberDataStaff()
   if (!staff) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { data, error } = await createAdminClient()
@@ -18,7 +18,7 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const staff = await resolveStaff()
+  const staff = await resolveMemberDataStaff()
   if (!staff) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = (await request.json()) as { name?: string; description?: string; filters?: unknown }

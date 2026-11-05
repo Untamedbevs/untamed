@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { resolveStaff } from '@/lib/auth/resolve-staff'
+import { resolveMemberDataStaff } from '@/lib/auth/resolve-staff'
 
 const RECIPIENT_PAGE_SIZE = 100
 
@@ -11,7 +11,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const staff = await resolveStaff()
+    const staff = await resolveMemberDataStaff()
     if (!staff) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -111,7 +111,7 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const staff = await resolveStaff()
+  const staff = await resolveMemberDataStaff()
   if (!staff) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { id: campaignId } = await params

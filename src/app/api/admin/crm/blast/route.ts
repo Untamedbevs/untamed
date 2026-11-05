@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { queryRecipients, type BlastFilters, type BlastRecipient } from '@/lib/crm/blast-filters'
 import { getSenderById, DEFAULT_CRM_SENDER } from '@/lib/crm/senders'
-import { resolveStaff } from '@/lib/auth/resolve-staff'
+import { resolveMemberDataStaff } from '@/lib/auth/resolve-staff'
 import { filterSuppressed } from '@/lib/messaging/suppressions'
 import { recipientVars } from '@/lib/crm/recipient-vars'
 import { applyVariables } from '@/lib/email/render'
@@ -15,7 +15,7 @@ const PARALLEL_INSERTS = 3
 
 export async function POST(request: NextRequest) {
   try {
-    const staff = await resolveStaff()
+    const staff = await resolveMemberDataStaff()
     if (!staff) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -170,7 +170,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   try {
-    const staff = await resolveStaff()
+    const staff = await resolveMemberDataStaff()
     if (!staff) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

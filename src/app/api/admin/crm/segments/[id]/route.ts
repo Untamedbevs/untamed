@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { resolveStaff } from '@/lib/auth/resolve-staff'
+import { resolveMemberDataStaff } from '@/lib/auth/resolve-staff'
 import { parseSegmentFilters } from '@/lib/crm/segments'
 import { queryRecipients } from '@/lib/crm/blast-filters'
 import { filterSuppressed } from '@/lib/messaging/suppressions'
@@ -11,7 +11,7 @@ type Ctx = { params: Promise<{ id: string }> }
 
 /** PATCH { name?, description?, filters?, recount? } */
 export async function PATCH(request: NextRequest, { params }: Ctx) {
-  const staff = await resolveStaff()
+  const staff = await resolveMemberDataStaff()
   if (!staff) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const { id } = await params
   const body = (await request.json()) as {
@@ -56,7 +56,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
 }
 
 export async function DELETE(_request: NextRequest, { params }: Ctx) {
-  const staff = await resolveStaff()
+  const staff = await resolveMemberDataStaff()
   if (!staff) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const { id } = await params
   const { error } = await createAdminClient().from('email_segments').delete().eq('id', id)

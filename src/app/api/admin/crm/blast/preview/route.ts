@@ -2,14 +2,14 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { queryRecipients, type BlastFilters } from '@/lib/crm/blast-filters'
-import { resolveStaff } from '@/lib/auth/resolve-staff'
+import { resolveMemberDataStaff } from '@/lib/auth/resolve-staff'
 import { filterSuppressed } from '@/lib/messaging/suppressions'
 
 const PREVIEW_LIMIT = 100
 
 export async function POST(request: NextRequest) {
   try {
-    const staff = await resolveStaff()
+    const staff = await resolveMemberDataStaff()
     if (!staff) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
