@@ -16,6 +16,11 @@ import {
   Mail,
   Ban,
   Tag,
+  Save,
+  Clock,
+  FlaskConical,
+  Eye,
+  Bookmark,
 } from 'lucide-react'
 import type { BlastFilters, Audience, BlastRecipient } from '@/lib/crm/blast-filters'
 import { CRM_SENDERS, DEFAULT_CRM_SENDER, type CrmSenderId } from '@/lib/crm/senders'
@@ -30,6 +35,7 @@ import {
   formatFilterValue,
 } from '@/lib/crm/blast-constants'
 import { cn } from '@/lib/utils'
+import { MERGE_TAGS, applyVariables, renderEmailHtml } from '@/lib/email/render'
 
 interface FilterRow {
   id: string
@@ -37,63 +43,24 @@ interface FilterRow {
   value: string
 }
 
-const MERGE_TAGS = [
-  { tag: '{{first_name}}', label: 'First Name' },
-  { tag: '{{name}}', label: 'Name' },
-  { tag: '{{email}}', label: 'Email' },
-  { tag: '{{portal_login_url}}', label: 'Portal Login URL' },
-  { tag: '{{community_url}}', label: 'Community URL' },
-]
-
-interface BlastTemplate {
+interface TemplateRow {
   id: string
-  label: string
-  audience: Audience
+  slug: string
+  name: string
   subject: string
   body: string
-  filters?: { field: FilterField; value: string }[]
+  preheader: string | null
+  sender_id: string | null
+  default_audience: Audience | null
 }
 
-const TEMPLATES: BlastTemplate[] = [
-  {
-    id: 'ugc-call',
-    label: 'UGC Call: ask members for photos & videos',
-    audience: 'loyalty',
-    subject: 'Hey {{first_name}}, show us how you Unleash It',
-    body:
-      'Hey {{first_name}},\n\n' +
-      'We\'re collecting photos and videos from real Untamed moments — yours could be featured on our site, social, or even a future can.\n\n' +
-      'Got a clip of you cracking open a Cougar at sunset, or a Cheetah on the boat? We want it.\n\n' +
-      'Submit in 30 seconds:\n{{portal_login_url}}\n\n' +
-      'The best ones get featured on the site for the whole pack to see.\n\n' +
-      'See what others are sharing: {{community_url}}\n\n' +
-      'Stay wild,\nThe Untamed crew',
-  },
-  {
-    id: 'ugc-thank-you',
-    label: 'UGC Thank-you: appreciate recent contributors',
-    audience: 'loyalty',
-    subject: 'Thanks for sharing, {{first_name}}',
-    body:
-      '{{first_name}},\n\n' +
-      'Thank you for sharing your Untamed moment with us. Your submission is what keeps this brand grounded in real people.\n\n' +
-      'You can keep tabs on your submissions and points here:\n{{portal_login_url}}\n\n' +
-      'Stay wild,\nThe Untamed crew',
-    filters: [{ field: 'min_ugc_submissions', value: '1' }],
-  },
-  {
-    id: 'ugc-distributor-call',
-    label: 'UGC Call (Distributors): ask partners for shelf shots',
-    audience: 'distributors',
-    subject: 'Show us Untamed in your shop, {{first_name}}',
-    body:
-      '{{first_name}},\n\n' +
-      'A quick favor: we\'re building a partner gallery and would love to see Untamed on your shelves, your bar, or in customers\' hands.\n\n' +
-      'Snap a few photos or a short video and submit through your partner portal:\n{{portal_login_url}}\n\n' +
-      'We\'ll spotlight the best ones across our channels.\n\n' +
-      'Thanks,\nThe Untamed team',
-  },
-]
+interface SegmentRow {
+  id: string
+  name: string
+  description: string | null
+  filters: BlastFilters
+  last_count: number | null
+}
 
 const AUDIENCE_OPTIONS: { value: Audience; label: string; description: string }[] = [
   { value: 'loyalty', label: 'Loyalty Members', description: 'All loyalty program members' },
@@ -142,6 +109,30 @@ function rowsToFilters(audience: Audience, rows: FilterRow[]): BlastFilters {
   return filters
 }
 
+function filtersToRows(f: BlastFilters): FilterRow[] {
+  const rows: FilterRow[] = []
+  for (const [key, value] of Object.entries(f)) {
+    if (key === 'audience' || value === undefined || value === null) continue
+    rows.push({
+      id: crypto.randomUUID(),
+      field: key as FilterField,
+      value: typeof value === 'boolean' ? (value ? 'yes' : 'no') : String(value),
+    })
+  }
+  return rows
+}
+
+function sameFilters(a: BlastFilters, b: BlastFilters): boolean {
+  const norm = (f: BlastFilters) =>
+    JSON.stringify(Object.entries(f).filter(([, v]) => v !== undefined).sort(([x], [y]) => x.localeCompare(y)))
+  return norm(a) === norm(b)
+}
+
+function toLocalInputValue(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
 export default function BlastPage() {
   const router = useRouter()
   const [audience, setAudience] = useState<Audience>('loyalty')
@@ -149,6 +140,17 @@ export default function BlastPage() {
   const [senderId, setSenderId] = useState<CrmSenderId>(DEFAULT_CRM_SENDER.id)
   const [subject, setSubject] = useState('')
   const [textBody, setTextBody] = useState('')
+  const [preheader, setPreheader] = useState('')
+  const [templateId, setTemplateId] = useState<string | null>(null)
+  const [templates, setTemplates] = useState<TemplateRow[]>([])
+  const [segments, setSegments] = useState<SegmentRow[]>([])
+  const [scheduleMode, setScheduleMode] = useState<'now' | 'later'>('now')
+  const [scheduleAt, setScheduleAt] = useState(() =>
+    toLocalInputValue(new Date(Date.now() + 60 * 60 * 1000))
+  )
+  const [testTo, setTestTo] = useState('')
+  const [testState, setTestState] = useState<{ status: 'idle' | 'sending' | 'ok' | 'error'; msg?: string }>({ status: 'idle' })
+  const [notice, setNotice] = useState<string | null>(null)
 
   const [previewCount, setPreviewCount] = useState<number | null>(null)
   const [previewSuppressed, setPreviewSuppressed] = useState(0)
@@ -162,14 +164,129 @@ export default function BlastPage() {
     campaignId: string
     recipientCount: number
     suppressedCount: number
+    scheduledFor?: string | null
   } | null>(null)
   const [confirmOpen, setConfirmOpen] = useState(false)
+
+  const loadLibrary = useCallback(async () => {
+    const [t, sg] = await Promise.all([
+      fetch('/api/admin/crm/templates?kind=campaign').then((r) => r.json()).catch(() => ({})),
+      fetch('/api/admin/crm/segments').then((r) => r.json()).catch(() => ({})),
+    ])
+    setTemplates(t.templates || [])
+    setSegments(sg.segments || [])
+  }, [])
+
+  useEffect(() => {
+    loadLibrary()
+  }, [loadLibrary])
 
   const subjectRef = useRef<HTMLInputElement | null>(null)
   const bodyRef = useRef<HTMLTextAreaElement | null>(null)
 
   const filterOptions = useMemo(() => getFilterOptions(audience), [audience])
   const filters = useMemo(() => rowsToFilters(audience, rows), [audience, rows])
+  const activeSegment = useMemo(
+    () => segments.find((sg) => sameFilters(sg.filters, filters)) || null,
+    [segments, filters]
+  )
+
+  const scheduledIso = useMemo(() => {
+    if (scheduleMode !== 'later') return null
+    const d = new Date(scheduleAt)
+    return Number.isNaN(d.getTime()) ? null : d.toISOString()
+  }, [scheduleMode, scheduleAt])
+  const scheduleInvalid = scheduleMode === 'later' && (!scheduledIso || new Date(scheduledIso) <= new Date())
+
+  const previewHtml = useMemo(() => {
+    const sample = previewRecipients[0]
+    const vars: Record<string, string> = {
+      first_name: sample?.firstName || 'Alex',
+      name: sample?.name || 'Alex Rivera',
+      email: sample?.email || 'alex@example.com',
+      portal_login_url: 'https://untamedbevs.com/portal/login',
+      community_url: 'https://untamedbevs.com/community',
+    }
+    return {
+      subject: applyVariables(subject, vars),
+      html: renderEmailHtml({
+        body: applyVariables(textBody || ' ', vars),
+        preheader: preheader ? applyVariables(preheader, vars) : undefined,
+        unsubscribeUrl: '#',
+        recipientEmail: vars.email,
+      }),
+    }
+  }, [subject, textBody, preheader, previewRecipients])
+
+  function applyTemplate(t: TemplateRow) {
+    setTemplateId(t.id)
+    setSubject(t.subject)
+    setTextBody(t.body)
+    setPreheader(t.preheader || '')
+    if (t.default_audience) setAudience(t.default_audience)
+    if (t.sender_id && CRM_SENDERS.some((x) => x.id === t.sender_id)) {
+      setSenderId(t.sender_id as CrmSenderId)
+    }
+  }
+
+  function applySegment(sg: SegmentRow) {
+    setAudience(sg.filters.audience)
+    setRows(filtersToRows(sg.filters))
+  }
+
+  async function saveSegment(name: string) {
+    const res = await fetch('/api/admin/crm/segments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, filters }),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Save failed')
+    await loadLibrary()
+    setNotice(`Saved segment "${name}"`)
+  }
+
+  async function saveTemplate(name: string) {
+    const existing = templates.find((t) => t.id === templateId)
+    const overwrite = existing && existing.name === name
+    const res = await fetch(
+      overwrite ? `/api/admin/crm/templates/${existing.id}` : '/api/admin/crm/templates',
+      {
+        method: overwrite ? 'PATCH' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          subject,
+          body: textBody,
+          preheader,
+          kind: 'campaign',
+          sender_id: senderId,
+          default_audience: audience,
+        }),
+      }
+    )
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Save failed')
+    setTemplateId(data.template.id)
+    await loadLibrary()
+    setNotice(overwrite ? `Updated template "${name}"` : `Saved template "${name}"`)
+  }
+
+  async function sendTest() {
+    setTestState({ status: 'sending' })
+    try {
+      const res = await fetch('/api/admin/crm/blast/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subject, textBody, preheader, senderId, to: testTo || undefined }),
+      })
+      const data = await res.json()
+      if (!res.ok) setTestState({ status: 'error', msg: data.error || 'Test failed' })
+      else setTestState({ status: 'ok', msg: `Sent to ${data.to}` })
+    } catch (err) {
+      setTestState({ status: 'error', msg: err instanceof Error ? err.message : 'Test failed' })
+    }
+  }
 
   const addRow = useCallback(() => {
     const used = new Set(rows.map((r) => r.field))
@@ -236,6 +353,7 @@ export default function BlastPage() {
     !!subject.trim() &&
     !!textBody.trim() &&
     (previewCount || 0) > 0 &&
+    !scheduleInvalid &&
     !sending
 
   async function handleSend() {
@@ -246,7 +364,15 @@ export default function BlastPage() {
       const res = await fetch('/api/admin/crm/blast', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filters, subject, textBody, senderId }),
+        body: JSON.stringify({
+          filters,
+          subject,
+          textBody,
+          senderId,
+          templateId,
+          segmentId: activeSegment?.id || null,
+          scheduledFor: scheduledIso,
+        }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -270,6 +396,9 @@ export default function BlastPage() {
           setSendResult(null)
           setSubject('')
           setTextBody('')
+          setPreheader('')
+          setTemplateId(null)
+          setScheduleMode('now')
           setRows([])
           setPreviewCount(null)
         }}
@@ -292,6 +421,9 @@ export default function BlastPage() {
           <h1 className="text-2xl font-bold text-white">Email Blast</h1>
         </div>
         <div className="flex items-center gap-3 text-sm">
+          <Link href="/admin/crm/campaigns" className="text-xs text-[#A0A0A0] hover:text-white">
+            Campaigns
+          </Link>
           <SenderPill senderId={senderId} setSenderId={setSenderId} />
         </div>
       </div>
@@ -299,6 +431,28 @@ export default function BlastPage() {
       <div className="grid grid-cols-1 lg:grid-cols-[380px,1fr] gap-6">
         <aside className="space-y-4">
           <Section title="Audience" icon={<Users className="w-4 h-4" />}>
+            {segments.length > 0 && (
+              <div className="mb-3">
+                <label className="block text-xs font-medium text-[#A0A0A0] mb-1.5">
+                  Saved segment
+                </label>
+                <select
+                  value={activeSegment?.id || ''}
+                  onChange={(e) => {
+                    const sg = segments.find((x) => x.id === e.target.value)
+                    if (sg) applySegment(sg)
+                  }}
+                  className="w-full px-2 py-1.5 rounded-md bg-[#0A0A0A] border border-[#2A2A2A] text-white text-xs focus:outline-none focus:border-[#9B30FF]/60"
+                >
+                  <option value="">{activeSegment ? '' : 'Custom (unsaved)'}</option>
+                  {segments.map((sg) => (
+                    <option key={sg.id} value={sg.id}>
+                      {sg.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div className="space-y-2">
               {AUDIENCE_OPTIONS.map((opt) => (
                 <button
@@ -341,6 +495,14 @@ export default function BlastPage() {
               >
                 <Plus className="w-3.5 h-3.5" /> Add filter
               </button>
+              {!activeSegment && (
+                <InlineSave
+                  label="Save as segment"
+                  icon={<Bookmark className="w-3.5 h-3.5" />}
+                  placeholder="Segment name"
+                  onSave={saveSegment}
+                />
+              )}
             </div>
           </Section>
 
@@ -359,31 +521,29 @@ export default function BlastPage() {
           <Section title="Compose">
             <div className="space-y-3">
               <div>
-                <label className="block text-xs font-medium text-[#A0A0A0] mb-1.5">
-                  Quick start templates
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-medium text-[#A0A0A0]">Templates</label>
+                  <Link href="/admin/crm/templates" className="text-[11px] text-[#9B30FF] hover:text-[#B560FF]">
+                    Manage
+                  </Link>
+                </div>
                 <div className="flex flex-wrap gap-2">
-                  {TEMPLATES.map((t) => (
+                  {templates.length === 0 && (
+                    <span className="text-xs text-[#666] italic">No saved templates yet.</span>
+                  )}
+                  {templates.map((t) => (
                     <button
                       key={t.id}
                       type="button"
-                      onClick={() => {
-                        setAudience(t.audience)
-                        setSubject(t.subject)
-                        setTextBody(t.body)
-                        if (t.filters) {
-                          setRows(
-                            t.filters.map((f) => ({
-                              id: Math.random().toString(36).slice(2),
-                              field: f.field,
-                              value: f.value,
-                            }))
-                          )
-                        }
-                      }}
-                      className="text-xs px-2.5 py-1 rounded-full border border-[#2A2A2A] bg-[#0A0A0A] text-[#A0A0A0] hover:border-[#9B30FF] hover:text-white transition-colors"
+                      onClick={() => applyTemplate(t)}
+                      className={cn(
+                        'text-xs px-2.5 py-1 rounded-full border transition-colors',
+                        templateId === t.id
+                          ? 'border-[#9B30FF] bg-[#9B30FF]/10 text-white'
+                          : 'border-[#2A2A2A] bg-[#0A0A0A] text-[#A0A0A0] hover:border-[#9B30FF] hover:text-white'
+                      )}
                     >
-                      {t.label}
+                      {t.name}
                     </button>
                   ))}
                 </div>
@@ -408,7 +568,20 @@ export default function BlastPage() {
 
               <div>
                 <label className="block text-xs font-medium text-[#A0A0A0] mb-1.5">
-                  Message (plain text)
+                  Preview text <span className="text-[#666]">(optional, shown after the subject in the inbox)</span>
+                </label>
+                <input
+                  type="text"
+                  value={preheader}
+                  onChange={(e) => setPreheader(e.target.value)}
+                  placeholder="A short teaser line"
+                  className="w-full px-3 py-2 rounded-lg bg-[#0A0A0A] border border-[#2A2A2A] text-white placeholder-[#666] text-sm focus:outline-none focus:border-[#9B30FF]/60"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-[#A0A0A0] mb-1.5">
+                  Message <span className="text-[#666]">(blank line = new paragraph, **bold**, links auto-detected)</span>
                 </label>
                 <textarea
                   ref={bodyRef}
@@ -422,8 +595,65 @@ export default function BlastPage() {
                   onInsert={(tag) => insertAtCursor(bodyRef, textBody, tag, setTextBody)}
                 />
               </div>
+
+              <InlineSave
+                label={templateId ? 'Save template' : 'Save as template'}
+                icon={<Save className="w-3.5 h-3.5" />}
+                placeholder="Template name"
+                initialValue={templates.find((t) => t.id === templateId)?.name || ''}
+                disabled={!subject.trim() || !textBody.trim()}
+                onSave={saveTemplate}
+              />
             </div>
           </Section>
+
+          <Section title="Preview" icon={<Eye className="w-4 h-4" />}>
+            <div className="text-xs text-[#A0A0A0] mb-2">
+              Subject: <span className="text-white">{previewHtml.subject || '(no subject)'}</span>
+            </div>
+            <iframe
+              title="Email preview"
+              srcDoc={previewHtml.html}
+              sandbox=""
+              className="w-full h-[480px] rounded-lg border border-[#2A2A2A] bg-[#0A0A0A]"
+            />
+            <div className="flex flex-wrap items-center gap-2 mt-3">
+              <input
+                type="email"
+                value={testTo}
+                onChange={(e) => setTestTo(e.target.value)}
+                placeholder="Test address (defaults to you)"
+                className="flex-1 min-w-[200px] px-3 py-1.5 rounded-lg bg-[#0A0A0A] border border-[#2A2A2A] text-white placeholder-[#666] text-xs focus:outline-none focus:border-[#9B30FF]/60"
+              />
+              <button
+                type="button"
+                onClick={sendTest}
+                disabled={!subject.trim() || !textBody.trim() || testState.status === 'sending'}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#2A2A2A] text-xs text-[#A0A0A0] hover:text-white hover:border-[#9B30FF] disabled:opacity-40"
+              >
+                {testState.status === 'sending' ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <FlaskConical className="w-3.5 h-3.5" />
+                )}
+                Send test
+              </button>
+              {testState.msg && (
+                <span className={cn('text-xs', testState.status === 'error' ? 'text-red-400' : 'text-green-400')}>
+                  {testState.msg}
+                </span>
+              )}
+            </div>
+          </Section>
+
+          {notice && (
+            <div className="rounded-lg border border-green-500/30 bg-green-500/10 p-3 text-sm text-green-400 flex items-center justify-between">
+              <span>{notice}</span>
+              <button onClick={() => setNotice(null)} className="text-xs text-green-400/70 hover:text-green-300">
+                Dismiss
+              </button>
+            </div>
+          )}
 
           {sendError && (
             <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-400 flex items-start gap-2">
@@ -431,6 +661,34 @@ export default function BlastPage() {
               <span>{sendError}</span>
             </div>
           )}
+
+          <div className="flex flex-wrap items-center gap-3 rounded-xl border border-[#2A2A2A] bg-[#111] p-4">
+            <Clock className="w-4 h-4 text-[#A0A0A0]" />
+            <div className="flex items-center gap-1 bg-[#0A0A0A] border border-[#2A2A2A] rounded-full p-1">
+              {(['now', 'later'] as const).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setScheduleMode(m)}
+                  className={cn(
+                    'px-3 py-1 text-xs rounded-full',
+                    scheduleMode === m ? 'bg-[#9B30FF]/20 text-[#9B30FF]' : 'text-[#A0A0A0] hover:text-white'
+                  )}
+                >
+                  {m === 'now' ? 'Send now' : 'Schedule'}
+                </button>
+              ))}
+            </div>
+            {scheduleMode === 'later' && (
+              <input
+                type="datetime-local"
+                value={scheduleAt}
+                onChange={(e) => setScheduleAt(e.target.value)}
+                className="px-2 py-1 rounded-md bg-[#0A0A0A] border border-[#2A2A2A] text-white text-xs focus:outline-none focus:border-[#9B30FF]/60"
+              />
+            )}
+            {scheduleInvalid && <span className="text-xs text-red-400">Pick a future time</span>}
+          </div>
 
           <div className="flex items-center justify-between gap-4 rounded-xl border border-[#2A2A2A] bg-[#111] p-4">
             <div className="text-sm text-[#A0A0A0]">
@@ -461,7 +719,7 @@ export default function BlastPage() {
               )}
             >
               <Send className="w-4 h-4" />
-              Send Blast
+              {scheduleMode === 'later' ? 'Schedule Blast' : 'Send Blast'}
             </button>
           </div>
         </main>
@@ -472,6 +730,7 @@ export default function BlastPage() {
           recipientCount={previewCount || 0}
           subject={subject}
           senderLabel={CRM_SENDERS.find((s) => s.id === senderId)?.email || ''}
+          scheduledFor={scheduledIso}
           sending={sending}
           onConfirm={handleSend}
           onCancel={() => setConfirmOpen(false)}
@@ -701,6 +960,7 @@ function ConfirmDialog({
   recipientCount,
   subject,
   senderLabel,
+  scheduledFor,
   sending,
   onConfirm,
   onCancel,
@@ -708,6 +968,7 @@ function ConfirmDialog({
   recipientCount: number
   subject: string
   senderLabel: string
+  scheduledFor: string | null
   sending: boolean
   onConfirm: () => void
   onCancel: () => void
@@ -715,14 +976,23 @@ function ConfirmDialog({
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
       <div className="rounded-2xl border border-[#2A2A2A] bg-[#0A0A0A] p-6 max-w-md w-full">
-        <h3 className="text-lg font-semibold text-white mb-2">Send blast?</h3>
+        <h3 className="text-lg font-semibold text-white mb-2">
+          {scheduledFor ? 'Schedule blast?' : 'Send blast?'}
+        </h3>
         <p className="text-sm text-[#A0A0A0] mb-4">
           This will queue{' '}
           <span className="text-white font-medium">
             {recipientCount.toLocaleString()}
           </span>{' '}
           messages from{' '}
-          <span className="text-white font-mono text-xs">{senderLabel}</span>.
+          <span className="text-white font-mono text-xs">{senderLabel}</span>
+          {scheduledFor ? (
+            <>
+              {' '}to start sending{' '}
+              <span className="text-white">{new Date(scheduledFor).toLocaleString()}</span>
+            </>
+          ) : null}
+          . Sends are paced to stay under the Google Workspace daily limit, so large lists may take more than a day.
         </p>
         <div className="rounded-lg border border-[#2A2A2A] bg-[#111] p-3 mb-5">
           <div className="text-[10px] uppercase tracking-wider text-[#666] mb-1">
@@ -748,7 +1018,7 @@ function ConfirmDialog({
             ) : (
               <Send className="w-4 h-4" />
             )}
-            Send now
+            {scheduledFor ? 'Schedule' : 'Send now'}
           </button>
         </div>
       </div>
@@ -761,7 +1031,12 @@ function SuccessView({
   onNewBlast,
   onViewCampaign,
 }: {
-  sendResult: { campaignId: string; recipientCount: number; suppressedCount: number }
+  sendResult: {
+    campaignId: string
+    recipientCount: number
+    suppressedCount: number
+    scheduledFor?: string | null
+  }
   onNewBlast: () => void
   onViewCampaign: () => void
 }) {
@@ -771,7 +1046,9 @@ function SuccessView({
         <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-[#9B30FF]/15 text-[#9B30FF] mb-4">
           <CheckCircle className="w-7 h-7" />
         </div>
-        <h2 className="text-xl font-bold text-white mb-2">Blast queued</h2>
+        <h2 className="text-xl font-bold text-white mb-2">
+          {sendResult.scheduledFor ? 'Blast scheduled' : 'Blast queued'}
+        </h2>
         <p className="text-sm text-[#A0A0A0] mb-6">
           {sendResult.recipientCount.toLocaleString()} messages queued for delivery.
           {sendResult.suppressedCount > 0 && (
@@ -781,7 +1058,9 @@ function SuccessView({
               skipped.
             </>
           )}{' '}
-          The cron worker will process them in the next few minutes.
+          {sendResult.scheduledFor
+            ? `Sending starts ${new Date(sendResult.scheduledFor).toLocaleString()}.`
+            : 'The cron worker will start sending within a minute.'}
         </p>
         <div className="flex items-center justify-center gap-2">
           <button
@@ -798,6 +1077,81 @@ function SuccessView({
           </button>
         </div>
       </div>
+    </div>
+  )
+}
+
+function InlineSave({
+  label,
+  icon,
+  placeholder,
+  initialValue = '',
+  disabled,
+  onSave,
+}: {
+  label: string
+  icon: React.ReactNode
+  placeholder: string
+  initialValue?: string
+  disabled?: boolean
+  onSave: (name: string) => Promise<void>
+}) {
+  const [open, setOpen] = useState(false)
+  const [name, setName] = useState(initialValue)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => {
+          setName(initialValue)
+          setError(null)
+          setOpen(true)
+        }}
+        className="flex items-center gap-1.5 text-xs text-[#9B30FF] hover:text-[#B560FF] disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        {icon} {label}
+      </button>
+    )
+  }
+
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center gap-1.5">
+        <input
+          autoFocus
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder={placeholder}
+          className="flex-1 min-w-0 px-2 py-1.5 rounded-md bg-[#0A0A0A] border border-[#2A2A2A] text-white text-xs focus:outline-none focus:border-[#9B30FF]/60"
+        />
+        <button
+          type="button"
+          disabled={!name.trim() || busy}
+          onClick={async () => {
+            setBusy(true)
+            setError(null)
+            try {
+              await onSave(name.trim())
+              setOpen(false)
+            } catch (err) {
+              setError(err instanceof Error ? err.message : 'Save failed')
+            } finally {
+              setBusy(false)
+            }
+          }}
+          className="px-2.5 py-1.5 rounded-md bg-[#9B30FF] text-white text-xs disabled:opacity-40"
+        >
+          {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Save'}
+        </button>
+        <button type="button" onClick={() => setOpen(false)} className="px-2 py-1.5 text-xs text-[#A0A0A0] hover:text-white">
+          Cancel
+        </button>
+      </div>
+      {error && <div className="text-xs text-red-400">{error}</div>}
     </div>
   )
 }

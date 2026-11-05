@@ -1,10 +1,18 @@
 /**
- * Cron worker: drains `scheduled_messages` and sends each via SES.
+ * Cron worker: drains `scheduled_messages` through Google Workspace SMTP.
  *
- * Designed to be called every minute by Vercel Cron. Idempotent and safe to
- * run concurrently (status transitions provide soft locking).
+ * Runs every minute (vercel.json). Each run:
+ *   1. Releases rows stuck in `processing` (crashed run) back to `pending`.
+ *   2. Works out how much of the rolling 24h send budget is left
+ *      (EMAIL_DAILY_LIMIT, default 1800 — smtp.gmail.com allows ~2,000
+ *      recipients/day; the Workspace SMTP relay allows ~10,000).
+ *   3. Claims due rows atomically via `claim_scheduled_messages`
+ *      (FOR UPDATE SKIP LOCKED, so overlapping runs never double-send).
+ *   4. Sends with small concurrency; transient failures are retried with
+ *      backoff, permanent (5xx) failures are marked failed.
+ *   5. Rolls campaign counters/status forward.
  *
- * Guarded by `CRON_SECRET` (set in env) when present.
+ * Guarded by `CRON_SECRET` when set.
  */
 
 export const dynamic = 'force-dynamic'
@@ -14,15 +22,46 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendAndLogEmail } from '@/lib/messaging/email-log'
 import { getSenderById, DEFAULT_CRM_SENDER } from '@/lib/crm/senders'
-import {
-  buildListUnsubscribeHeaders,
-  buildUnsubscribeUrl,
-} from '@/lib/messaging/unsubscribe'
+import { buildListUnsubscribeHeaders, buildUnsubscribeUrl } from '@/lib/messaging/unsubscribe'
+import { renderEmailHtml, renderEmailText } from '@/lib/email/render'
 
-const BATCH_SIZE = 25
-const MAX_PER_RUN = 1000
-const BATCH_DELAY_MS = 200
+const CONCURRENCY = 5
+const TIME_BUDGET_MS = 45_000
 const STUCK_THRESHOLD_MS = 5 * 60 * 1000
+const MAX_ATTEMPTS = 3
+const RETRY_BACKOFF_MS = [2 * 60_000, 10 * 60_000, 30 * 60_000]
+
+function dailyLimit(): number {
+  const n = parseInt(process.env.EMAIL_DAILY_LIMIT || '', 10)
+  return Number.isFinite(n) && n > 0 ? n : 1800
+}
+
+function isPermanentFailure(err: unknown): boolean {
+  const code = (err as { responseCode?: number })?.responseCode
+  return typeof code === 'number' && code >= 500
+}
+
+interface QueuedMessage {
+  id: string
+  recipient_email: string | null
+  subject: string | null
+  body: string | null
+  text_body: string | null
+  sender_email: string | null
+  related_entity_type: string | null
+  related_entity_id: string | null
+  loyalty_member_id: string | null
+  referral_participant_id: string | null
+  distributor_lead_id: string | null
+  created_by: string | null
+  attempts: number
+}
+
+interface CampaignInfo {
+  senderEmail: string
+  preheader?: string
+  status: string
+}
 
 export async function GET(request: NextRequest) {
   const cronSecret = process.env.CRON_SECRET
@@ -33,232 +72,218 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  const startedAt = Date.now()
   const admin = createAdminClient()
-  let processed = 0
   let sent = 0
   let failed = 0
-  let skippedDuplicates = 0
+  let retried = 0
+  let skipped = 0
 
+  // 1. Release stuck rows
   const stuckCutoff = new Date(Date.now() - STUCK_THRESHOLD_MS).toISOString()
-  const { count: unstuckCount } = await admin
+  await admin
     .from('scheduled_messages')
-    .update({ status: 'pending', updated_at: new Date().toISOString() }, { count: 'exact' })
+    .update({ status: 'pending', updated_at: new Date().toISOString() })
     .eq('status', 'processing')
     .lt('updated_at', stuckCutoff)
 
-  if (unstuckCount && unstuckCount > 0) {
-    console.log(`[process-scheduled] Reset ${unstuckCount} stuck processing rows to pending`)
+  // 2. Rolling 24h budget
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+  const { count: sentLast24h } = await admin
+    .from('email_messages')
+    .select('id', { count: 'exact', head: true })
+    .eq('direction', 'outbound')
+    .gte('sent_at', since)
+  let budget = Math.max(0, dailyLimit() - (sentLast24h || 0))
+
+  const campaignCache = new Map<string, CampaignInfo>()
+  const touchedCampaigns = new Set<string>()
+
+  async function getCampaign(id: string): Promise<CampaignInfo> {
+    const cached = campaignCache.get(id)
+    if (cached) return cached
+    const { data } = await admin
+      .from('messaging_campaigns')
+      .select('sender_id, status, template:email_templates(preheader)')
+      .eq('id', id)
+      .single()
+    const template = (data?.template ?? null) as { preheader: string | null } | { preheader: string | null }[] | null
+    const preheader = Array.isArray(template) ? template[0]?.preheader : template?.preheader
+    const info: CampaignInfo = {
+      senderEmail: data?.sender_id ? getSenderById(data.sender_id).email : DEFAULT_CRM_SENDER.email,
+      preheader: preheader || undefined,
+      status: data?.status || 'sending',
+    }
+    campaignCache.set(id, info)
+    return info
   }
 
-  const senderCache = new Map<string, string>()
+  async function markSentOrSkipped(id: string) {
+    await admin
+      .from('scheduled_messages')
+      .update({ status: 'sent', error_message: null, updated_at: new Date().toISOString() })
+      .eq('id', id)
+  }
 
-  async function resolveSenderEmail(campaignId: string | null): Promise<string> {
-    if (!campaignId) return DEFAULT_CRM_SENDER.email
-    const cached = senderCache.get(campaignId)
-    if (cached) return cached
+  async function processOne(msg: QueuedMessage): Promise<'sent' | 'skipped'> {
+    const campaignId = msg.related_entity_type === 'campaign' ? msg.related_entity_id : null
+    const campaign = campaignId ? await getCampaign(campaignId) : null
+    if (campaignId) touchedCampaigns.add(campaignId)
 
-    const { data: campaign } = await admin
-      .from('messaging_campaigns')
-      .select('sender_id')
-      .eq('id', campaignId)
-      .single()
+    if (!msg.recipient_email) throw Object.assign(new Error('No recipient email'), { responseCode: 550 })
 
-    const email = campaign?.sender_id
-      ? getSenderById(campaign.sender_id).email
-      : DEFAULT_CRM_SENDER.email
+    if (campaign?.status === 'cancelled') {
+      await admin
+        .from('scheduled_messages')
+        .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+        .eq('id', msg.id)
+      return 'skipped'
+    }
 
-    senderCache.set(campaignId, email)
-    return email
+    // Already sent for this campaign (e.g. a previous run crashed after sending)
+    if (campaignId) {
+      const { count } = await admin
+        .from('email_messages')
+        .select('id', { count: 'exact', head: true })
+        .eq('campaign_id', campaignId)
+        .eq('to_email', msg.recipient_email)
+      if (count && count > 0) {
+        await markSentOrSkipped(msg.id)
+        return 'skipped'
+      }
+    }
+
+    // Suppressed since it was queued (unsubscribed / bounced)
+    const { data: suppression } = await admin
+      .from('email_suppressions')
+      .select('id')
+      .eq('email', msg.recipient_email.toLowerCase())
+      .maybeSingle()
+    if (suppression) {
+      await admin
+        .from('scheduled_messages')
+        .update({ status: 'cancelled', error_message: 'Suppressed', updated_at: new Date().toISOString() })
+        .eq('id', msg.id)
+      return 'skipped'
+    }
+
+    const senderEmail = msg.sender_email || campaign?.senderEmail || DEFAULT_CRM_SENDER.email
+    const body = msg.text_body || msg.body || ''
+    const unsubUrl = buildUnsubscribeUrl(msg.recipient_email, campaignId)
+
+    await sendAndLogEmail({
+      to: msg.recipient_email,
+      subject: msg.subject || '',
+      html: renderEmailHtml({
+        body,
+        preheader: campaign?.preheader,
+        unsubscribeUrl: unsubUrl,
+        recipientEmail: msg.recipient_email,
+      }),
+      text: renderEmailText(body, unsubUrl),
+      from: senderEmail,
+      replyTo: senderEmail,
+      headers: buildListUnsubscribeHeaders(msg.recipient_email, campaignId),
+      campaignId: campaignId || undefined,
+      sentBy: msg.created_by || undefined,
+      loyaltyMemberId: msg.loyalty_member_id || undefined,
+      referralParticipantId: msg.referral_participant_id || undefined,
+      distributorLeadId: msg.distributor_lead_id || undefined,
+    })
+
+    await markSentOrSkipped(msg.id)
+    return 'sent'
   }
 
   try {
-    while (processed < MAX_PER_RUN) {
-      const { data: messages, error } = await admin
-        .from('scheduled_messages')
-        .select('*')
-        .eq('status', 'pending')
-        .eq('related_entity_type', 'campaign')
-        .order('created_at', { ascending: true })
-        .limit(BATCH_SIZE)
+    // 3 + 4. Claim and send until out of budget, time, or work
+    while (budget > 0 && Date.now() - startedAt < TIME_BUDGET_MS) {
+      const { data, error } = await admin.rpc('claim_scheduled_messages', {
+        p_limit: Math.min(CONCURRENCY, budget),
+      })
+      if (error) throw new Error(`claim_scheduled_messages failed: ${error.message}`)
+      const messages = (data || []) as QueuedMessage[]
+      if (messages.length === 0) break
 
-      if (error || !messages || messages.length === 0) break
+      const results = await Promise.allSettled(messages.map(processOne))
 
-      const messageIds = messages.map((m) => m.id)
-      await admin
-        .from('scheduled_messages')
-        .update({ status: 'processing', updated_at: new Date().toISOString() })
-        .in('id', messageIds)
-
-      const campaignIds = new Set<string>()
-
-      const settled = await Promise.allSettled(
-        messages.map(async (msg) => {
-          if (msg.related_entity_id) campaignIds.add(msg.related_entity_id)
-
-          // Dedupe: skip if this campaign already sent to this recipient
-          if (msg.recipient_email && msg.related_entity_id) {
-            const { count } = await admin
-              .from('email_messages')
-              .select('id', { count: 'exact', head: true })
-              .eq('campaign_id', msg.related_entity_id)
-              .eq('to_email', msg.recipient_email)
-
-            if (count && count > 0) {
-              await admin
-                .from('scheduled_messages')
-                .update({ status: 'sent', updated_at: new Date().toISOString() })
-                .eq('id', msg.id)
-              return 'duplicate' as const
-            }
+      for (let i = 0; i < results.length; i++) {
+        const result = results[i]
+        const msg = messages[i]
+        if (result.status === 'fulfilled') {
+          if (result.value === 'sent') {
+            sent++
+            budget--
+          } else {
+            skipped++
           }
+          continue
+        }
 
-          const senderEmail =
-            msg.sender_email || (await resolveSenderEmail(msg.related_entity_id))
-
-          const textContent = msg.text_body || msg.body || ''
-          const campaignId = msg.related_entity_id || undefined
-          const recipientEmail = msg.recipient_email!
-
-          const unsubUrl = buildUnsubscribeUrl(recipientEmail, campaignId)
-          const unsubHeaders = buildListUnsubscribeHeaders(recipientEmail, campaignId)
-
-          const html = renderBulkHtml(textContent, unsubUrl, recipientEmail)
-          const text = `${textContent}\n\n---\nUnsubscribe: ${unsubUrl}`
-
-          await sendAndLogEmail({
-            to: recipientEmail,
-            subject: msg.subject || '',
-            html,
-            text,
-            from: senderEmail,
-            replyTo: senderEmail,
-            headers: unsubHeaders,
-            campaignId,
-            loyaltyMemberId: msg.loyalty_member_id || undefined,
-            referralParticipantId: msg.referral_participant_id || undefined,
-            distributorLeadId: msg.distributor_lead_id || undefined,
-          })
-
+        const errMsg = result.reason instanceof Error ? result.reason.message : 'Unknown error'
+        if (!isPermanentFailure(result.reason) && msg.attempts < MAX_ATTEMPTS) {
+          retried++
+          const delay = RETRY_BACKOFF_MS[Math.min(msg.attempts - 1, RETRY_BACKOFF_MS.length - 1)]
           await admin
             .from('scheduled_messages')
-            .update({ status: 'sent', updated_at: new Date().toISOString() })
+            .update({
+              status: 'pending',
+              error_message: errMsg,
+              scheduled_for: new Date(Date.now() + delay).toISOString(),
+              updated_at: new Date().toISOString(),
+            })
             .eq('id', msg.id)
-
-          return 'sent' as const
-        })
-      )
-
-      for (let i = 0; i < settled.length; i++) {
-        const result = settled[i]
-        processed++
-        if (result.status === 'fulfilled') {
-          if (result.value === 'duplicate') {
-            skippedDuplicates++
-          } else {
-            sent++
-          }
         } else {
           failed++
-          const failedMsg = messages[i]
-          if (failedMsg) {
-            const errMsg = result.reason instanceof Error ? result.reason.message : 'Unknown error'
-            await admin
-              .from('scheduled_messages')
-              .update({
-                status: 'failed',
-                error_message: errMsg,
-                updated_at: new Date().toISOString(),
-              })
-              .eq('id', failedMsg.id)
-          }
+          await admin
+            .from('scheduled_messages')
+            .update({ status: 'failed', error_message: errMsg, updated_at: new Date().toISOString() })
+            .eq('id', msg.id)
         }
       }
-
-      for (const cId of campaignIds) {
-        const { count: sentCount } = await admin
-          .from('email_messages')
-          .select('id', { count: 'exact', head: true })
-          .eq('campaign_id', cId)
-
-        const { count: failedCount } = await admin
-          .from('scheduled_messages')
-          .select('id', { count: 'exact', head: true })
-          .eq('related_entity_id', cId)
-          .eq('status', 'failed')
-
-        const { count: pendingCount } = await admin
-          .from('scheduled_messages')
-          .select('id', { count: 'exact', head: true })
-          .eq('related_entity_id', cId)
-          .in('status', ['pending', 'processing'])
-
-        const status = (pendingCount || 0) === 0 ? 'sent' : 'sending'
-
-        await admin
-          .from('messaging_campaigns')
-          .update({
-            sent_count: sentCount || 0,
-            failed_count: failedCount || 0,
-            status,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', cId)
-      }
-
-      if (messages.length < BATCH_SIZE) break
-      await new Promise((resolve) => setTimeout(resolve, BATCH_DELAY_MS))
     }
 
-    return NextResponse.json({ processed, sent, failed, skippedDuplicates })
+    // 5. Roll campaign counters forward (also flips scheduled -> sending -> sent)
+    for (const cId of touchedCampaigns) {
+      await refreshCampaignStatus(admin, cId)
+    }
+
+    return NextResponse.json({ sent, failed, retried, skipped, budgetRemaining: budget })
   } catch (error: unknown) {
     console.error('[process-scheduled] Error:', error)
     return NextResponse.json(
-      { error: 'Processing failed', processed, sent, failed },
+      { error: 'Processing failed', sent, failed, retried, skipped },
       { status: 500 }
     )
   }
 }
 
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;')
-}
+async function refreshCampaignStatus(admin: ReturnType<typeof createAdminClient>, cId: string) {
+  const [{ count: sentCount }, { count: failedCount }, { count: pendingCount }, { data: campaign }] =
+    await Promise.all([
+      admin.from('email_messages').select('id', { count: 'exact', head: true }).eq('campaign_id', cId),
+      admin
+        .from('scheduled_messages')
+        .select('id', { count: 'exact', head: true })
+        .eq('related_entity_type', 'campaign')
+        .eq('related_entity_id', cId)
+        .eq('status', 'failed'),
+      admin
+        .from('scheduled_messages')
+        .select('id', { count: 'exact', head: true })
+        .eq('related_entity_type', 'campaign')
+        .eq('related_entity_id', cId)
+        .in('status', ['pending', 'processing']),
+      admin.from('messaging_campaigns').select('status').eq('id', cId).single(),
+    ])
 
-/**
- * Wrap a plain-text blast body in branded HTML with an unsubscribe footer.
- * The footer is required for CAN-SPAM compliance and to keep complaint rates low.
- */
-function renderBulkHtml(textBody: string, unsubUrl: string, recipientEmail: string): string {
-  const body = escapeHtml(textBody).replace(/\n/g, '<br>')
-  return `<!doctype html>
-<html>
-<body style="margin:0;padding:0;background:#0A0A0A;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#FFFFFF;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0A0A0A;padding:40px 20px;">
-    <tr>
-      <td align="center">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#111;border:1px solid #2A2A2A;border-radius:16px;overflow:hidden;">
-          <tr>
-            <td style="padding:32px;">
-              <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#9B30FF;font-weight:700;margin-bottom:24px;">Untamed Beverages</div>
-              <div style="color:#D0D0D0;font-size:15px;line-height:1.6;">${body}</div>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:20px 32px;border-top:1px solid #2A2A2A;color:#666;font-size:11px;line-height:1.5;text-align:center;">
-              You're receiving this because you signed up for Untamed updates as <span style="color:#888;">${escapeHtml(recipientEmail)}</span>.<br>
-              <a href="${unsubUrl}" style="color:#9B30FF;text-decoration:underline;">Unsubscribe</a>
-              &nbsp;&middot;&nbsp;
-              Untamed Beverages, LLC
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`
+  const update: Record<string, unknown> = {
+    sent_count: sentCount || 0,
+    failed_count: failedCount || 0,
+    updated_at: new Date().toISOString(),
+  }
+  if (campaign?.status !== 'cancelled') {
+    update.status = (pendingCount || 0) === 0 ? 'sent' : 'sending'
+  }
+  await admin.from('messaging_campaigns').update(update).eq('id', cId)
 }

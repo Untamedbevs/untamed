@@ -79,6 +79,7 @@ export async function GET(
         status: campaign.status,
         createdAt: campaign.created_at,
         updatedAt: campaign.updated_at,
+        scheduledFor: campaign.scheduled_for,
       },
       stats,
       pending,
@@ -100,4 +101,47 @@ export async function GET(
     console.error('Error fetching campaign:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
+}
+
+/**
+ * POST { action: 'cancel' } -- stop a scheduled or in-flight campaign.
+ * Pending queue rows are cancelled; anything already sent stays sent.
+ */
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const staff = await resolveStaff()
+  if (!staff) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const { id: campaignId } = await params
+  const { action } = (await request.json().catch(() => ({}))) as { action?: string }
+  if (action !== 'cancel') {
+    return NextResponse.json({ error: 'Unknown action' }, { status: 400 })
+  }
+
+  const admin = createAdminClient()
+  const { data: campaign } = await admin
+    .from('messaging_campaigns')
+    .select('status')
+    .eq('id', campaignId)
+    .single()
+  if (!campaign) return NextResponse.json({ error: 'Campaign not found' }, { status: 404 })
+  if (campaign.status === 'sent' || campaign.status === 'cancelled') {
+    return NextResponse.json({ error: `Campaign is already ${campaign.status}` }, { status: 400 })
+  }
+
+  await admin
+    .from('messaging_campaigns')
+    .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+    .eq('id', campaignId)
+
+  const { count } = await admin
+    .from('scheduled_messages')
+    .update({ status: 'cancelled', updated_at: new Date().toISOString() }, { count: 'exact' })
+    .eq('related_entity_type', 'campaign')
+    .eq('related_entity_id', campaignId)
+    .eq('status', 'pending')
+
+  return NextResponse.json({ ok: true, cancelledMessages: count || 0 })
 }

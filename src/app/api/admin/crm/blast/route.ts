@@ -6,35 +6,8 @@ import { queryRecipients, type BlastFilters, type BlastRecipient } from '@/lib/c
 import { getSenderById, DEFAULT_CRM_SENDER } from '@/lib/crm/senders'
 import { resolveStaff } from '@/lib/auth/resolve-staff'
 import { filterSuppressed } from '@/lib/messaging/suppressions'
-
-function getPortalLoginUrl(email: string): string {
-  const base =
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    process.env.SITE_URL ||
-    'https://untamedbevs.com'
-  return `${base.replace(/\/$/, '')}/portal/login?email=${encodeURIComponent(email)}`
-}
-
-function recipientVars(r: BlastRecipient): Record<string, string> {
-  return {
-    first_name: r.firstName || r.name.split(' ')[0] || '',
-    name: r.name,
-    email: r.email,
-    portal_login_url: getPortalLoginUrl(r.email),
-    community_url:
-      (process.env.NEXT_PUBLIC_SITE_URL ||
-        process.env.SITE_URL ||
-        'https://untamedbevs.com').replace(/\/$/, '') + '/community',
-  }
-}
-
-function applyVariables(text: string, variables: Record<string, string>): string {
-  let result = text
-  for (const [key, value] of Object.entries(variables)) {
-    result = result.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value)
-  }
-  return result
-}
+import { recipientVars } from '@/lib/crm/recipient-vars'
+import { applyVariables } from '@/lib/email/render'
 
 const MAX_RECIPIENTS = 100_000
 const INSERT_CHUNK = 1000
@@ -47,12 +20,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { filters, subject, textBody, senderId } = (await request.json()) as {
-      filters: BlastFilters
-      subject: string
-      textBody: string
-      senderId?: string
+    const { filters, subject, textBody, senderId, templateId, segmentId, scheduledFor, name } =
+      (await request.json()) as {
+        filters: BlastFilters
+        subject: string
+        textBody: string
+        senderId?: string
+        templateId?: string | null
+        segmentId?: string | null
+        /** ISO timestamp; omitted or in the past = send now */
+        scheduledFor?: string | null
+        name?: string
+      }
+
+    let sendAt = new Date()
+    if (scheduledFor) {
+      const parsed = new Date(scheduledFor)
+      if (Number.isNaN(parsed.getTime())) {
+        return NextResponse.json({ error: 'Invalid schedule time' }, { status: 400 })
+      }
+      if (parsed > sendAt) sendAt = parsed
     }
+    const isScheduled = sendAt.getTime() > Date.now() + 60_000
 
     const sender = getSenderById(senderId || DEFAULT_CRM_SENDER.id)
 
@@ -94,14 +83,17 @@ export async function POST(request: NextRequest) {
     const { data: campaign, error: campaignError } = await admin
       .from('messaging_campaigns')
       .insert({
-        name: `Blast: ${subject.slice(0, 80)}`,
+        name: name?.trim() || `Blast: ${subject.slice(0, 80)}`,
         channel: 'email',
         subject,
         text_body: textBody,
         sender_id: sender.id,
         audience_filter: filters,
         audience_count: recipients.length,
-        status: 'sending',
+        status: isScheduled ? 'scheduled' : 'sending',
+        scheduled_for: sendAt.toISOString(),
+        template_id: templateId || null,
+        segment_id: segmentId || null,
         sent_count: 0,
         failed_count: 0,
         created_by: staff.id,
@@ -125,7 +117,7 @@ export async function POST(request: NextRequest) {
         subject: applyVariables(subject, vars),
         body: applyVariables(textBody, vars),
         text_body: applyVariables(textBody, vars),
-        scheduled_for: now,
+        scheduled_for: sendAt.toISOString(),
         status: 'pending',
         related_entity_type: 'campaign',
         related_entity_id: campaign.id,
@@ -167,6 +159,7 @@ export async function POST(request: NextRequest) {
       campaignId: campaign.id,
       recipientCount: recipients.length,
       suppressedCount: suppressed.length,
+      scheduledFor: isScheduled ? sendAt.toISOString() : null,
     })
   } catch (error: unknown) {
     console.error('Error creating blast:', error)
@@ -185,7 +178,7 @@ export async function GET() {
     const admin = createAdminClient()
     const { data, error } = await admin
       .from('messaging_campaigns')
-      .select('id, name, subject, sender_id, audience_count, sent_count, failed_count, status, created_at, updated_at')
+      .select('id, name, subject, sender_id, audience_count, sent_count, failed_count, status, scheduled_for, created_at, updated_at')
       .order('created_at', { ascending: false })
       .limit(100)
 

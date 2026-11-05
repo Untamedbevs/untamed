@@ -40,6 +40,8 @@ import {
   Sparkles,
   Compass,
   Eye,
+  FileText,
+  ListChecks,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { LucideIcon } from 'lucide-react'
@@ -83,6 +85,9 @@ const ALL_NAV_ITEMS: NavItem[] = [
     icon: MessageSquare,
     children: [
       { href: '/admin/crm/blast', label: 'Email Blast', icon: Send },
+      { href: '/admin/crm/campaigns', label: 'Campaigns', icon: ListChecks },
+      { href: '/admin/crm/templates', label: 'Templates', icon: FileText },
+      { href: '/admin/crm/segments', label: 'Segments', icon: Users },
     ],
   },
   {
