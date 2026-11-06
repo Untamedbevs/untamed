@@ -1,23 +1,26 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { PortalMember } from '@/lib/auth/resolve-member'
+import { isTestCustomer } from '@/lib/rewards/test-customer'
 
 /**
  * Pack Rewards (21+ enrollment, Referral HQ in the portal, the new redemption
  * rules) runs for active staff only until counsel signs off. Everyone else
  * keeps the current portal, and earning still follows the current flow for
  * all accounts: join bonus at signup, referral credit at signup, online-order
- * points at purchase.
+ * points at purchase. The shared test customer sees it too, so admins can
+ * run onboarding as a real member.
  */
 export async function inRewardsPreview(authUserId: string | null | undefined): Promise<boolean> {
   if (!authUserId) return false
-  const { data } = await createAdminClient()
+  const admin = createAdminClient()
+  const { data } = await admin
     .from('staff')
     .select('id')
     .eq('auth_user_id', authUserId)
     .eq('is_active', true)
     .maybeSingle()
-  return !!data
+  return !!data || isTestCustomer(admin, authUserId)
 }
 
 /**

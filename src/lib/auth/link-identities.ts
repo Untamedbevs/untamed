@@ -41,7 +41,7 @@ export async function linkAuthUserToIdentitiesByEmail(
  * bonus, so this preserves the welcome-bonus incentive for when they later
  * create a real portal account -- without ever double-granting.
  */
-async function grantSignupBonusIfMissing(
+export async function grantSignupBonusIfMissing(
   admin: SupabaseClient,
   memberId: string
 ): Promise<void> {

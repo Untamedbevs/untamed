@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Eye, Loader2, Lock, Search, Sparkles } from 'lucide-react'
+import { Copy, Eye, FlaskConical, Loader2, Lock, RotateCcw, Search, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface MemberResult {
@@ -45,7 +45,7 @@ export default function AdminViewAsPage() {
     return () => clearTimeout(timer)
   }, [query])
 
-  async function start(member: MemberResult, mode: Mode) {
+  async function start(member: { id: string }, mode: Mode) {
     setStarting(`${member.id}:${mode}`)
     setError('')
     try {
@@ -82,6 +82,11 @@ export default function AdminViewAsPage() {
           press <span className="text-white">Exit View As</span> in the portal.
         </p>
       </div>
+
+      <TestCustomerCard
+        onPreview={(id) => start({ id }, 'pack-rewards')}
+        previewing={starting?.endsWith(':pack-rewards') ?? false}
+      />
 
       <div className="relative">
         <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#666]" />
@@ -167,5 +172,135 @@ function Badge({ children, tone }: { children: React.ReactNode; tone?: 'purple' 
     >
       {children}
     </span>
+  )
+}
+
+interface TestCustomer {
+  id: string
+  email: string
+  pointsBalance: number
+  enrolled: boolean
+  spiritAnimal: string | null
+}
+
+/**
+ * The shared test customer: sign in as it in a private window to go through
+ * onboarding for real, then reset it to a fresh signup to start over.
+ */
+function TestCustomerCard({ onPreview, previewing }: { onPreview: (id: string) => void; previewing: boolean }) {
+  const [customer, setCustomer] = useState<TestCustomer | null>(null)
+  const [busy, setBusy] = useState<'reset' | 'link' | null>(null)
+  const [link, setLink] = useState('')
+  const [notice, setNotice] = useState('')
+  const [error, setError] = useState('')
+
+  async function load() {
+    const res = await fetch('/api/admin/test-customer')
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Could not load the test customer')
+    setCustomer(data)
+  }
+
+  useEffect(() => {
+    load().catch((err: Error) => setError(err.message))
+  }, [])
+
+  async function act(action: 'reset' | 'sign-in-link') {
+    setBusy(action === 'reset' ? 'reset' : 'link')
+    setError('')
+    setNotice('')
+    try {
+      const res = await fetch('/api/admin/test-customer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Something went wrong')
+      if (action === 'reset') {
+        setLink('')
+        await load()
+        setNotice('Reset to a brand-new signup. Reload the test customer portal, or open a new sign-in link, to run onboarding again.')
+      } else {
+        setLink(data.url)
+        const copied = await navigator.clipboard.writeText(data.url).then(() => true, () => false)
+        setNotice(
+          `${copied ? 'Link copied. ' : ''}Open it in a private or incognito window so you stay signed in here. It works once and expires in an hour.`
+        )
+      }
+    } catch (err) {
+      setError((err as Error).message)
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  function reset() {
+    if (window.confirm('Reset the test customer? This clears its enrollment, points, Hunts, and claims.')) {
+      act('reset')
+    }
+  }
+
+  return (
+    <div className="rounded-2xl border border-[#9B30FF]/40 bg-[#9B30FF]/5 p-5">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 font-medium text-white">
+            <FlaskConical className="h-4 w-4 text-[#C89BFF]" />
+            Test customer
+          </div>
+          <div className="truncate text-xs text-[#A0A0A0]">{customer?.email ?? 'Loading…'}</div>
+          {customer && (
+            <div className="mt-1.5 flex flex-wrap gap-1.5 text-[11px]">
+              <Badge>{customer.pointsBalance.toLocaleString()} pts</Badge>
+              {customer.enrolled ? (
+                <Badge tone="purple">Onboarded{customer.spiritAnimal ? ` · ${customer.spiritAnimal}` : ''}</Badge>
+              ) : (
+                <Badge tone="amber">Ready for onboarding</Badge>
+              )}
+            </div>
+          )}
+        </div>
+        <div className="flex shrink-0 flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => act('sign-in-link')}
+            disabled={!customer || !!busy}
+            className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-black transition-colors hover:bg-[#9B30FF] hover:text-white disabled:opacity-50"
+          >
+            {busy === 'link' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Copy className="h-4 w-4" />}
+            Copy sign-in link
+          </button>
+          <button
+            type="button"
+            onClick={() => customer && onPreview(customer.id)}
+            disabled={!customer || !!busy || previewing}
+            className="inline-flex items-center gap-2 rounded-full border border-[#9B30FF]/60 px-4 py-2 text-sm font-semibold text-[#C89BFF] transition-colors hover:bg-[#9B30FF]/10 disabled:opacity-50"
+          >
+            {previewing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            Pack Rewards preview
+          </button>
+          <button
+            type="button"
+            onClick={reset}
+            disabled={!customer || !!busy}
+            className="inline-flex items-center gap-2 rounded-full border border-[#2A2A2A] px-4 py-2 text-sm font-semibold text-[#A0A0A0] transition-colors hover:border-red-500/50 hover:text-red-400 disabled:opacity-50"
+          >
+            {busy === 'reset' ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
+            Reset
+          </button>
+        </div>
+      </div>
+      {notice && <p className="mt-3 text-sm text-[#C89BFF]">{notice}</p>}
+      {link && (
+        <input
+          readOnly
+          value={link}
+          onFocus={(e) => e.currentTarget.select()}
+          className="mt-2 w-full rounded-lg border border-[#2A2A2A] bg-[#0A0A0A] px-3 py-2 font-mono text-xs text-[#A0A0A0]"
+        />
+      )}
+      {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
+    </div>
   )
 }
