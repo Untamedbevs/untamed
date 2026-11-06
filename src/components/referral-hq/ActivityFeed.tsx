@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowRight, Award, Camera, Gift, Sparkles, Trophy, UserPlus } from 'lucide-react'
+import { ArrowRight, Award, Camera, Crosshair, Gift, Sparkles, Trophy, UserPlus } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatDay, formatPoints } from '@/lib/referral-hq/program'
@@ -9,6 +9,7 @@ const ICON: Record<FeedEntry['kind'], LucideIcon> = {
   enrolled: Sparkles,
   friend: UserPlus,
   content: Camera,
+  hunt: Crosshair,
   bonus: Sparkles,
   rank: Trophy,
   badge: Award,
@@ -19,6 +20,7 @@ const TINT: Record<FeedEntry['kind'], string> = {
   enrolled: '#9B30FF',
   friend: '#9B30FF',
   content: '#FFD700',
+  hunt: '#E87511',
   bonus: '#FFD700',
   rank: '#FFD700',
   badge: '#FFD700',

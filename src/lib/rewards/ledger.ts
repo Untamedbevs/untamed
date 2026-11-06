@@ -11,6 +11,7 @@ export type LedgerType =
   | 'referral_purchase'
   | 'reversal'
   | 'expiration'
+  | 'promotion'
 
 export interface ApplyPointsArgs {
   memberId: string

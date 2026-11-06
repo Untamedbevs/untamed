@@ -8,6 +8,7 @@ import {
   Camera,
   ChevronLeft,
   ChevronRight,
+  Crosshair,
   Eye,
   LayoutDashboard,
   LogOut,
@@ -31,6 +32,8 @@ type ViewAsStatus = {
   member: { email: string; firstName: string | null }
 }
 
+type PortalStatus = ViewAsStatus | { active: false; packRewards: boolean }
+
 type NavItem = {
   href: string
   label: string
@@ -49,6 +52,9 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/portal/account', label: 'Account', icon: Settings },
 ]
 
+/** Pack Rewards pages, shown while the program runs as a staff preview. */
+const HUNTS_ITEM: NavItem = { href: '/portal/hunts', label: 'Hunts', icon: Crosshair }
+
 export default function PortalLayout({
   children,
 }: {
@@ -61,13 +67,15 @@ export default function PortalLayout({
   const [email, setEmail] = useState<string | null>(null)
   const [firstName, setFirstName] = useState<string | null>(null)
   const [viewAs, setViewAs] = useState<ViewAsStatus | null>(null)
+  const [packRewards, setPackRewards] = useState(false)
 
   useEffect(() => {
     async function loadUser() {
       // An admin in View As sees the member's name, not their own.
       const status = (await fetch('/api/portal/view-as')
         .then((res) => res.json())
-        .catch(() => null)) as ViewAsStatus | null
+        .catch(() => null)) as PortalStatus | null
+      setPackRewards(status?.active ? status.mode === 'pack-rewards' : !!status?.packRewards)
       if (status?.active) {
         setViewAs(status)
         setEmail(status.member.email)
@@ -118,8 +126,11 @@ export default function PortalLayout({
     return pathname.startsWith(href)
   }
 
+  // Hunts sits right after Rewards.
+  const navItems = packRewards ? [...NAV_ITEMS.slice(0, 5), HUNTS_ITEM, ...NAV_ITEMS.slice(5)] : NAV_ITEMS
+
   const currentLabel =
-    NAV_ITEMS.find((i) => isActive(i.href))?.label || 'Member Portal'
+    navItems.find((i) => isActive(i.href))?.label || 'Member Portal'
 
   return (
     <div className="min-h-screen bg-[#0A0A0A] flex overflow-x-hidden">
@@ -170,7 +181,7 @@ export default function PortalLayout({
         </div>
 
         <nav className="flex-1 py-4 space-y-1 px-2">
-          {NAV_ITEMS.map((item) => {
+          {navItems.map((item) => {
             const Icon = item.icon
             const active = isActive(item.href)
             const className = cn(

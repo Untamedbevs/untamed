@@ -17,5 +17,7 @@ export function recipientVars(r: Pick<BlastRecipient, 'email' | 'name' | 'firstN
     email: r.email,
     portal_login_url: `${origin}/portal/login?email=${encodeURIComponent(r.email)}`,
     community_url: `${origin}/community`,
+    hunts_url: `${origin}/portal/hunts`,
+    rewards_url: `${origin}/portal/rewards`,
   }
 }

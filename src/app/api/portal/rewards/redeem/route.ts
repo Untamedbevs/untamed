@@ -79,18 +79,25 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Yearly reward-value cap (calendar year, cancelled redemptions excluded).
+    // Yearly reward-value cap (calendar year, cancelled excluded), shared with milestone rewards.
     const yearStart = new Date(Date.UTC(new Date().getUTCFullYear(), 0, 1)).toISOString()
-    const { data: thisYear } = await admin
-      .from('loyalty_redemptions')
-      .select('retail_value_cents')
-      .eq('member_id', freshMember.id)
-      .neq('status', 'cancelled')
-      .gte('created_at', yearStart)
-    const redeemedValue = (thisYear || []).reduce(
-      (sum, r) => sum + ((r.retail_value_cents as number) || 0),
-      0
-    )
+    const [{ data: thisYear }, { data: claimsThisYear }] = await Promise.all([
+      admin
+        .from('loyalty_redemptions')
+        .select('retail_value_cents')
+        .eq('member_id', freshMember.id)
+        .neq('status', 'cancelled')
+        .gte('created_at', yearStart),
+      admin
+        .from('reward_milestone_claims')
+        .select('value_cents')
+        .eq('member_id', freshMember.id)
+        .neq('status', 'cancelled')
+        .gte('created_at', yearStart),
+    ])
+    const redeemedValue =
+      (thisYear || []).reduce((sum, r) => sum + ((r.retail_value_cents as number) || 0), 0) +
+      (claimsThisYear || []).reduce((sum, c) => sum + ((c.value_cents as number) || 0), 0)
     if (redeemedValue + reward.retailValueCents > CAPS.ANNUAL_REWARD_VALUE_CENTS) {
       return NextResponse.json(
         {

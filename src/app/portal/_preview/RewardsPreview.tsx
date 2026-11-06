@@ -8,6 +8,10 @@ import { enrollmentStatus } from '@/lib/rewards/eligibility'
 import { cashBackStatus } from '@/lib/rewards/state-rules'
 import { PREVIEW_REASONS } from '@/lib/referral-hq/program'
 import { US_STATES, normalizeStateCode } from '@/lib/rewards/states'
+import { MilestoneTrail } from '@/components/rewards/MilestoneTrail'
+import { RewardStash } from '@/components/rewards/RewardStash'
+import { loadMemberTrail } from '@/lib/rewards/member-rewards'
+import { spiritAnimalFor } from '@/lib/rewards/spirit-animals'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,6 +30,7 @@ export interface PortalLoyaltyTransaction {
     | 'referral_purchase'
     | 'reversal'
     | 'expiration'
+    | 'promotion'
   description: string | null
   created_at: string
 }
@@ -102,7 +107,8 @@ export async function PortalRewardsPreview() {
 
   const yearStart = new Date(Date.UTC(new Date().getUTCFullYear(), 0, 1)).toISOString()
 
-  const [transactionsRes, redemptionsRes, thisYearRes] = await Promise.all([
+  const programActive = isProgramActive(member.loyaltyMember)
+  const [transactionsRes, redemptionsRes, thisYearRes, trail] = await Promise.all([
     supabase
       .from('loyalty_transactions')
       .select('id, member_id, points, type, description, created_at')
@@ -122,12 +128,16 @@ export async function PortalRewardsPreview() {
       .eq('member_id', memberId)
       .neq('status', 'cancelled')
       .gte('created_at', yearStart),
+    programActive ? loadMemberTrail(supabase, memberId) : null,
   ])
 
-  const rewardValueThisYearCents = (thisYearRes.data || []).reduce(
-    (sum, r) => sum + ((r.retail_value_cents as number) || 0),
-    0
-  )
+  // The yearly cap counts catalog redemptions and milestone rewards together.
+  const rewardValueThisYearCents =
+    (thisYearRes.data || []).reduce((sum, r) => sum + ((r.retail_value_cents as number) || 0), 0) +
+    (trail?.claims || [])
+      .filter((c) => c.status !== 'cancelled' && c.created_at >= yearStart)
+      .reduce((sum, c) => sum + c.value_cents, 0)
+  const spirit = spiritAnimalFor(member.loyaltyMember.favorite_drink_slug)
   const stateCode = normalizeStateCode(member.loyaltyMember.residence_state)
   // Trade, suspended and under-21 accounts can't take part, so no preview.
   const status = enrollmentStatus(member.loyaltyMember)
@@ -136,8 +146,21 @@ export async function PortalRewardsPreview() {
   return (
     <div className="space-y-8">
       <ProgramStatusNotice member={member.loyaltyMember} />
+      {trail && (
+        <>
+          <MilestoneTrail
+            points={trail.points}
+            stops={trail.stops}
+            accent={spirit?.color}
+            avatar={spirit?.art}
+            canClaim={!member.viewAs}
+            blockedMessage={member.viewAs ? 'View As is read-only, so claiming is turned off.' : undefined}
+          />
+          <RewardStash trail={trail} />
+        </>
+      )}
       <PortalRewardsClient
-        canRedeem={isProgramActive(member.loyaltyMember)}
+        canRedeem={programActive}
         memberFirstName={member.loyaltyMember.first_name}
         pointsBalance={member.loyaltyMember.points_balance}
         initialTransactions={

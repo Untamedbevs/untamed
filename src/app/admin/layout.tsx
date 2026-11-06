@@ -42,6 +42,9 @@ import {
   Eye,
   FileText,
   ListChecks,
+  Gem,
+  Crosshair,
+  ClipboardCheck,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { LucideIcon } from 'lucide-react'
@@ -66,6 +69,16 @@ const ALL_NAV_ITEMS: NavItem[] = [
   { href: '/admin/referrals', label: 'Referrals', icon: Share2 },
   { href: '/referral-hq', label: 'Referral HQ', icon: Compass },
   { href: '/admin/view-as', label: 'View As', icon: Eye },
+  {
+    href: '/admin/rewards',
+    label: 'Rewards Program',
+    icon: Gem,
+    children: [
+      { href: '/admin/rewards', label: 'Trail & Rewards', icon: Gem },
+      { href: '/admin/promotions', label: 'Hunts', icon: Crosshair },
+      { href: '/admin/promotions/review', label: 'Review queue', icon: ClipboardCheck },
+    ],
+  },
   {
     href: '/admin/retail',
     label: 'Retail Leads',
@@ -113,7 +126,7 @@ const SUPER_ADMIN_ITEMS: NavItem[] = [
 const RESTRICTED_PATHS = ['/admin/loyalty', '/admin/ugc', '/admin/financial']
 
 /** Admins and super admins only (not contractors). */
-const ADMIN_ONLY_PATHS = ['/admin/view-as']
+const ADMIN_ONLY_PATHS = ['/admin/view-as', '/admin/rewards']
 
 function getNavItems(role: string | undefined): NavItem[] {
   let items = ALL_NAV_ITEMS
@@ -167,6 +180,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   function isActive(href: string) {
     if (href === '/admin') return pathname === '/admin'
+    // Hunts live under /admin/promotions but belong to the Rewards Program group.
+    if (href === '/admin/rewards' && pathname.startsWith('/admin/promotions')) return true
     return pathname.startsWith(href)
   }
 

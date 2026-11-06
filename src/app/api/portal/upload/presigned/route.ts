@@ -10,6 +10,7 @@ const ALLOWED_FOLDERS = new Set([
   'ugc/uploads',
   'ugc/recordings',
   'receipts/uploads',
+  'promotions/proofs',
 ])
 
 export async function POST(request: NextRequest) {

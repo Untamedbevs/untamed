@@ -9,7 +9,7 @@ import { engagementAllowed } from '@/lib/rewards/state-rules'
 import { PROGRAM_NAME, PROGRAM_RULES_PATH } from '@/lib/rewards/program'
 import type { IneligibleReason } from '@/lib/rewards/eligibility'
 
-const MONTHS = [
+export const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December',
 ]
@@ -33,7 +33,7 @@ const HEADINGS: Partial<Record<IneligibleReason, { title: string; body: string }
   },
 }
 
-const ATTESTATIONS = [
+export const ATTESTATIONS = [
   {
     key: 'ofAge',
     label: 'I am 21 or older.',

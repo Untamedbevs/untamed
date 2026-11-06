@@ -4,6 +4,7 @@ import { requireMember } from '@/lib/auth/resolve-member'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { enrollMember, type EnrollmentError } from '@/lib/rewards/enrollment'
 import { inRewardsPreview } from '@/lib/rewards/preview'
+import { isSpiritAnimal } from '@/lib/rewards/spirit-animals'
 
 export const dynamic = 'force-dynamic'
 
@@ -35,10 +36,12 @@ const ERROR_RESPONSES: Record<EnrollmentError, { status: number; message: string
 /**
  * POST /api/portal/rewards/enroll
  *   { birthdate: "YYYY-MM-DD", residenceState: "FL",
- *     attestations: { ofAge, notTrade, acceptsRules, disclosesReferrals } }
+ *     attestations: { ofAge, notTrade, acceptsRules, disclosesReferrals },
+ *     spiritAnimal?: "cheetah" }
  *
  * Enrolls the signed-in member in Pack Rewards (or re-confirms eligibility
- * after a rules change or the yearly check).
+ * after a rules change or the yearly check). The optional spirit animal from
+ * onboarding is saved as their favorite drink and themes their pass.
  */
 export async function POST(request: NextRequest) {
   let member
@@ -63,7 +66,8 @@ export async function POST(request: NextRequest) {
   const ipHash = ip ? crypto.createHash('sha256').update(ip).digest('hex').slice(0, 16) : null
 
   try {
-    const result = await enrollMember(createAdminClient(), {
+    const admin = createAdminClient()
+    const result = await enrollMember(admin, {
       memberId: member.loyaltyMember.id,
       authUserId: member.authUserId,
       birthdate: body.birthdate,
@@ -76,6 +80,13 @@ export async function POST(request: NextRequest) {
     if (!result.ok) {
       const { status, message } = ERROR_RESPONSES[result.error]
       return NextResponse.json({ error: result.error, message }, { status })
+    }
+
+    if (isSpiritAnimal(body.spiritAnimal)) {
+      await admin
+        .from('loyalty_members')
+        .update({ favorite_drink_slug: body.spiritAnimal })
+        .eq('id', member.loyaltyMember.id)
     }
 
     return NextResponse.json(result)

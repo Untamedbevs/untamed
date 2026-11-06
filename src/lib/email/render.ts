@@ -17,6 +17,8 @@ export const MERGE_TAGS = [
   { tag: '{{email}}', label: 'Email' },
   { tag: '{{portal_login_url}}', label: 'Portal Login URL' },
   { tag: '{{community_url}}', label: 'Community URL' },
+  { tag: '{{hunts_url}}', label: 'Hunts URL' },
+  { tag: '{{rewards_url}}', label: 'Rewards URL' },
 ] as const
 
 export function applyVariables(text: string, vars: Record<string, string>): string {

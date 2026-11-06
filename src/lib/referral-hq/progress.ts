@@ -25,7 +25,7 @@ export interface WeeklyFriends {
 export interface FeedEntry {
   id: string
   date: string
-  kind: 'enrolled' | 'friend' | 'content' | 'bonus' | 'rank' | 'badge' | 'redeem'
+  kind: 'enrolled' | 'friend' | 'content' | 'hunt' | 'bonus' | 'rank' | 'badge' | 'redeem'
   label: string
   detail: string
   /** Points earned (+) or spent (−); null for entries that carry no points. */
@@ -271,6 +271,15 @@ function buildFeed({
         kind: 'content',
         label: isFeature ? 'Post featured by Untamed' : 'Post approved',
         detail: isFeature ? 'Shared with the whole pack' : 'Thanks for sharing your moment',
+        points: e.points,
+      })
+    } else if (e.type === 'promotion' && e.points > 0) {
+      entries.push({
+        id: e.id,
+        date: e.created_at,
+        kind: 'hunt',
+        label: 'Hunt complete',
+        detail: (e.description || '').replace(/^Hunt approved: /, ''),
         points: e.points,
       })
     } else {

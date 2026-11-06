@@ -1,0 +1,17 @@
+Use your built-in image generation tool to create ONE landscape image (1536x1024) that is a sprite sheet: a 4-column x 2-row grid of 8 separate round reward medallions, each centered in its own equal cell, all in one consistent style.
+
+Art direction (applies to every item): premium mobile-game achievement art fused with a bold craft-cocktail brand. Clean, graphic, slightly illustrative shapes with rich metallic shading and crisp edges. Every item is a ROUND enamel-and-metal medallion with a thick beveled gold rim, matching one consistent set. Dark obsidian/black bases with brand accents: royal purple #9B30FF, gold #FFD700 to amber #FFA500, and the four flavor colors - cheetah yellow #D4D700, cougar olive green #6B8E23, lioness orange #E87511, panther purple #7B2D8E. Recurring brand motif: three diagonal claw-scratch slashes. Big cats are fierce, stylized, and front-facing. ABSOLUTELY NO text, letters, numbers, logos, currency symbols, or watermarks anywhere (cards and flags must be blank). No alcohol bottles, glasses, or drinks.
+
+Background: a true transparent background (PNG with alpha) if your image tool supports it. If it does not, use a perfectly flat, uniform pure white #FFFFFF background with zero texture, gradient, vignette, floor, or cast shadow. Items must NOT touch each other or the image edges; leave generous empty space around each one. No drop shadows or outer glows bleeding outside the items.
+
+Cells, left-to-right, top row then bottom row:
+1. FIRST TRACKS: black enamel medallion with a trail of glowing purple paw prints walking up from the bottom.
+2. BRONZE STASH: copper-bronze medallion showing a blank gift card tied with a ribbon, three claw scratches across the card.
+3. SILVER STASH: silver medallion with the same blank ribboned gift card, three claw scratches, cool silver tones.
+4. GOLD STASH: gold medallion with the same blank ribboned gift card in gleaming gold, three claw scratches.
+5. PLATINUM STASH: platinum medallion with iridescent purple sheen and the same blank ribboned gift card.
+6. OBSIDIAN VAULT: black-and-gold treasure chest, lid open with purple and gold light bursting out, claw scratches on the lid.
+7. GIFT HAUL: a fan of three stacked blank gift cards in purple, gold and orange with a purple ribbon bow.
+8. SUMMIT CREST: a blank purple flag planted on a jagged mountain peak, a roaring black panther silhouette below it, gold sunrise behind.
+
+When the image is generated, copy the final PNG file into this working directory as ./milestones.png (it is saved under ~/.codex/generated_images). Then reply with the saved path and whether the PNG has a transparent background.

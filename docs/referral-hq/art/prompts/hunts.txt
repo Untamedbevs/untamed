@@ -1,0 +1,17 @@
+Use your built-in image generation tool to create ONE landscape image (1536x1024) that is a sprite sheet: a 4-column x 2-row grid of 8 separate round mission medallions, each centered in its own equal cell, all in one consistent style.
+
+Art direction (applies to every item): premium mobile-game achievement art fused with a bold craft-cocktail brand. Clean, graphic, slightly illustrative shapes with rich metallic shading and crisp edges. Every item is a ROUND enamel-and-metal medallion with a thick beveled gold rim, matching one consistent set. Dark obsidian/black bases with brand accents: royal purple #9B30FF, gold #FFD700 to amber #FFA500, and the four flavor colors - cheetah yellow #D4D700, cougar olive green #6B8E23, lioness orange #E87511, panther purple #7B2D8E. Recurring brand motif: three diagonal claw-scratch slashes. Big cats are fierce, stylized, and front-facing. ABSOLUTELY NO text, letters, numbers, logos, currency symbols, or watermarks anywhere (cards and flags must be blank). No alcohol bottles, glasses, or drinks.
+
+Background: a true transparent background (PNG with alpha) if your image tool supports it. If it does not, use a perfectly flat, uniform pure white #FFFFFF background with zero texture, gradient, vignette, floor, or cast shadow. Items must NOT touch each other or the image edges; leave generous empty space around each one. No drop shadows or outer glows bleeding outside the items.
+
+Cells, left-to-right, top row then bottom row:
+1. SOCIAL SPOTLIGHT: purple enamel medallion with a gold megaphone blasting purple sound waves, three claw scratches on the megaphone.
+2. LIKE STORM: orange enamel medallion with one big glossy heart surrounded by a burst of many small hearts flying outward.
+3. SNAPSHOT: black enamel medallion with a sleek camera whose lens reflects a paw print.
+4. LINK TRAIL: olive green enamel medallion with two interlocking gold chain links, a paw print stamped where they join.
+5. PACK CALL: yellow enamel medallion with a roaring cheetah head and sound-wave rings around it.
+6. VERIFIED CLAW: dark teal-black medallion with a shield bearing a check mark formed by claw scratches.
+7. LAST CALL HOURGLASS: purple-black medallion with a gold hourglass, glowing gold sand falling.
+8. BULLSEYE HUNT: black medallion with a red-orange and gold bullseye target, three claw scratches slashing through the center.
+
+When the image is generated, copy the final PNG file into this working directory as ./hunts.png (it is saved under ~/.codex/generated_images). Then reply with the saved path and whether the PNG has a transparent background.

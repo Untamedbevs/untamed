@@ -13,6 +13,10 @@ const SHEETS = [
     names: ['panther-pack', 'cheetah-sprint', 'cougar-crew', 'lioness-pride', 'full-pride', 'hot-streak', 'pack-builder', 'big-game'] },
   { file: 'rewards/rewards.png', dir: 'rewards', cols: 3, rows: 2, whiteBg: true,
     names: ['coins', 'four-pack', 'hat', 'hoodie', 'key', 'vip'] },
+  { file: 'milestones/milestones.png', dir: 'milestones', cols: 4, rows: 2, whiteBg: true, keepScale: true,
+    names: ['first-tracks', 'gift-bronze', 'gift-silver', 'gift-gold', 'gift-platinum', 'obsidian-vault', 'gift-haul', 'summit-crest'] },
+  { file: 'hunts/hunts.png', dir: 'hunts', cols: 4, rows: 2, whiteBg: true, keepScale: true,
+    names: ['social-spotlight', 'like-storm', 'snapshot', 'link-trail', 'pack-call', 'verified-claw', 'last-call', 'bullseye'] },
 ]
 
 const neighbors = (i, w, h) => {
@@ -79,6 +83,8 @@ function removeWhite(data, w, h) {
 
 ;(async () => {
   for (const sheet of SHEETS) {
+    // Regenerating one sheet only needs that sheet in the folder.
+    if (!fs.existsSync(path.join(IMG, sheet.file))) { console.log('skip', sheet.file); continue }
     const { data, info } = await sharp(path.join(IMG, sheet.file)).ensureAlpha().raw().toBuffer({ resolveWithObject: true })
     const { width: w, height: h } = info
     if (sheet.whiteBg) removeWhite(data, w, h)
@@ -136,6 +142,8 @@ function removeWhite(data, w, h) {
       console.log(sheet.dir, name, `${bw}x${bh}`)
     }
   }
-  await sharp(path.join(IMG, 'map/map.png')).jpeg({ quality: 84, mozjpeg: true }).toFile(path.join(OUT, 'map.jpg'))
-  console.log('map done')
+  if (fs.existsSync(path.join(IMG, 'map/map.png'))) {
+    await sharp(path.join(IMG, 'map/map.png')).jpeg({ quality: 84, mozjpeg: true }).toFile(path.join(OUT, 'map.jpg'))
+    console.log('map done')
+  }
 })()

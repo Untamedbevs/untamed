@@ -41,7 +41,7 @@ export const ENGAGEMENT = {
  * Ledger types that count toward rank and badges. Adjustments count only when
  * positive. Never online_order, receipt_approved or referral_purchase.
  */
-export const ENGAGEMENT_TYPES = ['signup_bonus', 'referral_signup', 'ugc_approved', 'adjustment'] as const
+export const ENGAGEMENT_TYPES = ['signup_bonus', 'referral_signup', 'ugc_approved', 'promotion', 'adjustment'] as const
 
 export function isEngagementEntry(entry: { type: string; points: number }) {
   if (entry.type === 'adjustment') return entry.points > 0
