@@ -5,9 +5,11 @@ import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import {
+  Archive,
   CalendarClock,
   Camera,
   LayoutDashboard,
+  Library,
   Lightbulb,
   Image,
   Layers,
@@ -48,6 +50,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { LucideIcon } from 'lucide-react'
+import './admin.css'
 
 type NavItem = {
   href: string
@@ -58,12 +61,6 @@ type NavItem = {
 
 const ALL_NAV_ITEMS: NavItem[] = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/admin/ideas', label: 'Ideas', icon: Lightbulb },
-  { href: '/admin/media', label: 'Media', icon: Image },
-  { href: '/admin/flows', label: 'Flows', icon: Layers },
-  { href: '/admin/studio', label: 'Studio', icon: Wand2 },
-  { href: '/admin/schedule', label: 'Schedule', icon: CalendarClock },
-  { href: '/admin/campaigns', label: 'Campaigns', icon: Megaphone },
   { href: '/admin/loyalty', label: 'Loyalty', icon: Trophy },
   { href: '/admin/ugc', label: 'UGC', icon: Camera },
   { href: '/admin/referrals', label: 'Referrals', icon: Share2 },
@@ -113,15 +110,41 @@ const ALL_NAV_ITEMS: NavItem[] = [
       { href: '/admin/financial/competitive-pricing', label: 'Competitive Pricing', icon: Target },
     ],
   },
-  { href: '/brand-kit', label: 'Brand Kit', icon: Palette },
-  { href: '/admin/owners', label: 'Owner Guide', icon: Map },
-  { href: '/admin/handbook', label: 'Handbook', icon: BookOpen },
 ]
 
 const SUPER_ADMIN_ITEMS: NavItem[] = [
   { href: '/admin/staff', label: 'Staff', icon: Users },
-  { href: '/admin/fonts', label: 'Fonts', icon: Type },
 ]
+
+/** Reference material and brand assets, grouped so they stay out of the day-to-day tabs. Fonts is for super admins. */
+function libraryItem(role: string | undefined): NavItem {
+  return {
+    href: '/admin/library',
+    label: 'Library',
+    icon: Library,
+    children: [
+      { href: '/admin/media', label: 'Media', icon: Image },
+      { href: '/brand-kit', label: 'Brand Kit', icon: Palette },
+      { href: '/admin/owners', label: 'Owner Guide', icon: Map },
+      { href: '/admin/handbook', label: 'Handbook', icon: BookOpen },
+      ...(role === 'super_admin' ? [{ href: '/admin/fonts', label: 'Fonts', icon: Type }] : []),
+    ],
+  }
+}
+
+/** Tabs set aside to keep the sidebar short. Their pages still work; this group always sits last. */
+const ARCHIVE_ITEM: NavItem = {
+  href: '/admin/archive',
+  label: 'Archive',
+  icon: Archive,
+  children: [
+    { href: '/admin/ideas', label: 'Ideas', icon: Lightbulb },
+    { href: '/admin/flows', label: 'Flows', icon: Layers },
+    { href: '/admin/studio', label: 'Studio', icon: Wand2 },
+    { href: '/admin/schedule', label: 'Schedule', icon: CalendarClock },
+    { href: '/admin/campaigns', label: 'Campaigns', icon: Megaphone },
+  ],
+}
 
 const RESTRICTED_PATHS = ['/admin/loyalty', '/admin/ugc', '/admin/financial']
 
@@ -141,31 +164,105 @@ function getNavItems(role: string | undefined): NavItem[] {
   if (role === 'super_admin') {
     items = [...items, ...SUPER_ADMIN_ITEMS]
   }
-  return items
+  return [...items, libraryItem(role), ARCHIVE_ITEM]
 }
+
+/** Whether a path is this href or a page under it (so /admin/crm/blast/123 is under /admin/crm/blast, but /admin/referral-hq is not under /admin/referrals). */
+function isUnder(pathname: string, href: string): boolean {
+  return pathname === href || pathname.startsWith(`${href}/`)
+}
+
+/** A tab is current on its own page; a group is current on any of its pages, even ones outside its own path (Hunts, Library, Archive). */
+function isCurrent(item: NavItem, pathname: string): boolean {
+  if (item.href === '/admin') return pathname === '/admin'
+  return isUnder(pathname, item.href) || (item.children ?? []).some((child) => isUnder(pathname, child.href))
+}
+
+/** The group's page that's open: the most specific match, so Review queue wins over Hunts on /admin/promotions/review. */
+function currentChild(item: NavItem, pathname: string): string | null {
+  const matches = (item.children ?? []).filter((child) => isUnder(pathname, child.href))
+  return matches.sort((a, b) => b.href.length - a.href.length)[0]?.href ?? null
+}
+
+const COLLAPSED_KEY = 'ut-admin-sidebar-collapsed'
+const TAB_CLASS = 'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200'
+const IDLE_CLASS = 'text-[#A0A0A0] hover:text-white hover:bg-white/5'
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+  // Groups the user has opened. The group holding the current page opens on arrival, and any group can be closed.
+  const [openGroups, setOpenGroups] = useState<Set<string>>(() => new Set())
   const [staff, setStaff] = useState<{ full_name: string; role: string } | null>(null)
+  // Until the role is known, the nav shows placeholders rather than a list missing the admin-only tabs.
+  const [staffLoaded, setStaffLoaded] = useState(false)
+  const onLogin = pathname === '/admin/login'
+  const role = staff?.role
 
+  // This layout stays mounted from the login page into the admin, so the role is
+  // loaded again whenever the session changes, not just once on mount.
   useEffect(() => {
+    const supabase = createClient()
+    let current = true
     async function loadStaff() {
-      const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        const { data } = await supabase
-          .from('staff')
-          .select('full_name, role')
-          .eq('auth_user_id', user.id)
-          .single()
-        if (data) setStaff(data)
-      }
+      const { data } = user
+        ? await supabase.from('staff').select('full_name, role').eq('auth_user_id', user.id).maybeSingle()
+        : { data: null }
+      if (!current) return
+      setStaff(data ?? null)
+      setStaffLoaded(true)
     }
-    loadStaff()
+    if (!onLogin) loadStaff()
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      // Supabase calls made inside this callback can deadlock, so load on the next tick.
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'USER_UPDATED') setTimeout(loadStaff, 0)
+    })
+    return () => {
+      current = false
+      subscription.unsubscribe()
+    }
+  }, [onLogin])
+
+  // Remember the collapsed sidebar between visits (read after mount so server and client render the same).
+  useEffect(() => {
+    try {
+      setCollapsed(localStorage.getItem(COLLAPSED_KEY) === '1')
+    } catch {}
   }, [])
+
+  // Arriving on a page opens its group and closes the phone drawer.
+  useEffect(() => {
+    setMobileOpen(false)
+    const group = getNavItems(role).find((item) => item.children && isCurrent(item, pathname))
+    if (group) setOpenGroups((open) => (open.has(group.href) ? open : new Set(open).add(group.href)))
+  }, [pathname, role])
+
+  // Escape closes the phone drawer.
+  useEffect(() => {
+    if (!mobileOpen) return
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setMobileOpen(false)
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [mobileOpen])
+
+  function setCollapsedSaved(next: boolean) {
+    setCollapsed(next)
+    try {
+      localStorage.setItem(COLLAPSED_KEY, next ? '1' : '0')
+    } catch {}
+  }
+
+  function toggleGroup(href: string) {
+    setOpenGroups((open) => {
+      const next = new Set(open)
+      if (next.has(href)) next.delete(href)
+      else next.add(href)
+      return next
+    })
+  }
 
   async function handleSignOut() {
     const supabase = createClient()
@@ -174,15 +271,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     router.refresh()
   }
 
-  if (pathname === '/admin/login') {
+  if (onLogin) {
     return <>{children}</>
-  }
-
-  function isActive(href: string) {
-    if (href === '/admin') return pathname === '/admin'
-    // Hunts live under /admin/promotions but belong to the Rewards Program group.
-    if (href === '/admin/rewards' && pathname.startsWith('/admin/promotions')) return true
-    return pathname.startsWith(href)
   }
 
   const roleLabel: Record<string, string> = {
@@ -193,10 +283,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     contractor_limited: 'Contractor (Limited)',
   }
 
-  const NAV_ITEMS = getNavItems(staff?.role)
+  const NAV_ITEMS = getNavItems(role)
+  const archived = ARCHIVE_ITEM.children!.some((child) => isUnder(pathname, child.href))
+  // The phone drawer always opens full width, even if the desktop sidebar is collapsed.
+  const compact = collapsed && !mobileOpen
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] flex overflow-x-hidden">
+    <div className="isolate min-h-screen bg-[#0A0A0A] flex overflow-x-hidden">
+      <div aria-hidden className="ad-aurora" />
+      <div aria-hidden className="ad-grain" />
       {mobileOpen && (
         <div
           className="fixed inset-0 bg-black/60 z-40 lg:hidden"
@@ -206,78 +301,98 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       <aside
         className={cn(
-          'fixed top-0 left-0 h-full bg-[#111] border-r border-[#2A2A2A] z-50 flex flex-col transition-all duration-300',
-          collapsed ? 'w-[68px]' : 'w-64',
+          'ad-sidebar fixed top-0 left-0 h-full z-50 flex flex-col transition-all duration-300',
+          compact ? 'w-[68px]' : 'w-64',
           mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         )}
       >
         <div className={cn(
-          'flex items-center border-b border-[#2A2A2A] h-16 px-4',
-          collapsed ? 'justify-center' : 'justify-between'
+          'ad-divider flex items-center border-b h-16 px-4',
+          compact ? 'justify-center' : 'justify-between'
         )}>
-          {!collapsed && (
-            <Link href="/admin" className="font-headline text-lg font-bold uppercase tracking-wider text-white">
+          {!compact && (
+            <Link href="/admin" className="ad-title font-headline text-lg font-bold uppercase tracking-wider">
               Untamed
             </Link>
           )}
           <button
-            onClick={() => setCollapsed(!collapsed)}
-            className="hidden lg:flex items-center justify-center w-8 h-8 rounded-lg text-[#A0A0A0] hover:text-white hover:bg-[#1A1A1A] transition-colors"
+            type="button"
+            onClick={() => setCollapsedSaved(!collapsed)}
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            className="hidden lg:flex items-center justify-center w-8 h-8 rounded-lg text-[#A0A0A0] hover:text-white hover:bg-white/5 transition-colors"
           >
             {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
           </button>
           <button
+            type="button"
             onClick={() => setMobileOpen(false)}
+            aria-label="Close menu"
             className="lg:hidden text-[#A0A0A0] hover:text-white"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <nav className="flex-1 py-4 space-y-1 px-2">
-          {NAV_ITEMS.map((item) => {
+        <nav className="flex-1 min-h-0 overflow-y-auto py-4 space-y-1 px-2">
+          {!staffLoaded && Array.from({ length: 10 }, (_, i) => (
+            <div key={i} className="h-10 animate-pulse rounded-xl bg-white/5" style={{ animationDelay: `${i * 60}ms` }} />
+          ))}
+          {staffLoaded && NAV_ITEMS.map((item) => {
             const Icon = item.icon
-            const active = isActive(item.href)
-            const hasChildren = item.children && item.children.length > 0
-            const childrenExpanded = active && hasChildren
+            const active = isCurrent(item, pathname)
 
-            if (hasChildren && !collapsed) {
+            if (item.children?.length) {
+              const open = openGroups.has(item.href)
+              const panelId = `nav-group-${item.label.toLowerCase().replace(/\W+/g, '-')}`
+
+              // Collapsed sidebar: the group icon widens the sidebar with that group open.
+              if (compact) {
+                return (
+                  <button
+                    key={item.href}
+                    type="button"
+                    onClick={() => {
+                      setCollapsedSaved(false)
+                      setOpenGroups((groups) => new Set(groups).add(item.href))
+                    }}
+                    title={item.label}
+                    aria-label={`Open ${item.label}`}
+                    className={cn(TAB_CLASS, 'w-full justify-center px-0', active ? 'ad-nav-active' : IDLE_CLASS)}
+                  >
+                    <Icon className="w-5 h-5 shrink-0" />
+                  </button>
+                )
+              }
+
+              const childHref = currentChild(item, pathname)
               return (
                 <div key={item.href}>
-                  <Link
-                    href={item.children![0].href}
-                    onClick={() => setMobileOpen(false)}
-                    className={cn(
-                      'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 w-full',
-                      active
-                        ? 'bg-[#9B30FF]/15 text-[#9B30FF] border border-[#9B30FF]/30'
-                        : 'text-[#A0A0A0] hover:text-white hover:bg-[#1A1A1A]'
-                    )}
+                  <button
+                    type="button"
+                    onClick={() => toggleGroup(item.href)}
+                    aria-expanded={open}
+                    aria-controls={panelId}
+                    className={cn(TAB_CLASS, 'w-full text-left', active ? 'ad-nav-active' : IDLE_CLASS)}
                   >
                     <Icon className="w-5 h-5 shrink-0" />
                     <span className="flex-1">{item.label}</span>
                     <ChevronDown
-                      className={cn(
-                        'w-3.5 h-3.5 shrink-0 transition-transform duration-200',
-                        !childrenExpanded && '-rotate-90'
-                      )}
+                      className={cn('w-3.5 h-3.5 shrink-0 transition-transform duration-200', !open && '-rotate-90')}
                     />
-                  </Link>
-                  {childrenExpanded && (
-                    <div className="mt-1 ml-3 pl-4 border-l border-[#2A2A2A] space-y-0.5">
-                      {item.children!.map((child) => {
+                  </button>
+                  {open && (
+                    <div id={panelId} className="ad-divider mt-1 ml-3 pl-4 border-l space-y-0.5">
+                      {item.children.map((child) => {
                         const ChildIcon = child.icon
-                        const childActive = pathname === child.href
                         return (
                           <Link
                             key={child.href}
                             href={child.href}
                             onClick={() => setMobileOpen(false)}
+                            aria-current={child.href === childHref ? 'page' : undefined}
                             className={cn(
                               'flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200',
-                              childActive
-                                ? 'text-[#9B30FF] bg-[#9B30FF]/10'
-                                : 'text-[#A0A0A0] hover:text-white hover:bg-[#1A1A1A]'
+                              child.href === childHref ? 'ad-nav-child-active' : IDLE_CLASS
                             )}
                           >
                             <ChildIcon className="w-4 h-4 shrink-0" />
@@ -294,29 +409,24 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             return (
               <Link
                 key={item.href}
-                href={hasChildren ? item.children![0].href : item.href}
+                href={item.href}
                 onClick={() => setMobileOpen(false)}
-                className={cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
-                  active
-                    ? 'bg-[#9B30FF]/15 text-[#9B30FF] border border-[#9B30FF]/30'
-                    : 'text-[#A0A0A0] hover:text-white hover:bg-[#1A1A1A]',
-                  collapsed && 'justify-center px-0'
-                )}
-                title={collapsed ? item.label : undefined}
+                aria-current={active ? 'page' : undefined}
+                className={cn(TAB_CLASS, active ? 'ad-nav-active' : IDLE_CLASS, compact && 'justify-center px-0')}
+                title={compact ? item.label : undefined}
               >
                 <Icon className="w-5 h-5 shrink-0" />
-                {!collapsed && item.label}
+                {!compact && item.label}
               </Link>
             )
           })}
         </nav>
 
         <div className={cn(
-          'border-t border-[#2A2A2A] p-4',
-          collapsed && 'flex flex-col items-center px-2'
+          'ad-divider border-t p-4',
+          compact && 'flex flex-col items-center px-2'
         )}>
-          {staff && !collapsed && (
+          {staff && !compact && (
             <div className="mb-3">
               <div className="flex items-center gap-2">
                 <User className="w-4 h-4 text-[#A0A0A0]" />
@@ -328,15 +438,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
           )}
           <button
+            type="button"
             onClick={handleSignOut}
             className={cn(
               'flex items-center gap-2 text-sm text-[#A0A0A0] hover:text-red-400 transition-colors',
-              collapsed && 'justify-center'
+              compact && 'justify-center'
             )}
-            title={collapsed ? 'Sign Out' : undefined}
+            title={compact ? 'Sign Out' : undefined}
           >
             <LogOut className="w-4 h-4" />
-            {!collapsed && 'Sign Out'}
+            {!compact && 'Sign Out'}
           </button>
         </div>
       </aside>
@@ -345,18 +456,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         'flex-1 min-w-0',
         collapsed ? 'lg:ml-[68px]' : 'lg:ml-64'
       )}>
-        <header className="sticky top-0 z-30 bg-[#0A0A0A]/80 backdrop-blur-md border-b border-[#2A2A2A] h-16 flex items-center px-4 lg:px-6">
+        <header className="ad-header sticky top-0 z-30 h-16 flex items-center px-4 lg:px-6">
           <button
+            type="button"
             onClick={() => setMobileOpen(true)}
+            aria-label="Open menu"
             className="lg:hidden mr-4 text-[#A0A0A0] hover:text-white"
           >
             <Menu className="w-5 h-5" />
           </button>
-          <h2 className="text-lg font-semibold uppercase tracking-wider text-white">
-            {ALL_NAV_ITEMS.find((item) => isActive(item.href))?.label || 'Admin'}
+          <h2 className="ad-title text-lg font-semibold uppercase tracking-wider">
+            {[...ALL_NAV_ITEMS, ...SUPER_ADMIN_ITEMS, libraryItem('super_admin'), ARCHIVE_ITEM].find((item) => isCurrent(item, pathname))?.label || 'Admin'}
           </h2>
         </header>
-        <main className="p-4 lg:p-6">{children}</main>
+        {/* Archived tabs keep their original look. */}
+        <main className={cn('p-4 lg:p-6', !archived && 'ad-skin')}>{children}</main>
       </div>
     </div>
   )
