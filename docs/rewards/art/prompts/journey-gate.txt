@@ -1,0 +1,7 @@
+Use your built-in image generation tool to create ONE landscape image (1536x1024).
+
+Scene: A mystical gateway into the wild at night. Two enormous ancient stone pillars wrapped in jungle vines form a gate in the far distance; through the gate pours an intense glowing royal purple (#9B30FF) and gold (#FFD700) light with volumetric god rays and drifting embers; the foreground is dark mossy ground fading to black; three huge diagonal claw-scratch marks are carved into the left pillar, glowing faintly gold.
+
+Art direction: cinematic, moody, premium craft-cocktail brand key art. Painterly-photoreal digital matte painting, deep blacks, rich atmospheric haze, strong rim light, subtle film grain. Composition leaves the CENTER and LOWER-CENTER calm and darker so white text and UI cards can sit on top of it; the most detailed elements sit toward the left and right thirds and the horizon. Wide landscape framing. ABSOLUTELY NO text, letters, numbers, logos, watermarks, people, alcohol bottles, cans, glasses or drinks. Save the result as a PNG file in the current working directory with the exact filename given below. Create exactly one image.
+
+Filename: journey-gate.png

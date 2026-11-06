@@ -1,0 +1,241 @@
+/* Pack Rewards portal: the app-like chrome, the onboarding journey, the dashboard reveal and the dashboard's motion. */
+
+/* Slow-moving aurora behind every Pack Rewards page, tinted by --pk-accent. */
+.pk-aurora {
+  position: fixed;
+  inset: -20%;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(40% 35% at 20% 15%, color-mix(in srgb, var(--pk-accent, #9b30ff) 38%, transparent), transparent 70%),
+    radial-gradient(35% 30% at 85% 20%, rgba(255, 215, 0, 0.14), transparent 70%),
+    radial-gradient(45% 40% at 70% 85%, color-mix(in srgb, var(--pk-accent, #9b30ff) 24%, transparent), transparent 70%),
+    radial-gradient(30% 30% at 10% 80%, rgba(232, 117, 17, 0.12), transparent 70%);
+  filter: blur(30px);
+  animation: pk-drift 26s ease-in-out infinite alternate;
+}
+@keyframes pk-drift {
+  0% { transform: translate3d(0, 0, 0) rotate(0deg) scale(1); }
+  50% { transform: translate3d(3%, -2%, 0) rotate(4deg) scale(1.06); }
+  100% { transform: translate3d(-3%, 2%, 0) rotate(-3deg) scale(1.02); }
+}
+.pk-grain {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Glass card with a gradient hairline border. */
+/* Positioned for the border layer, unless a utility already places it (a floating menu, say). */
+.pk-glass:not(.absolute, .fixed, .sticky) { position: relative; }
+.pk-glass {
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.015) 40%, rgba(0, 0, 0, 0.25));
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  border-radius: 28px;
+  box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+/* Floating panels (the account menu) sit over busy pages, so they get a near-opaque fill. */
+.pk-glass.pk-solid {
+  background:
+    radial-gradient(120% 80% at 100% 0%, color-mix(in srgb, var(--pk-accent, #9b30ff) 18%, transparent), transparent 60%),
+    linear-gradient(160deg, rgba(26, 26, 34, 0.98), rgba(10, 10, 14, 0.98));
+  backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  box-shadow: 0 30px 70px -20px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+.pk-glass::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--pk-accent, #9b30ff) 70%, transparent), rgba(255, 255, 255, 0.08) 35%, rgba(255, 255, 255, 0.04) 65%, rgba(255, 215, 0, 0.45));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Rotating conic ring, used behind the avatar and the big points number. */
+.pk-ring {
+  background: conic-gradient(from var(--pk-angle, 0deg), var(--pk-accent, #9b30ff), #ffd700, #e87511, var(--pk-accent, #9b30ff));
+  animation: pk-spin 6s linear infinite;
+}
+@property --pk-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+@keyframes pk-spin { to { --pk-angle: 360deg; } }
+
+.pk-gradient-text {
+  background: linear-gradient(100deg, #fff 10%, color-mix(in srgb, var(--pk-accent, #9b30ff) 55%, #fff) 45%, #ffd700 90%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  /* Brush strokes reach past the glyph box, and the gradient only paints inside the box: pad it so
+     nothing gets clipped, and pull the padding back out so the layout doesn't move. */
+  padding: 0.14em 0.24em 0.1em 0.32em;
+  margin: -0.14em -0.24em -0.1em -0.32em;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  overflow-wrap: anywhere;
+}
+
+/* Staggered entrance for dashboard sections: set --i on each child. */
+@keyframes pk-enter {
+  from { opacity: 0; transform: translateY(28px) scale(0.98); filter: blur(6px); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+.pk-enter {
+  animation: pk-enter 800ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--pk-delay, 0ms) + var(--i, 0) * 90ms);
+}
+
+/* Product tiles lift and tilt toward the pointer. */
+.pk-tile {
+  transition: transform 500ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 500ms;
+  transform-style: preserve-3d;
+}
+.pk-tile:hover { transform: translateY(-6px) rotateX(4deg) rotateY(-4deg); }
+.pk-tile .pk-can { transition: transform 700ms cubic-bezier(0.16, 1, 0.3, 1); }
+.pk-tile:hover .pk-can { transform: translateY(-8px) rotate(-6deg) scale(1.06); }
+
+@keyframes pk-bob {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(-10px) rotate(2deg); }
+}
+.pk-bob { animation: pk-bob 5s ease-in-out infinite; }
+
+/* Embers drifting up through the journey and the welcome screen. */
+.pk-ember {
+  position: absolute;
+  bottom: -10px;
+  width: 4px;
+  height: 4px;
+  border-radius: 9999px;
+  background: #ffd700;
+  box-shadow: 0 0 10px 2px rgba(255, 215, 0, 0.6);
+  opacity: 0;
+  animation: pk-ember var(--d, 7s) linear var(--delay, 0s) infinite;
+}
+@keyframes pk-ember {
+  0% { transform: translate3d(0, 0, 0); opacity: 0; }
+  10% { opacity: 0.9; }
+  100% { transform: translate3d(var(--x, 30px), -105vh, 0); opacity: 0; }
+}
+
+/* Journey scene changes: the old scene falls back, the new one comes forward. */
+@keyframes pk-scene-in {
+  from { opacity: 0; transform: translateY(40px) scale(0.96); filter: blur(10px); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+@keyframes pk-scene-back {
+  from { opacity: 0; transform: translateY(-40px) scale(1.04); filter: blur(10px); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+.pk-scene-forward { animation: pk-scene-in 750ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+.pk-scene-backward { animation: pk-scene-back 750ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+.pk-scene-forward > *, .pk-scene-backward > * {
+  animation: pk-enter 800ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(120ms + var(--i, 0) * 80ms);
+}
+
+/* Backdrops cross-fade and slowly push in. */
+.pk-backdrop {
+  transition: opacity 1200ms ease, transform 1200ms ease;
+  animation: pk-push 30s ease-in-out infinite alternate;
+}
+@keyframes pk-push {
+  from { transform: scale(1.04); }
+  to { transform: scale(1.14) translate3d(-1.5%, -1%, 0); }
+}
+
+/* The gate: two doors that part to reveal the dashboard. */
+.pk-door {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50.5%;
+  transition: transform 1300ms cubic-bezier(0.83, 0, 0.17, 1);
+  background:
+    radial-gradient(120% 60% at var(--edge) 50%, color-mix(in srgb, var(--pk-accent, #9b30ff) 30%, transparent), transparent 60%),
+    linear-gradient(180deg, #0b0b0f, #050507);
+  box-shadow: 0 0 80px rgba(0, 0, 0, 0.9);
+}
+.pk-door-left { left: 0; --edge: 100%; border-right: 1px solid rgba(255, 215, 0, 0.35); }
+.pk-door-right { right: 0; --edge: 0%; border-left: 1px solid rgba(255, 215, 0, 0.35); }
+.pk-gate-open .pk-door-left { transform: translateX(-102%); }
+.pk-gate-open .pk-door-right { transform: translateX(102%); }
+.pk-gate-seam {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  transform: translateX(-50%);
+  background: linear-gradient(180deg, transparent, #ffd700, #fff, #ffd700, transparent);
+  box-shadow: 0 0 40px 10px rgba(255, 215, 0, 0.5);
+  transition: opacity 400ms, width 900ms cubic-bezier(0.83, 0, 0.17, 1);
+}
+.pk-gate-open .pk-gate-seam { opacity: 0; width: 60vw; }
+.pk-gate-crest { transition: opacity 500ms, transform 900ms cubic-bezier(0.83, 0, 0.17, 1); }
+.pk-gate-open .pk-gate-crest { opacity: 0; transform: scale(1.6); }
+
+/* Big claw slash across the screen. */
+@keyframes pk-claw {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+.pk-claw path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: pk-claw 520ms cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+.pk-claw path:nth-child(2) { animation-delay: 80ms; }
+.pk-claw path:nth-child(3) { animation-delay: 160ms; }
+/* The slash lingers for a beat, then fades away. */
+@keyframes pk-claw-fade {
+  0%, 55% { opacity: 1; }
+  100% { opacity: 0; visibility: hidden; }
+}
+.pk-claw { animation: pk-claw-fade 1100ms ease-out forwards; }
+
+@keyframes pk-flash {
+  0% { opacity: 0; }
+  20% { opacity: 0.9; }
+  100% { opacity: 0; }
+}
+.pk-flash { animation: pk-flash 900ms ease-out both; }
+
+@keyframes pk-fade-out {
+  to { opacity: 0; visibility: hidden; }
+}
+.pk-fade-out { animation: pk-fade-out 700ms ease forwards; }
+
+/* Inside the Pack chrome, the portal's flat dark cards become glass so every page shares the look. */
+.pk-skin :is(.bg-\[\#141414\], .bg-\[\#111\], .bg-\[\#101010\], .bg-\[\#0D0D0D\]) {
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.015) 45%, rgba(0, 0, 0, 0.3)) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+.pk-skin .border-\[\#2A2A2A\] { border-color: rgba(255, 255, 255, 0.1) !important; }
+
+/* Bottom tab bar on phones. */
+.pk-tabbar { padding-bottom: max(10px, env(safe-area-inset-bottom)); }
+
+/* Horizontal scroll rows (orders) snap card by card on phones. */
+.pk-snap { scroll-snap-type: x mandatory; scrollbar-width: none; }
+.pk-snap::-webkit-scrollbar { display: none; }
+.pk-snap > * { scroll-snap-align: start; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pk-aurora, .pk-ring, .pk-bob, .pk-ember, .pk-backdrop { animation: none; }
+  .pk-enter, .pk-scene-forward, .pk-scene-backward, .pk-scene-forward > *, .pk-scene-backward > * { animation: none; }
+  .pk-door, .pk-gate-seam, .pk-gate-crest { transition-duration: 1ms; }
+  .pk-tile, .pk-tile .pk-can { transition: none; }
+}

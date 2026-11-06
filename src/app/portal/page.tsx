@@ -26,9 +26,13 @@ interface UgcRow {
   created_at: string
 }
 
-export default async function PortalDashboardPage() {
+export default async function PortalDashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}) {
   const member = await resolveMember()
-  if (await showsPackRewards(member)) return <PortalHomePreview />
+  if (await showsPackRewards(member)) return <PortalHomePreview opened={(await searchParams).opened === '1'} />
 
   if (!member) {
     return (

@@ -59,6 +59,37 @@ Editable templates in Admin → CRM → Templates:
 
 Staff also get an email at loyalty@ whenever a member claims a reward.
 
+## The member experience
+
+Members in the preview get their own portal design; everyone else keeps the classic sidebar portal.
+
+- **Onboarding journey** (`/portal/welcome`): full screen, no portal navigation. Six scenes over
+  cinematic backdrops: the gate, choosing a spirit animal (the backdrop changes to that cat's
+  habitat), how the trail works, the 21+ checkpoint, the Pack Code oath, and the reveal. "Open my
+  HQ" closes a pair of gate doors; the dashboard loads behind them and the doors part.
+- **Welcome back:** the first dashboard visit of each browser session shows a full-screen greeting
+  with the member's cat and a points count-up. Signing out resets it.
+- **Navigation:** a floating glass bar on desktop and a bottom tab bar on phones (Home, Hunts,
+  Rewards, Orders, Pack). The rest sits in the avatar menu.
+- **Dashboard:** hero with the member's habitat and cat, live points counter, rank and progress to
+  the next milestone; quick tiles; the trail; live Hunts; recent orders; pack link and moments.
+- **Orders** (`/portal/orders`): every online order, each product as a picture card with its can,
+  its cat and its colors.
+
+### Test customer
+
+Admin → View As has a **Test customer** card (`eric+packtest@companyengineers.com`):
+
+- **Copy sign-in link:** a one-time link that signs in as the test customer. Open it in a private
+  window so the admin session stays signed in.
+- **Pack Rewards preview:** a read-only look through View As.
+- **Reset:** back to a brand-new signup (clears enrollment, spirit animal, points, Hunts, claims
+  and redemptions; keeps the login and referral code), so onboarding runs again.
+
+The test customer always sees Pack Rewards. When it has no real orders, the portal shows three
+sample orders built in code (`src/lib/rewards/orders.ts`); nothing is written to `loyalty_orders`,
+so sales reports stay clean.
+
 ## Before members see it
 
 - **Gift cards:** the legal review recommended merchandise only; gift cards are cash
@@ -79,7 +110,10 @@ Staff also get an email at loyalty@ whenever a member claims a reward.
 | A member's trail for the portal | `src/lib/rewards/member-rewards.ts` |
 | Art picker keys | `src/lib/rewards/art.ts` (images in `public/images/referral-hq/{milestones,hunts}`) |
 | Member emails | `src/lib/rewards/notify.ts` |
-| Portal components | `src/components/rewards/` (Onboarding, PackPass, MilestoneTrail, HuntBoard, RewardStash) |
+| Portal components | `src/components/rewards/` (Journey, Den, OrderGallery, pack-fx, PackPass, MilestoneTrail, HuntBoard, RewardStash) |
+| Portal chrome | `src/app/portal/layout.tsx` picks `PackChrome` or `ClassicChrome` |
+| Backdrops | `public/images/portal/` (masters and prompts in `docs/rewards/art/`) |
+| Test customer | `src/lib/rewards/test-customer.ts`, `src/app/api/admin/test-customer` |
 | Member APIs | `src/app/api/portal/rewards/claim`, `src/app/api/portal/hunts/submit` |
 | Admin pages and APIs | `src/app/admin/rewards`, `src/app/admin/promotions`, `src/app/api/admin/{rewards,promotions}` |
 | Art prompts and slicer | `docs/referral-hq/art/prompts/{milestones,hunts}.txt`, `docs/referral-hq/art/slice.js` |

@@ -1,0 +1,7 @@
+Use your built-in image generation tool to create ONE landscape image (1536x1024).
+
+Scene: A cheetah's open savanna at electric golden hour. Endless grassland under a dramatic sky, lone acacia tree silhouettes on the left and right, the light an intense electric lemon-yellow (#D4D700) and gold (#FFD700) fading to near-black at the top, motion-blurred streaks of wind through the tall grass suggesting speed, faint dust particles glittering in the air.
+
+Art direction: cinematic, moody, premium craft-cocktail brand key art. Painterly-photoreal digital matte painting, deep blacks, rich atmospheric haze, strong rim light, subtle film grain. Composition leaves the CENTER and LOWER-CENTER calm and darker so white text and UI cards can sit on top of it; the most detailed elements sit toward the left and right thirds and the horizon. Wide landscape framing. ABSOLUTELY NO text, letters, numbers, logos, watermarks, people, alcohol bottles, cans, glasses or drinks. Save the result as a PNG file in the current working directory with the exact filename given below. Create exactly one image.
+
+Filename: habitat-cheetah.png

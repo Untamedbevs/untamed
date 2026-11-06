@@ -21,6 +21,11 @@ export interface SpiritAnimal {
   color: string
   colorGlow: string
   art: string
+  /** Full-bleed habitat backdrop for the onboarding journey and the dashboard. */
+  habitat: string
+  /** The drink's can and big-cat portrait, for the reveal and welcome screens. */
+  can: string
+  portrait: string
 }
 
 export const SPIRIT_ANIMALS: SpiritAnimal[] = drinks
@@ -33,6 +38,9 @@ export const SPIRIT_ANIMALS: SpiritAnimal[] = drinks
     color: d.color,
     colorGlow: d.colorGlow,
     art: ART[d.slug],
+    habitat: `/images/portal/habitats/${d.slug}.webp`,
+    can: d.canImage,
+    portrait: d.animalImage,
   }))
 
 export const isSpiritAnimal = (value: unknown): value is string =>

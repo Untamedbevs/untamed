@@ -55,7 +55,8 @@ const NAV_ITEMS: NavItem[] = [
 /** Pack Rewards pages, shown while the program runs as a staff preview. */
 const HUNTS_ITEM: NavItem = { href: '/portal/hunts', label: 'Hunts', icon: Crosshair }
 
-export default function PortalLayout({
+/** The member portal with the sidebar, for everyone outside the Pack Rewards preview. */
+export function ClassicChrome({
   children,
 }: {
   children: React.ReactNode

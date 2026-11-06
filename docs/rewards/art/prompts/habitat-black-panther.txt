@@ -1,0 +1,7 @@
+Use your built-in image generation tool to create ONE landscape image (1536x1024).
+
+Scene: A black panther's moonlit night jungle. Dense silhouetted rainforest leaves and hanging vines framing the left and right edges, a pale full moon glowing behind mist, royal purple (#9B30FF) and deep violet (#7B2D8E) light filtering through, faint glowing golden eyes of a panther hidden in the foliage on the right, three subtle diagonal claw-scratch marks glowing faintly in the bark of one tree.
+
+Art direction: cinematic, moody, premium craft-cocktail brand key art. Painterly-photoreal digital matte painting, deep blacks, rich atmospheric haze, strong rim light, subtle film grain. Composition leaves the CENTER and LOWER-CENTER calm and darker so white text and UI cards can sit on top of it; the most detailed elements sit toward the left and right thirds and the horizon. Wide landscape framing. ABSOLUTELY NO text, letters, numbers, logos, watermarks, people, alcohol bottles, cans, glasses or drinks. Save the result as a PNG file in the current working directory with the exact filename given below. Create exactly one image.
+
+Filename: habitat-black-panther.png

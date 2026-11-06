@@ -1,5 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
+import { cookies } from 'next/headers'
+import { redirect } from 'next/navigation'
 import { resolveMember } from '@/lib/auth/resolve-member'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { buildShareLinks } from '@/lib/referral/helpers'
@@ -8,6 +10,7 @@ import {
   Camera,
   CheckCircle,
   Clock,
+  Package,
   Share2,
   Sparkles,
   Trophy,
@@ -16,18 +19,21 @@ import {
 } from 'lucide-react'
 import { CopyLinkButton } from '../CopyLinkButton'
 import { ProgramStatusNotice, isProgramActive } from '@/components/rewards/ProgramStatusNotice'
-import { Onboarding } from '@/components/rewards/Onboarding'
-import { PackPass } from '@/components/rewards/PackPass'
 import { MilestoneTrail } from '@/components/rewards/MilestoneTrail'
+import { DashboardIntro, DenHero } from '@/components/rewards/Den'
+import { OrderStrip } from '@/components/rewards/OrderGallery'
 import { ActivityFeed } from '@/components/referral-hq/ActivityFeed'
 import { TrophyCase } from '@/components/referral-hq/TrophyCase'
 import { enrollmentStatus } from '@/lib/rewards/eligibility'
 import { loadMemberHq } from '@/lib/referral-hq/progress'
-import { formatPoints } from '@/lib/referral-hq/program'
+import { formatPoints, rankArt, rankFor } from '@/lib/referral-hq/program'
 import { artSrc } from '@/lib/rewards/art'
-import { loadLivePromotions, loadMilestones, promotionWindow } from '@/lib/rewards/catalog'
+import { loadLivePromotions, promotionWindow } from '@/lib/rewards/catalog'
 import { loadMemberTrail } from '@/lib/rewards/member-rewards'
-import { SPIRIT_ANIMALS, spiritAnimalFor } from '@/lib/rewards/spirit-animals'
+import { loadMemberOrders } from '@/lib/rewards/orders'
+import { spiritAnimalFor } from '@/lib/rewards/spirit-animals'
+import { WELCOMED_COOKIE } from '@/lib/rewards/welcome'
+import '@/components/rewards/portal.css'
 
 export const dynamic = 'force-dynamic'
 
@@ -38,7 +44,20 @@ interface UgcRow {
   created_at: string
 }
 
-export async function PortalHomePreview() {
+/** Tiles under the hero: where to go next, each with its own art and colors. */
+const QUICK_TILES = [
+  { href: '/portal/hunts', title: 'Hunts', body: 'Missions with big point drops', art: '/images/referral-hq/hunts/bullseye.webp', from: '#E87511', to: '#3A1200' },
+  { href: '/portal/referrals', title: 'Grow your pack', body: 'Friends 21+ who join with your link', art: '/images/referral-hq/trophies/pack-builder.webp', from: '#9B30FF', to: '#1E0838' },
+  { href: '/portal/ugc/new', title: 'Share a moment', body: 'Get featured on the site', art: '/images/referral-hq/hunts/snapshot.webp', from: '#00B3A4', to: '#04211F' },
+  { href: '/shop', title: 'Restock', body: 'Four flavors, delivered', art: '/images/referral-hq/rewards/four-pack.webp', from: '#D4D700', to: '#272800', external: true },
+]
+
+/**
+ * The Pack Rewards home. Members who haven't enrolled go through the
+ * full-screen journey first; everyone else gets the dashboard, opened by an
+ * intro on their first visit of a session (or the gate, right after joining).
+ */
+export async function PortalHomePreview({ opened = false }: { opened?: boolean }) {
   const member = await resolveMember()
 
   if (!member) {
@@ -53,9 +72,9 @@ export async function PortalHomePreview() {
   const loyalty = member.loyaltyMember
   const programActive = !!loyalty && isProgramActive(loyalty)
   const status = loyalty ? enrollmentStatus(loyalty) : null
-  const onboarding = !!status && !status.ok && status.reason === 'not_enrolled'
+  if (loyalty && status && !status.ok && status.reason === 'not_enrolled') redirect('/portal/welcome')
 
-  const [{ data: ugcRows }, hq, trail, hunts, milestones] = await Promise.all([
+  const [{ data: ugcRows }, hq, trail, hunts, orders] = await Promise.all([
     admin
       .from('ugc_submissions')
       .select('id, status, caption, created_at')
@@ -65,7 +84,7 @@ export async function PortalHomePreview() {
     loyalty && programActive ? loadMemberHq(admin, loyalty, member.referralParticipant?.id ?? null) : null,
     loyalty && programActive ? loadMemberTrail(admin, loyalty.id) : null,
     programActive ? loadLivePromotions(admin) : [],
-    onboarding ? loadMilestones(admin) : [],
+    loyalty ? loadMemberOrders(admin, { id: loyalty.id, email: loyalty.email }) : [],
   ])
 
   const submissions = (ugcRows || []) as UgcRow[]
@@ -84,50 +103,77 @@ export async function PortalHomePreview() {
   const isDistributor = member.distributorLeads.length > 0
   const spirit = spiritAnimalFor(loyalty?.favorite_drink_slug)
   const openHunts = hunts.filter((h) => promotionWindow(h) === 'open').slice(0, 3)
-  // Onboarding teases the first stop, a middle reward and the summit.
-  const teaser = milestones.length
-    ? [milestones[0], milestones[Math.floor(milestones.length / 2)], milestones[milestones.length - 1]]
-    : []
 
-  return (
-    <div className="space-y-6">
-      {!trail && !onboarding && (
-        <div>
-          <h1 className="font-headline text-3xl text-white mb-1">
-            {loyalty?.first_name ? `Welcome back, ${loyalty.first_name}` : 'Welcome to the pack'}
-          </h1>
-          <p className="text-[#A0A0A0]">You&apos;re one of the first in. Here&apos;s how to leave your mark.</p>
-        </div>
-      )}
-      {isDistributor && (
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-[#FF8C2A]/15 text-[#FF8C2A] border border-[#FF8C2A]/30">
-          <Share2 className="w-3 h-3" />
-          Distributor
-        </span>
-      )}
+  if (loyalty && trail) {
+    const welcomed = (await cookies()).has(WELCOMED_COOKIE)
+    const intro = opened ? 'opened' : welcomed ? null : 'welcome'
+    const den = spirit
+      ? { name: spirit.name, color: spirit.color, habitat: spirit.habitat, portrait: spirit.portrait, can: spirit.can }
+      : null
+    const rank = rankFor(trail.points)
+    // Sections rise in once the intro has cleared.
+    const introDelay = intro === 'welcome' ? 3600 : intro === 'opened' ? 1200 : 0
 
-      {loyalty && onboarding && (
-        <Onboarding
-          firstName={loyalty.first_name}
-          defaultState={loyalty.residence_state}
-          spirits={SPIRIT_ANIMALS}
-          preview={teaser}
-          readOnly={!!member.viewAs}
-        />
-      )}
-      {loyalty && !programActive && !onboarding && <ProgramStatusNotice member={loyalty} />}
-
-      {loyalty && trail && (
-        <>
-          <PackPass
+    return (
+      <div className="pk-skin space-y-10" style={{ ['--pk-delay' as string]: `${introDelay}ms` }}>
+        {intro && (
+          <DashboardIntro
+            variant={intro}
             firstName={loyalty.first_name}
-            memberSince={loyalty.created_at}
+            spirit={den}
             points={trail.points}
-            spirit={spirit}
-            nextMilestone={trail.next}
-            previousThreshold={trail.previousThreshold}
-            claimable={trail.claimable}
+            nextTitle={trail.next?.title ?? null}
           />
+        )}
+
+        <DenHero
+          firstName={loyalty.first_name}
+          spirit={den}
+          points={trail.points}
+          rank={rank ? { name: rank.name, art: rankArt(rank.id), tagline: rank.tagline } : null}
+          next={trail.next ? { title: trail.next.title, points: trail.next.points, icon: trail.next.icon } : null}
+          previousThreshold={trail.previousThreshold}
+          claimable={trail.claimable}
+          memberSince={loyalty.created_at}
+          delayMs={introDelay}
+        />
+
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+          {QUICK_TILES.map((t, i) => {
+            const body = (
+              <>
+                <div
+                  className="absolute inset-0"
+                  style={{ background: `radial-gradient(120% 90% at 100% 0%, ${t.from}cc, transparent 62%), linear-gradient(160deg, ${t.to}, #08080b 85%)` }}
+                />
+                <Image
+                  src={t.art}
+                  alt=""
+                  width={120}
+                  height={120}
+                  className="absolute -right-3 -top-3 h-24 w-24 object-contain transition-transform duration-700 group-hover:-rotate-12 group-hover:scale-110 sm:h-28 sm:w-28"
+                />
+                <div className="relative mt-auto">
+                  <div className="font-headline text-xl uppercase leading-none sm:text-2xl">{t.title}</div>
+                  <div className="mt-1.5 text-xs leading-snug text-white/70">{t.body}</div>
+                </div>
+              </>
+            )
+            const cls = 'pk-enter pk-tile group relative flex h-40 flex-col overflow-hidden rounded-[24px] border border-white/10 p-4 sm:h-44 sm:p-5'
+            const style = { ['--i' as string]: i + 1, boxShadow: `0 24px 50px -30px ${t.from}` }
+            return t.external ? (
+              <a key={t.href} href={t.href} className={cls} style={style}>
+                {body}
+              </a>
+            ) : (
+              <Link key={t.href} href={t.href} className={cls} style={style}>
+                {body}
+              </Link>
+            )
+          })}
+        </div>
+
+        <div className="pk-enter" style={{ ['--i' as string]: 5 }}>
           <MilestoneTrail
             points={trail.points}
             stops={trail.stops}
@@ -136,33 +182,135 @@ export async function PortalHomePreview() {
             canClaim={!member.viewAs}
             blockedMessage={member.viewAs ? 'View As is read-only, so claiming is turned off.' : undefined}
           />
-          {openHunts.length > 0 && (
-            <section className="rounded-[28px] border border-[#2A2A2A] bg-[#111] p-5 sm:p-6">
-              <div className="flex items-center justify-between gap-3">
-                <h2 className="font-headline text-2xl uppercase tracking-wide text-white">Live Hunts</h2>
-                <Link href="/portal/hunts" className="inline-flex items-center gap-1 text-sm text-[#E87511] hover:text-white">
-                  All Hunts <ArrowRight className="h-3.5 w-3.5" />
+        </div>
+
+        {openHunts.length > 0 && (
+          <div className="pk-enter" style={{ ['--i' as string]: 6 }}>
+            <SectionTitle kicker="Live now" title="Hunts" href="/portal/hunts" cta="All Hunts" />
+            <div className="grid gap-3 sm:grid-cols-3">
+              {openHunts.map((h) => (
+                <Link
+                  key={h.id}
+                  href="/portal/hunts"
+                  className="pk-tile group relative flex items-center gap-4 overflow-hidden rounded-[24px] border border-white/10 p-4"
+                  style={{ background: 'radial-gradient(100% 120% at 0% 50%, #E8751166, transparent 62%), linear-gradient(160deg, #1a0d05, #08080b)' }}
+                >
+                  <Image
+                    src={artSrc(h.icon, 'bullseye')}
+                    alt=""
+                    width={72}
+                    height={72}
+                    className="shrink-0 transition-transform duration-500 group-hover:rotate-12 group-hover:scale-110"
+                  />
+                  <div className="min-w-0">
+                    <div className="truncate font-semibold">{h.title}</div>
+                    <div className="mt-0.5 font-headline text-xl text-[#FFD700]">+{formatPoints(h.points)} pts</div>
+                  </div>
+                  <ArrowRight className="ml-auto h-4 w-4 shrink-0 text-white/40 transition-transform group-hover:translate-x-1 group-hover:text-white" />
                 </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {orders.length > 0 ? (
+          <div className="pk-enter" style={{ ['--i' as string]: 7 }}>
+            <SectionTitle kicker="Your haul" title="Recently poured" href="/portal/orders" cta="All orders" />
+            <OrderStrip orders={orders} />
+          </div>
+        ) : (
+          <a href="/shop" className="pk-enter pk-glass flex items-center gap-4 p-5" style={{ ['--i' as string]: 7 }}>
+            <Package className="h-8 w-8 shrink-0 text-[#FFD700]" />
+            <div className="min-w-0 flex-1">
+              <div className="font-semibold">Your haul shows up here</div>
+              <div className="text-sm text-white/60">Order online and every flavor you buy lands on this shelf.</div>
+            </div>
+            <ArrowRight className="h-4 w-4 shrink-0" />
+          </a>
+        )}
+
+        <div className="pk-enter grid gap-4 lg:grid-cols-2" style={{ ['--i' as string]: 8 }}>
+          <div className="pk-glass p-6">
+            <div className="flex items-center gap-3">
+              <Users className="h-5 w-5" style={{ color: 'var(--pk-accent)' }} />
+              <h3 className="font-headline text-2xl uppercase">Your pack link</h3>
+            </div>
+            <p className="mt-2 text-sm text-white/65">
+              For friends who are 21+. You earn points when they join and confirm their age.
+            </p>
+            {referralLink && (
+              <div className="mt-4">
+                <CopyLinkButton link={referralLink} />
               </div>
-              <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                {openHunts.map((h) => (
-                  <Link
-                    key={h.id}
-                    href="/portal/hunts"
-                    className="group flex items-center gap-3 rounded-2xl border border-[#2A2A2A] bg-black/30 p-3 transition-colors hover:border-[#E87511]/50"
-                  >
-                    <Image src={artSrc(h.icon, 'bullseye')} alt="" width={52} height={52} className="shrink-0 transition-transform group-hover:rotate-6" />
-                    <div className="min-w-0">
-                      <div className="truncate text-sm font-semibold text-white">{h.title}</div>
-                      <div className="text-xs font-bold text-[#FFD700]">+{formatPoints(h.points)} pts</div>
-                    </div>
-                  </Link>
+            )}
+            <div className="mt-3 text-sm text-white/60">
+              {friendsJoined === 0
+                ? 'No one in your pack yet. Be the first to bring a friend.'
+                : `${friendsJoined} friend${friendsJoined === 1 ? '' : 's'} in your pack`}
+            </div>
+          </div>
+          <div className="pk-glass p-6">
+            <div className="flex items-center gap-3">
+              <Camera className="h-5 w-5" style={{ color: 'var(--pk-accent)' }} />
+              <h3 className="font-headline text-2xl uppercase">Your moments</h3>
+            </div>
+            {submissions.length > 0 ? (
+              <div className="mt-4 space-y-1.5">
+                {submissions.map((s) => (
+                  <SubmissionRow key={s.id} submission={s} />
                 ))}
               </div>
-            </section>
-          )}
-        </>
+            ) : (
+              <p className="mt-2 text-sm text-white/65">
+                Post a photo or video with your Untamed. The best ones get featured for the whole pack.
+              </p>
+            )}
+            <Link
+              href="/portal/ugc/new"
+              className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/20 px-4 py-2 text-sm font-semibold transition-colors hover:bg-white/10"
+            >
+              <Camera className="h-4 w-4" /> Share a moment
+            </Link>
+          </div>
+        </div>
+
+        {hq && (
+          <div className="pk-enter grid grid-cols-1 gap-6 lg:grid-cols-12" style={{ ['--i' as string]: 9 }}>
+            <div className="lg:col-span-7">
+              <ActivityFeed entries={hq.feed} />
+            </div>
+            <div className="lg:col-span-5">
+              <TrophyCase progress={hq.progress} earnedDates={hq.earnedDates} />
+            </div>
+          </div>
+        )}
+
+        <p className="text-center text-xs text-white/40">
+          Bought Untamed in a store?{' '}
+          <Link href="/portal/receipts/new" className="underline underline-offset-2 hover:text-white">
+            Upload your receipt
+          </Link>
+        </p>
+      </div>
+    )
+  }
+
+  // Accounts that can't use the program right now (closed, on hold, or not a loyalty member).
+  return (
+    <div className="pk-skin space-y-6">
+      <div>
+        <h1 className="font-headline text-3xl text-white mb-1">
+          {loyalty?.first_name ? `Welcome back, ${loyalty.first_name}` : 'Welcome to the pack'}
+        </h1>
+        <p className="text-[#A0A0A0]">You&apos;re one of the first in. Here&apos;s how to leave your mark.</p>
+      </div>
+      {isDistributor && (
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-[#FF8C2A]/15 text-[#FF8C2A] border border-[#FF8C2A]/30">
+          <Share2 className="w-3 h-3" />
+          Distributor
+        </span>
       )}
+      {loyalty && !programActive && <ProgramStatusNotice member={loyalty} />}
 
       {!isLoyalty && (
         <div className="bg-[#141414] border border-[#9B30FF]/30 rounded-2xl p-6">
@@ -187,98 +335,7 @@ export async function PortalHomePreview() {
         </div>
       )}
 
-      {/* The two community actions, front and center */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Share a moment */}
-        <div className="bg-[#141414] border border-[#2A2A2A] rounded-3xl p-6 flex flex-col">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-11 h-11 rounded-xl bg-[#9B30FF]/15 flex items-center justify-center">
-              <Camera className="w-5 h-5 text-[#9B30FF]" />
-            </div>
-            <h3 className="font-headline text-xl text-white">Share a moment</h3>
-          </div>
-          <p className="text-sm text-[#A0A0A0] mb-4">
-            Post a photo or video of your Untamed moment. The best ones get
-            featured on the site for the whole pack to see.
-          </p>
-
-          {submissions.length > 0 && (
-            <div className="space-y-1.5 mb-4">
-              {submissions.map((s) => (
-                <SubmissionRow key={s.id} submission={s} />
-              ))}
-              <Link
-                href="/portal/ugc"
-                className="inline-flex items-center gap-1 text-xs text-[#9B30FF] hover:text-white transition-colors pt-1"
-              >
-                All my submissions
-                <ArrowRight className="w-3 h-3" />
-              </Link>
-            </div>
-          )}
-
-          <Link
-            href="/portal/ugc/new"
-            className="mt-auto inline-flex items-center justify-center gap-2 bg-[#9B30FF] text-white font-semibold rounded-full px-5 py-2.5 hover:bg-[#7E22CE] transition-colors text-sm"
-          >
-            <Camera className="w-4 h-4" />
-            Share a moment
-          </Link>
-        </div>
-
-        {/* Spread the wild */}
-        <div className="bg-[#141414] border border-[#2A2A2A] rounded-3xl p-6 flex flex-col">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-11 h-11 rounded-xl bg-[#9B30FF]/15 flex items-center justify-center">
-              <Share2 className="w-5 h-5 text-[#9B30FF]" />
-            </div>
-            <h3 className="font-headline text-xl text-white">Spread the wild</h3>
-          </div>
-          <p className="text-sm text-[#A0A0A0] mb-4">
-            Your personal link for friends who are 21+. Every friend who
-            joins shows up here, and you earn points when they confirm
-            they&apos;re 21+.
-          </p>
-
-          {referralLink ? (
-            <div className="space-y-3 mb-4">
-              <CopyLinkButton link={referralLink} />
-              <div className="flex items-center gap-2 text-sm text-[#A0A0A0]">
-                <Users className="w-4 h-4 text-[#9B30FF]" />
-                {friendsJoined === 0
-                  ? 'No friends in the pack yet — be the first to bring one.'
-                  : `${friendsJoined} friend${friendsJoined === 1 ? '' : 's'} in the pack so far`}
-              </div>
-            </div>
-          ) : (
-            <p className="text-sm text-[#666] mb-4">
-              Join Pack Rewards above to activate your personal link.
-            </p>
-          )}
-
-          <Link
-            href="/portal/referrals"
-            className="mt-auto inline-flex items-center justify-center gap-2 border border-[#9B30FF]/60 text-[#9B30FF] font-semibold rounded-full px-5 py-2.5 hover:bg-[#9B30FF]/10 transition-colors text-sm"
-          >
-            <Share2 className="w-4 h-4" />
-            Sharing tools
-          </Link>
-        </div>
-      </div>
-
-      {hq && (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-          <div className="lg:col-span-7">
-            <ActivityFeed entries={hq.feed} />
-          </div>
-          <div className="lg:col-span-5">
-            <TrophyCase progress={hq.progress} earnedDates={hq.earnedDates} />
-          </div>
-        </div>
-      )}
-
-      {/* Points: quiet row for members who haven't enrolled (the pass shows it otherwise) */}
-      {isLoyalty && !trail && !onboarding && (
+      {isLoyalty && (
         <div className="flex flex-wrap items-center justify-between gap-3 bg-[#141414] border border-[#2A2A2A] rounded-2xl px-5 py-4">
           <div className="flex items-center gap-2 text-sm text-[#A0A0A0]">
             <Sparkles className="w-4 h-4 text-[#9B30FF]" />
@@ -296,19 +353,22 @@ export async function PortalHomePreview() {
           </Link>
         </div>
       )}
+    </div>
+  )
+}
 
-      {/* Secondary: receipts */}
-      {isLoyalty && (
-        <p className="text-xs text-[#666]">
-          Bought Untamed in a store?{' '}
-          <Link
-            href="/portal/receipts/new"
-            className="text-[#A0A0A0] underline underline-offset-2 hover:text-white transition-colors"
-          >
-            Upload your receipt
-          </Link>
-        </p>
-      )}
+function SectionTitle({ kicker, title, href, cta }: { kicker: string; title: string; href: string; cta: string }) {
+  return (
+    <div className="mb-4 flex items-end justify-between gap-3">
+      <div>
+        <div className="text-[11px] font-semibold uppercase tracking-[0.35em]" style={{ color: 'var(--pk-accent)' }}>
+          {kicker}
+        </div>
+        <h2 className="mt-1 font-headline text-3xl uppercase leading-none sm:text-4xl">{title}</h2>
+      </div>
+      <Link href={href} className="inline-flex shrink-0 items-center gap-1 text-sm text-white/60 transition-colors hover:text-white">
+        {cta} <ArrowRight className="h-3.5 w-3.5" />
+      </Link>
     </div>
   )
 }
