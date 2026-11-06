@@ -10,6 +10,7 @@ import {
   type AttributionPayload,
   type TrackingIds,
 } from '@/lib/tracking/client'
+import { isPrivateEmailPath } from '@/lib/email/private-paths'
 
 interface TrackingContext extends TrackingIds {
   ready: boolean
@@ -46,7 +47,7 @@ function TrackingInner({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
-    if (!state.ready) return
+    if (!state.ready || isPrivateEmailPath(pathname)) return
     trackPageView()
   }, [pathname, state.ready])
 

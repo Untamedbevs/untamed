@@ -43,15 +43,28 @@ export async function filterSuppressed<T extends { email: string }>(
   return { allowed, suppressed }
 }
 
+/** True when the address is on the suppression list (any reason). */
+export async function isSuppressed(email: string): Promise<boolean> {
+  const { data, error } = await createAdminClient()
+    .from('email_suppressions')
+    .select('id')
+    .eq('email', email.toLowerCase().trim())
+    .maybeSingle()
+  if (error) throw new Error(`Suppression lookup failed: ${error.message}`)
+  return Boolean(data)
+}
+
 /**
  * Add an email to the suppression list.
- * Uses upsert to avoid duplicates.
+ * Uses upsert to avoid duplicates. Logs failures; pass `throwOnError` when the
+ * caller must not report success without the row (e.g. an unsubscribe).
  */
 export async function addSuppression(params: {
   email: string
   reason: 'hard_bounce' | 'complaint' | 'manual' | 'unsubscribe'
   sourceMessageId?: string
   notes?: string
+  throwOnError?: boolean
 }): Promise<void> {
   const supabase = createAdminClient()
   const { error } = await supabase
@@ -68,5 +81,6 @@ export async function addSuppression(params: {
 
   if (error) {
     console.error('[Suppressions] Failed to add suppression:', error.message)
+    if (params.throwOnError) throw new Error(`Failed to add suppression: ${error.message}`)
   }
 }

@@ -8,6 +8,7 @@ import { resolveMemberDataStaff } from '@/lib/auth/resolve-staff'
 import { filterSuppressed } from '@/lib/messaging/suppressions'
 import { recipientVars } from '@/lib/crm/recipient-vars'
 import { applyVariables } from '@/lib/email/render'
+import { getPostalAddress, POSTAL_ADDRESS_MISSING } from '@/lib/email/compliance'
 
 const MAX_RECIPIENTS = 100_000
 const INSERT_CHUNK = 1000
@@ -44,6 +45,10 @@ export async function POST(request: NextRequest) {
     const isScheduled = sendAt.getTime() > Date.now() + 60_000
 
     const sender = getSenderById(senderId || DEFAULT_CRM_SENDER.id)
+
+    if (!getPostalAddress()) {
+      return NextResponse.json({ error: POSTAL_ADDRESS_MISSING }, { status: 400 })
+    }
 
     if (!filters?.audience) {
       return NextResponse.json({ error: 'Audience is required' }, { status: 400 })

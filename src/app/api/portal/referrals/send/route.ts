@@ -9,6 +9,10 @@ import {
   buildUnsubscribeUrl,
 } from '@/lib/messaging/unsubscribe'
 import { buildWarmIntroEmail } from '@/lib/referral/warm-intro-email'
+import { isSuppressed } from '@/lib/messaging/suppressions'
+
+const NOT_DELIVERABLE_MESSAGE =
+  "We couldn't deliver the warm intro to that address. Copy your referral link below and share it directly — they'll still get full credit when they sign up."
 
 export const dynamic = 'force-dynamic'
 
@@ -103,6 +107,25 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  // Someone who unsubscribed, bounced or complained is never emailed again,
+  // whoever asks. The reply doesn't say which, so members can't probe it.
+  let suppressed: boolean
+  try {
+    suppressed = await isSuppressed(normalizedReferred)
+  } catch (err) {
+    console.error('[portal/referrals/send] suppression check failed:', err)
+    return NextResponse.json(
+      { error: 'Could not send right now. Try again in a few minutes.' },
+      { status: 503 }
+    )
+  }
+  if (suppressed) {
+    return NextResponse.json(
+      { error: NOT_DELIVERABLE_MESSAGE, code: 'RECIPIENT_NOT_DELIVERABLE' },
+      { status: 409 }
+    )
+  }
+
   const { data: invite, error: inviteError } = await supabase
     .from('referral_invites')
     .insert({
@@ -165,28 +188,14 @@ export async function POST(request: NextRequest) {
       referralParticipantId: participant.id,
     })
   } catch (sendErr) {
-    console.error('[portal/referrals/send] SES send failed:', sendErr)
+    console.error('[portal/referrals/send] SMTP send failed:', sendErr)
 
-    // Detect AWS SES sandbox: when the account has not been moved to
-    // production, SES rejects any recipient that hasn't been verified
-    // in the console with `MessageRejected` + an "is not verified" message.
-    const errMessage =
-      sendErr instanceof Error ? sendErr.message : String(sendErr || '')
-    const errCode =
-      (sendErr as { name?: string } | null)?.name ||
-      (sendErr as { Code?: string } | null)?.Code ||
-      ''
-    const isSandboxRejection =
-      errCode === 'MessageRejected' && /is not verified/i.test(errMessage)
-
-    if (isSandboxRejection) {
+    // A 5xx SMTP reply means the recipient address was refused outright
+    // (doesn't exist, blocked); retrying won't help.
+    const responseCode = (sendErr as { responseCode?: number } | null)?.responseCode
+    if (typeof responseCode === 'number' && responseCode >= 500) {
       return NextResponse.json(
-        {
-          error:
-            "We couldn't deliver the warm intro to that address right now. Copy your referral link below and share it directly — they'll still get full credit when they sign up.",
-          code: 'RECIPIENT_NOT_DELIVERABLE',
-          invite,
-        },
+        { error: NOT_DELIVERABLE_MESSAGE, code: 'RECIPIENT_NOT_DELIVERABLE', invite },
         { status: 502 }
       )
     }

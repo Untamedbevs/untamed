@@ -10,6 +10,7 @@ import { ReferralBanner } from '@/components/ReferralBanner'
 import { AccelPayRouteSync } from '@/components/AccelPayRouteSync'
 import { AccelPaySaleTracker } from '@/components/AccelPaySaleTracker'
 import { MarketingPixels } from '@/components/MarketingPixels'
+import { AccelPayBrandScript } from '@/components/AccelPayBrandScript'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -117,7 +118,7 @@ export default function RootLayout({
         <Script id="accelpay-brand" strategy="beforeInteractive">
           {`window.apbrand = { id: 5008728 };`}
         </Script>
-        <Script src="https://cart.accelpay.io/scripts/brand.js" strategy="afterInteractive" />
+        <AccelPayBrandScript />
         <MarketingPixels />
       </head>
       <body className="bg-untamed-black text-untamed-white antialiased">
