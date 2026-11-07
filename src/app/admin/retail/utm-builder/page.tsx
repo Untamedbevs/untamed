@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import { Check, Copy, Link2 } from 'lucide-react'
 import { RETAIL_LANDING_PAGES } from '@/lib/retail/landing-pages'
 
-const ORIGIN = 'https://untamedbevs.com'
+const ORIGIN = 'https://untamedbeverages.com'
 
 export default function UtmBuilderPage() {
   const [path, setPath] = useState('/lp/retail/bars')

@@ -56,7 +56,7 @@ export const FL_RETAIL_CAMPAIGNS: FlRetailCampaignSpec[] = [
   },
 ]
 
-export const SITE_ORIGIN = 'https://untamedbevs.com'
+export const SITE_ORIGIN = 'https://untamedbeverages.com'
 
 export function trackedLandingUrl(spec: FlRetailCampaignSpec): string {
   const url = new URL(spec.landingPath, SITE_ORIGIN)

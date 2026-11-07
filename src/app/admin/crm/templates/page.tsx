@@ -1,10 +1,11 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, FileText, Loader2, Plus, Archive, Save } from 'lucide-react'
 import { CRM_SENDERS } from '@/lib/crm/senders'
-import { MERGE_TAGS, applyVariables, renderEmailHtml } from '@/lib/email/render'
+import { SAMPLE_LINK_VARS, applyVariables, renderEmailHtml } from '@/lib/email/render'
+import { MergeTagPicker } from '@/components/admin/MergeTagPicker'
 import { cn } from '@/lib/utils'
 
 interface Template {
@@ -22,6 +23,9 @@ interface Template {
 
 type Draft = Omit<Template, 'id' | 'updated_at'> & { id?: string }
 
+type TagField = 'subject' | 'preheader' | 'body'
+const TAG_FIELD_LABEL: Record<TagField, string> = { subject: 'Subject', preheader: 'Preview text', body: 'Body' }
+
 const EMPTY: Draft = {
   slug: '',
   name: '',
@@ -37,8 +41,7 @@ const SAMPLE_VARS: Record<string, string> = {
   first_name: 'Alex',
   name: 'Alex Rivera',
   email: 'alex@example.com',
-  portal_login_url: 'https://untamedbevs.com/portal/login',
-  community_url: 'https://untamedbevs.com/community',
+  ...SAMPLE_LINK_VARS,
   order_number: 'UB-1042',
   message: 'Your order is packed and on its way.',
 }
@@ -79,6 +82,31 @@ export default function TemplatesPage() {
   function set<K extends keyof Draft>(key: K, value: Draft[K]) {
     setDraft((d) => (d ? { ...d, [key]: value } : d))
     setSaved(false)
+  }
+
+  // Merge tags go into whichever text field was focused last (Body by default),
+  // at the cursor, replacing any selected text.
+  const fieldRefs = {
+    subject: useRef<HTMLInputElement | null>(null),
+    preheader: useRef<HTMLInputElement | null>(null),
+    body: useRef<HTMLTextAreaElement | null>(null),
+  }
+  const [tagTarget, setTagTarget] = useState<TagField>('body')
+
+  function insertTag(tag: string) {
+    if (!draft) return
+    const field = tagTarget
+    const el = fieldRefs[field].current
+    const value = draft[field] || ''
+    const start = el?.selectionStart ?? value.length
+    const end = el?.selectionEnd ?? value.length
+    set(field, value.slice(0, start) + tag + value.slice(end))
+    requestAnimationFrame(() => {
+      if (!el) return
+      el.focus()
+      const pos = start + tag.length
+      el.setSelectionRange(pos, pos)
+    })
   }
 
   async function save() {
@@ -220,23 +248,43 @@ export default function TemplatesPage() {
                 )}
               </div>
               <Field label="Subject">
-                <input className={input} value={draft.subject} onChange={(e) => set('subject', e.target.value)} />
+                <input
+                  ref={fieldRefs.subject}
+                  className={input}
+                  value={draft.subject}
+                  onFocus={() => setTagTarget('subject')}
+                  onChange={(e) => set('subject', e.target.value)}
+                />
               </Field>
               <Field label="Preview text (optional)">
-                <input className={input} value={draft.preheader || ''} onChange={(e) => set('preheader', e.target.value)} />
+                <input
+                  ref={fieldRefs.preheader}
+                  className={input}
+                  value={draft.preheader || ''}
+                  onFocus={() => setTagTarget('preheader')}
+                  onChange={(e) => set('preheader', e.target.value)}
+                />
               </Field>
               <Field label="Body (blank line = new paragraph, **bold**, links auto-detected)">
                 <textarea
+                  ref={fieldRefs.body}
                   className={cn(input, 'font-mono')}
                   rows={16}
                   value={draft.body}
+                  onFocus={() => setTagTarget('body')}
                   onChange={(e) => set('body', e.target.value)}
                 />
               </Field>
-              <div className="text-[11px] text-[#666]">
-                Merge tags: {MERGE_TAGS.map((m) => m.tag).join(' ')}
-                {draft.kind === 'transactional' && ' — plus any custom {{tag}} you pass from code.'}
-              </div>
+              <MergeTagPicker
+                onInsert={insertTag}
+                target={TAG_FIELD_LABEL[tagTarget]}
+                note={
+                  <>
+                    Referral tags skip anyone without a referral code.
+                    {draft.kind === 'transactional' && ' Transactional templates can also use any custom {{tag}} you pass from code.'}
+                  </>
+                }
+              />
 
               {error && <div className="text-sm text-red-400">{error}</div>}
 

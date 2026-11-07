@@ -12,14 +12,34 @@
  */
 
 export const MERGE_TAGS = [
-  { tag: '{{first_name}}', label: 'First Name' },
-  { tag: '{{name}}', label: 'Name' },
-  { tag: '{{email}}', label: 'Email' },
-  { tag: '{{portal_login_url}}', label: 'Portal Login URL' },
-  { tag: '{{community_url}}', label: 'Community URL' },
-  { tag: '{{hunts_url}}', label: 'Hunts URL' },
-  { tag: '{{rewards_url}}', label: 'Rewards URL' },
+  { tag: '{{first_name}}', label: 'First name', group: 'Person' },
+  { tag: '{{name}}', label: 'Full name', group: 'Person' },
+  { tag: '{{email}}', label: 'Email', group: 'Person' },
+  { tag: '{{portal_url}}', label: 'Portal', group: 'Portal' },
+  { tag: '{{portal_login_url}}', label: 'Portal login', group: 'Portal' },
+  { tag: '{{portal_referrals_url}}', label: 'Portal referrals page', group: 'Portal' },
+  { tag: '{{community_url}}', label: 'Community', group: 'Portal' },
+  { tag: '{{hunts_url}}', label: 'Hunts', group: 'Portal' },
+  { tag: '{{rewards_url}}', label: 'Rewards', group: 'Portal' },
+  { tag: '{{referral_link}}', label: 'Referral link', group: 'Referral' },
+  { tag: '{{shop_referral_link}}', label: 'Shop referral link', group: 'Referral' },
+  { tag: '{{retail_referral_link}}', label: 'Retail referral link', group: 'Referral' },
+  { tag: '{{referral_code}}', label: 'Referral code', group: 'Referral' },
 ] as const
+
+/** Example link values for previews in the composer and template editor. */
+export const SAMPLE_LINK_VARS: Record<string, string> = {
+  portal_url: 'https://untamedbeverages.com/portal',
+  portal_login_url: 'https://untamedbeverages.com/portal/login',
+  portal_referrals_url: 'https://untamedbeverages.com/portal/login?returnTo=%2Fportal%2Freferrals',
+  referral_link: 'https://untamedbeverages.com/?ref=ALEX42',
+  shop_referral_link: 'https://untamedbeverages.com/shop?ref=ALEX42',
+  retail_referral_link: 'https://untamedbeverages.com/retail?ref=ALEX42',
+  referral_code: 'ALEX42',
+  community_url: 'https://untamedbeverages.com/community',
+  hunts_url: 'https://untamedbeverages.com/portal/hunts',
+  rewards_url: 'https://untamedbeverages.com/portal/rewards',
+}
 
 export function applyVariables(text: string, vars: Record<string, string>): string {
   return text.replace(/\{\{\s*([a-z0-9_]+)\s*\}\}/gi, (match, key: string) =>

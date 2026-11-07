@@ -3,7 +3,8 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { resolveStaff } from '@/lib/auth/resolve-staff'
 import { getSenderById, DEFAULT_CRM_SENDER } from '@/lib/crm/senders'
-import { recipientVars } from '@/lib/crm/recipient-vars'
+import { recipientVars, usesReferralTags } from '@/lib/crm/recipient-vars'
+import { fetchReferralCodes } from '@/lib/crm/referral-codes'
 import { renderTemplate } from '@/lib/email/templates'
 import { sendAndLogEmail } from '@/lib/messaging/email-log'
 import { buildUnsubscribeUrl } from '@/lib/messaging/unsubscribe'
@@ -35,11 +36,19 @@ export async function POST(request: NextRequest) {
   }
 
   const sender = getSenderById(senderId || DEFAULT_CRM_SENDER.id)
-  const vars = recipientVars({
+  const testRecipient = {
     email: recipient,
     name: staff.full_name || recipient,
     firstName: (staff.full_name || '').split(' ')[0] || '',
-  })
+  }
+  // Use the test address's own referral code when it has one; otherwise a
+  // sample code, so the test still shows what the link will look like.
+  let referralCode: string | undefined
+  if (usesReferralTags(`${subject}\n${textBody}\n${preheader ?? ''}`)) {
+    const codes = await fetchReferralCodes([testRecipient])
+    referralCode = codes.get(recipient.toLowerCase()) ?? 'SAMPLECODE'
+  }
+  const vars = recipientVars(testRecipient, referralCode)
   const rendered = renderTemplate(
     { subject, body: textBody, preheader: preheader || null },
     vars,

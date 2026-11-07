@@ -6,7 +6,8 @@ import { queryRecipients, type BlastFilters, type BlastRecipient } from '@/lib/c
 import { getSenderById, DEFAULT_CRM_SENDER } from '@/lib/crm/senders'
 import { resolveMemberDataStaff } from '@/lib/auth/resolve-staff'
 import { filterSuppressed } from '@/lib/messaging/suppressions'
-import { recipientVars } from '@/lib/crm/recipient-vars'
+import { recipientVars, usesReferralTags } from '@/lib/crm/recipient-vars'
+import { fetchReferralCodes } from '@/lib/crm/referral-codes'
 import { applyVariables } from '@/lib/email/render'
 
 const MAX_RECIPIENTS = 100_000
@@ -68,13 +69,30 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { allowed: recipients, suppressed } = await filterSuppressed(allRecipients)
+    const { allowed, suppressed } = await filterSuppressed(allRecipients)
 
-    if (recipients.length === 0) {
+    if (allowed.length === 0) {
       return NextResponse.json(
         { error: `All ${suppressed.length} recipients are on the suppression list (bounced or complained).` },
         { status: 400 }
       )
+    }
+
+    // A referral tag with no code would go out as raw {{referral_link}} text,
+    // so recipients without an active referral code are skipped.
+    let referralCodes = new Map<string, string>()
+    let recipients = allowed
+    let noReferralCodeCount = 0
+    if (usesReferralTags(`${subject}\n${textBody}`)) {
+      referralCodes = await fetchReferralCodes(allowed)
+      recipients = allowed.filter((r) => referralCodes.has(r.email.toLowerCase()))
+      noReferralCodeCount = allowed.length - recipients.length
+      if (recipients.length === 0) {
+        return NextResponse.json(
+          { error: `This message uses a referral tag, but none of the ${allowed.length} recipients has a referral code.` },
+          { status: 400 }
+        )
+      }
     }
 
     const admin = createAdminClient()
@@ -109,7 +127,7 @@ export async function POST(request: NextRequest) {
     }
 
     const scheduledRows = recipients.map((r) => {
-      const vars = recipientVars(r)
+      const vars = recipientVars(r, referralCodes.get(r.email.toLowerCase()))
       return {
         message_type: 'email',
         recipient_email: r.email,
@@ -152,13 +170,14 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(
-      `[blast] Queued ${recipients.length} messages for campaign ${campaign.id} (${suppressed.length} suppressed)`
+      `[blast] Queued ${recipients.length} messages for campaign ${campaign.id} (${suppressed.length} suppressed, ${noReferralCodeCount} without a referral code)`
     )
 
     return NextResponse.json({
       campaignId: campaign.id,
       recipientCount: recipients.length,
       suppressedCount: suppressed.length,
+      noReferralCodeCount,
       scheduledFor: isScheduled ? sendAt.toISOString() : null,
     })
   } catch (error: unknown) {

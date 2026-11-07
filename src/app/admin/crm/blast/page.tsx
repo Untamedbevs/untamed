@@ -35,7 +35,7 @@ import {
   formatFilterValue,
 } from '@/lib/crm/blast-constants'
 import { cn } from '@/lib/utils'
-import { MERGE_TAGS, applyVariables, renderEmailHtml } from '@/lib/email/render'
+import { MERGE_TAGS, SAMPLE_LINK_VARS, applyVariables, renderEmailHtml } from '@/lib/email/render'
 
 interface FilterRow {
   id: string
@@ -165,6 +165,7 @@ export default function BlastPage() {
     campaignId: string
     recipientCount: number
     suppressedCount: number
+    noReferralCodeCount?: number
     scheduledFor?: string | null
   } | null>(null)
   const [confirmOpen, setConfirmOpen] = useState(false)
@@ -205,8 +206,7 @@ export default function BlastPage() {
       first_name: sample?.firstName || 'Alex',
       name: sample?.name || 'Alex Rivera',
       email: sample?.email || 'alex@example.com',
-      portal_login_url: 'https://untamedbevs.com/portal/login',
-      community_url: 'https://untamedbevs.com/community',
+      ...SAMPLE_LINK_VARS,
     }
     return {
       subject: applyVariables(subject, vars),
@@ -871,7 +871,7 @@ function FilterRowEditor({
 
 function MergeTagBar({ onInsert }: { onInsert: (tag: string) => void }) {
   return (
-    <div className="flex items-center gap-1 mt-1.5">
+    <div className="flex flex-wrap items-center gap-1 mt-1.5">
       <Tag className="w-3 h-3 text-[#666]" />
       {MERGE_TAGS.map((m) => (
         <button
@@ -1036,6 +1036,7 @@ function SuccessView({
     campaignId: string
     recipientCount: number
     suppressedCount: number
+    noReferralCodeCount?: number
     scheduledFor?: string | null
   }
   onNewBlast: () => void
@@ -1057,6 +1058,13 @@ function SuccessView({
               {' '}
               {sendResult.suppressedCount.toLocaleString()} suppressed recipients
               skipped.
+            </>
+          )}
+          {(sendResult.noReferralCodeCount ?? 0) > 0 && (
+            <>
+              {' '}
+              {sendResult.noReferralCodeCount!.toLocaleString()} recipients without a referral
+              code skipped.
             </>
           )}{' '}
           {sendResult.scheduledFor

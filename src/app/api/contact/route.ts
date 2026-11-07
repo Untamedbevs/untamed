@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
       await sendMetaCapiEvent({
         eventName: 'Contact',
         eventId: `contact:${randomUUID()}`,
-        eventSourceUrl: 'https://untamedbevs.com/contact',
+        eventSourceUrl: 'https://untamedbeverages.com/contact',
         userData: {
           email: data.email,
           firstName: firstName || null,

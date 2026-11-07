@@ -1197,7 +1197,7 @@ function VisionSlide() {
         </div>
         <p className="cyber-brush-fix mt-10 font-wild text-4xl text-gradient-wild md:text-6xl">Live Life Untamed</p>
         <p className="mt-6 font-condensed text-[11px] uppercase tracking-[0.3em] text-muted md:text-xs">
-          Untamed Beverages, LLC — untamedbevs.com — Please drink responsibly. 21+
+          Untamed Beverages, LLC — untamedbeverages.com — Please drink responsibly. 21+
         </p>
       </div>
 
