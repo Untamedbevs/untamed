@@ -282,7 +282,7 @@ export async function creditPaidConversion(
 
     const { data: order } = await supabase
       .from('loyalty_orders')
-      .select('id, email')
+      .select('id, email, created_at')
       .eq('accelpay_sale_id', accelPaySaleId)
       .maybeSingle()
     if (!order) return // Order row not created yet; the other path will retry.
@@ -326,7 +326,16 @@ export async function creditPaidConversion(
         .eq('referred_email', buyerEmail)
         .limit(1)
         .maybeSingle()
-      isFirstPurchase = !priorPurchase
+      // A friend who has ordered from us before isn't a new customer.
+      const { data: earlierOrder } = await supabase
+        .from('loyalty_orders')
+        .select('id')
+        .ilike('email', buyerEmail.replace(/[\\%_]/g, '\\$&'))
+        .neq('id', order.id)
+        .lt('created_at', order.created_at as string)
+        .limit(1)
+        .maybeSingle()
+      isFirstPurchase = !priorPurchase && !earlierOrder
     }
 
     // Always log the conversion event (for tracking), even for self-referrals.

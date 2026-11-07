@@ -34,8 +34,8 @@ export const PROGRAM_RULES_PATH = '/rewards/rules'
  * Version of the Program Rules members accept. Changing it asks every member
  * to review and accept the new rules before they earn or redeem again.
  */
-export const PROGRAM_RULES_VERSION = '2026-11-01'
-export const PROGRAM_RULES_EFFECTIVE = 'November 1, 2026'
+export const PROGRAM_RULES_VERSION = '2026-11-07'
+export const PROGRAM_RULES_EFFECTIVE = 'November 7, 2026'
 
 /** Members re-confirm their eligibility (21+, not in the alcohol trade) yearly. */
 export const ENROLLMENT_VALID_DAYS = 365

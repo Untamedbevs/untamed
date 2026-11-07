@@ -8,7 +8,7 @@ export const POINTS = {
   /** Referrer bonus when a referred friend joins the pack. */
   REFERRAL_SIGNUP: 1_000,
   /** Referrer bonus when a referred friend makes their first purchase. */
-  REFERRAL_FIRST_PURCHASE: 5_000,
+  REFERRAL_FIRST_PURCHASE: 10_000,
   // In-store receipts credit roughly the dollar value of a 4-pack
   // ($24 x POINTS_PER_DOLLAR). Admins can override per receipt.
   PER_RECEIPT: 2_400,

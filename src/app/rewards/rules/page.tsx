@@ -136,6 +136,10 @@ export default async function ProgramRulesPage() {
                         'A friend you referred enrolls and confirms they are 21+',
                         `${POINTS.REFERRAL_SIGNUP.toLocaleString()} points, up to ${CAPS.REFERRAL_CREDITS_PER_YEAR} friends per calendar year`,
                       ],
+                      [
+                        'A friend you referred places their first-ever Untamed order through your link (purchase-point states only)',
+                        `${POINTS.REFERRAL_FIRST_PURCHASE.toLocaleString()} bonus points, up to ${CAPS.REFERRAL_CREDITS_PER_YEAR} friends per calendar year`,
+                      ],
                       ['Your photo or video is approved for the community', `${POINTS.PER_UGC_APPROVED.toLocaleString()} points`],
                       ['Your content is featured by Untamed', `${POINTS.PER_UGC_FEATURED.toLocaleString()} points in total`],
                       [
@@ -222,11 +226,14 @@ export default async function ProgramRulesPage() {
             <Section title="6. Referral rules">
               <ul className="list-disc pl-5 space-y-2">
                 <li>
-                  You get a personal link after you enroll. You earn referral points only
+                  You get a personal link after you enroll. You earn referral points
                   when someone you referred creates a new account through your link and
-                  completes enrollment, including confirming they are 21+ and eligible.
-                  People who already have an account or have bought from us before
-                  don&apos;t count. Each friend counts for one referrer, once. Referring
+                  completes enrollment, including confirming they are 21+ and eligible,
+                  and a first-order bonus when that friend places their first-ever Untamed
+                  order through your link. The first-order bonus follows the purchase
+                  points rules in section 3: you and the order must both be in a
+                  purchase-point state. People who already have an account or have bought
+                  from us before don&apos;t count. Each friend counts for one referrer, once. Referring
                   yourself or someone in your household doesn&apos;t count.
                 </li>
                 <li>
