@@ -23,7 +23,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { sendAndLogEmail } from '@/lib/messaging/email-log'
 import { getSenderById, DEFAULT_CRM_SENDER } from '@/lib/crm/senders'
 import { buildListUnsubscribeHeaders, buildUnsubscribeUrl } from '@/lib/messaging/unsubscribe'
-import { renderEmailHtml, renderEmailText } from '@/lib/email/render'
+import { renderEmailHtml, renderEmailText, type EmailLayout } from '@/lib/email/render'
 
 const CONCURRENCY = 5
 const TIME_BUDGET_MS = 45_000
@@ -60,6 +60,7 @@ interface QueuedMessage {
 interface CampaignInfo {
   senderEmail: string
   preheader?: string
+  layout: EmailLayout
   status: string
 }
 
@@ -104,7 +105,7 @@ export async function GET(request: NextRequest) {
     if (cached) return cached
     const { data } = await admin
       .from('messaging_campaigns')
-      .select('sender_id, status, template:email_templates(preheader)')
+      .select('sender_id, status, layout, template:email_templates(preheader)')
       .eq('id', id)
       .single()
     const template = (data?.template ?? null) as { preheader: string | null } | { preheader: string | null }[] | null
@@ -112,6 +113,7 @@ export async function GET(request: NextRequest) {
     const info: CampaignInfo = {
       senderEmail: data?.sender_id ? getSenderById(data.sender_id).email : DEFAULT_CRM_SENDER.email,
       preheader: preheader || undefined,
+      layout: data?.layout === 'plain' ? 'plain' : 'branded',
       status: data?.status || 'sending',
     }
     campaignCache.set(id, info)
@@ -179,6 +181,7 @@ export async function GET(request: NextRequest) {
         preheader: campaign?.preheader,
         unsubscribeUrl: unsubUrl,
         recipientEmail: msg.recipient_email,
+        layout: campaign?.layout,
       }),
       text: renderEmailText(body, unsubUrl),
       from: senderEmail,

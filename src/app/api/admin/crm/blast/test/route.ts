@@ -18,10 +18,11 @@ export async function POST(request: NextRequest) {
   const staff = await resolveStaff()
   if (!staff) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { subject, textBody, preheader, senderId, to } = (await request.json()) as {
+  const { subject, textBody, preheader, layout, senderId, to } = (await request.json()) as {
     subject?: string
     textBody?: string
     preheader?: string
+    layout?: string
     senderId?: string
     to?: string
   }
@@ -50,7 +51,7 @@ export async function POST(request: NextRequest) {
   }
   const vars = recipientVars(testRecipient, referralCode)
   const rendered = renderTemplate(
-    { subject, body: textBody, preheader: preheader || null },
+    { subject, body: textBody, preheader: preheader || null, layout: layout === 'plain' ? 'plain' : 'branded' },
     vars,
     { unsubscribeUrl: buildUnsubscribeUrl(recipient, null), recipientEmail: recipient }
   )

@@ -21,11 +21,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { filters, subject, textBody, senderId, templateId, segmentId, scheduledFor, name } =
+    const { filters, subject, textBody, layout, senderId, templateId, segmentId, scheduledFor, name } =
       (await request.json()) as {
         filters: BlastFilters
         subject: string
         textBody: string
+        layout?: string
         senderId?: string
         templateId?: string | null
         segmentId?: string | null
@@ -105,6 +106,7 @@ export async function POST(request: NextRequest) {
         channel: 'email',
         subject,
         text_body: textBody,
+        layout: layout === 'plain' ? 'plain' : 'branded',
         sender_id: sender.id,
         audience_filter: filters,
         audience_count: recipients.length,

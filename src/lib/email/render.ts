@@ -65,26 +65,31 @@ export function escapeHtml(s: string): string {
     .replace(/'/g, '&#039;')
 }
 
+export type EmailLayout = 'branded' | 'plain'
+
 const LINK_STYLE = 'color:#B560FF;text-decoration:underline;'
 
-function formatInline(escaped: string): string {
+function formatInline(escaped: string, layout: EmailLayout = 'branded'): string {
+  // Plain emails keep the reader's own text and link colors, like a personal email.
+  const strong = layout === 'plain' ? '<strong>$1</strong>' : '<strong style="color:#FFFFFF;">$1</strong>'
+  const linkStyle = layout === 'plain' ? '' : ` style="${LINK_STYLE}"`
   return escaped
-    .replace(/\*\*(.+?)\*\*/g, '<strong style="color:#FFFFFF;">$1</strong>')
+    .replace(/\*\*(.+?)\*\*/g, strong)
     .replace(
       /(https?:\/\/[^\s<]+[^\s<.,;:!?)'"&])/g,
-      (url) => `<a href="${url}" style="${LINK_STYLE}">${url}</a>`
+      (url) => `<a href="${url}"${linkStyle}>${url}</a>`
     )
 }
 
 /** Convert a plain-text body into paragraph HTML (no outer layout). */
-export function bodyToHtml(text: string): string {
+export function bodyToHtml(text: string, layout: EmailLayout = 'branded'): string {
   return text
     .replace(/\r\n/g, '\n')
     .trim()
     .split(/\n{2,}/)
     .map(
       (para) =>
-        `<p style="margin:0 0 16px 0;">${formatInline(escapeHtml(para)).replace(/\n/g, '<br>')}</p>`
+        `<p style="margin:0 0 16px 0;">${formatInline(escapeHtml(para), layout).replace(/\n/g, '<br>')}</p>`
     )
     .join('\n')
 }
@@ -97,6 +102,8 @@ export interface LayoutOptions {
   /** Bulk mail: include the unsubscribe footer */
   unsubscribeUrl?: string
   recipientEmail?: string
+  /** 'branded' = dark card layout; 'plain' = reads like a personal email */
+  layout?: EmailLayout
 }
 
 /** Wrap a body in the branded Untamed email layout. */
@@ -105,7 +112,9 @@ export function renderEmailHtml({
   preheader,
   unsubscribeUrl,
   recipientEmail,
+  layout = 'branded',
 }: LayoutOptions): string {
+  if (layout === 'plain') return renderPlainEmailHtml({ body, preheader, unsubscribeUrl, recipientEmail })
   const footer = unsubscribeUrl
     ? `You're receiving this because you signed up for Untamed updates${
         recipientEmail ? ` as <span style="color:#888;">${escapeHtml(recipientEmail)}</span>` : ''
@@ -143,6 +152,34 @@ export function renderEmailHtml({
       </td>
     </tr>
   </table>
+</body>
+</html>`
+}
+
+/**
+ * A personal-looking email: no background, card or brand bar, the reader's
+ * own font colors (so it suits light and dark mail apps), and a small grey
+ * footer that keeps the unsubscribe link bulk mail needs.
+ */
+function renderPlainEmailHtml({ body, preheader, unsubscribeUrl, recipientEmail }: LayoutOptions): string {
+  const pre = preheader
+    ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0;">${escapeHtml(preheader)}</div>`
+    : ''
+  const footer = unsubscribeUrl
+    ? `You're getting this because you signed up for Untamed updates${
+        recipientEmail ? ` as ${escapeHtml(recipientEmail)}` : ''
+      }. <a href="${unsubscribeUrl}" style="color:#888;">Unsubscribe</a><br>Untamed Beverages, LLC`
+    : 'Untamed Beverages, LLC'
+
+  return `<!doctype html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;">
+  ${pre}
+  <div style="max-width:600px;padding:16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.55;">
+    ${bodyToHtml(body, 'plain')}
+    <p style="margin:32px 0 0 0;font-size:12px;line-height:1.5;color:#888;">${footer}</p>
+  </div>
 </body>
 </html>`
 }

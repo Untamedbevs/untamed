@@ -1,6 +1,7 @@
 import { CRM_SENDERS } from '@/lib/crm/senders'
 
 const KINDS = new Set(['campaign', 'transactional'])
+const LAYOUTS = new Set(['branded', 'plain'])
 const AUDIENCES = new Set(['loyalty', 'referrers', 'distributors', 'all', 'staff'])
 const SENDERS = new Set<string>(CRM_SENDERS.map((s) => s.id))
 
@@ -60,6 +61,10 @@ export function parseTemplateInput(
     const v = str('default_audience') || null
     if (v && !AUDIENCES.has(v)) return { error: 'Invalid audience' }
     out.default_audience = v
+  }
+  if (b.layout !== undefined) {
+    if (typeof b.layout !== 'string' || !LAYOUTS.has(b.layout)) return { error: 'Invalid layout' }
+    out.layout = b.layout
   }
   if (b.is_archived !== undefined) out.is_archived = !!b.is_archived
 

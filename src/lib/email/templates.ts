@@ -15,7 +15,7 @@
 
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendAndLogEmail, type LoggedEmailParams } from '@/lib/messaging/email-log'
-import { applyVariables, missingVariables, renderEmailHtml, renderEmailText } from '@/lib/email/render'
+import { applyVariables, missingVariables, renderEmailHtml, renderEmailText, type EmailLayout } from '@/lib/email/render'
 import { getSenderById } from '@/lib/crm/senders'
 
 export interface EmailTemplate {
@@ -26,6 +26,7 @@ export interface EmailTemplate {
   subject: string
   body: string
   preheader: string | null
+  layout: EmailLayout
   sender_id: string | null
   default_audience: 'loyalty' | 'referrers' | 'distributors' | 'all' | 'staff' | null
   is_archived: boolean
@@ -50,7 +51,7 @@ export interface RenderedEmail {
 }
 
 export function renderTemplate(
-  template: Pick<EmailTemplate, 'subject' | 'body' | 'preheader'>,
+  template: Pick<EmailTemplate, 'subject' | 'body' | 'preheader'> & { layout?: EmailLayout | null },
   vars: Record<string, string>,
   opts: { unsubscribeUrl?: string; recipientEmail?: string } = {}
 ): RenderedEmail {
@@ -62,6 +63,7 @@ export function renderTemplate(
       preheader: template.preheader ? applyVariables(template.preheader, vars) : undefined,
       unsubscribeUrl: opts.unsubscribeUrl,
       recipientEmail: opts.recipientEmail,
+      layout: template.layout ?? 'branded',
     }),
     text: renderEmailText(body, opts.unsubscribeUrl),
   }

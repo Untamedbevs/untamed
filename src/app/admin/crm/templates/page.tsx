@@ -4,7 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, FileText, Loader2, Plus, Archive, Save } from 'lucide-react'
 import { CRM_SENDERS } from '@/lib/crm/senders'
-import { SAMPLE_LINK_VARS, applyVariables, renderEmailHtml } from '@/lib/email/render'
+import { SAMPLE_LINK_VARS, applyVariables, renderEmailHtml, type EmailLayout } from '@/lib/email/render'
+import { EmailLayoutPicker, previewFrameBg } from '@/components/admin/EmailLayoutPicker'
 import { MergeTagPicker } from '@/components/admin/MergeTagPicker'
 import { cn } from '@/lib/utils'
 
@@ -16,6 +17,7 @@ interface Template {
   subject: string
   body: string
   preheader: string | null
+  layout: EmailLayout
   sender_id: string | null
   default_audience: string | null
   updated_at: string
@@ -33,6 +35,7 @@ const EMPTY: Draft = {
   subject: '',
   body: '',
   preheader: '',
+  layout: 'plain',
   sender_id: 'support',
   default_audience: 'loyalty',
 }
@@ -76,6 +79,7 @@ export default function TemplatesPage() {
       preheader: draft.preheader ? applyVariables(draft.preheader, SAMPLE_VARS) : undefined,
       unsubscribeUrl: draft.kind === 'campaign' ? '#' : undefined,
       recipientEmail: SAMPLE_VARS.email,
+      layout: draft.layout,
     })
   }, [draft])
 
@@ -247,6 +251,9 @@ export default function TemplatesPage() {
                   </Field>
                 )}
               </div>
+              <Field label="Look">
+                <EmailLayoutPicker value={draft.layout} onChange={(v) => set('layout', v)} />
+              </Field>
               <Field label="Subject">
                 <input
                   ref={fieldRefs.subject}
@@ -327,7 +334,7 @@ await sendTemplateEmail('${draft.slug}', {
                 title="Template preview"
                 srcDoc={preview}
                 sandbox=""
-                className="w-full h-[640px] rounded-lg border border-[#2A2A2A] bg-[#0A0A0A]"
+                className={cn('w-full h-[640px] rounded-lg border border-[#2A2A2A]', previewFrameBg(draft.layout))}
               />
             </section>
           </div>
