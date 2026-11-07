@@ -75,39 +75,52 @@ export function verifyUnsubscribeToken(token: string): UnsubscribePayload | null
   }
 }
 
+function resolveOrigin(siteOrigin?: string): string {
+  return (siteOrigin || process.env.NEXT_PUBLIC_SITE_URL || 'https://untamedbeverages.com').replace(
+    /\/$/,
+    ''
+  )
+}
+
+/** "jane@example.com" -> "j***@example.com", for showing on public pages. */
+export function maskEmail(email: string): string {
+  const [local, domain] = email.split('@')
+  if (!domain) return '***'
+  return `${local.slice(0, 1)}***@${domain}`
+}
+
 /**
- * Build the public unsubscribe URL for a recipient.
- * Site origin is resolved from `NEXT_PUBLIC_SITE_URL` (set in env for prod).
+ * Public unsubscribe page URL for a recipient (the link in the email footer).
+ * The page asks for a click to confirm, so mail scanners that open links
+ * don't unsubscribe anyone.
  */
 export function buildUnsubscribeUrl(
   email: string,
   campaignId?: string | null,
   siteOrigin?: string
 ): string {
-  const origin =
-    siteOrigin ||
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    'https://untamedbeverages.com'
   const token = signUnsubscribeToken(email, campaignId)
-  return `${origin.replace(/\/$/, '')}/unsubscribe?t=${encodeURIComponent(token)}`
+  return `${resolveOrigin(siteOrigin)}/unsubscribe?t=${encodeURIComponent(token)}`
 }
 
 /**
  * Build the RFC 8058 / 2369 List-Unsubscribe headers for an email.
  *
  * Returns:
- * - `List-Unsubscribe`: `<https://...>, <mailto:unsubscribe@...>`
- * - `List-Unsubscribe-Post`: `List-Unsubscribe=One-Click` (for Gmail one-click)
+ * - `List-Unsubscribe`: `<https://.../api/unsubscribe?t=...>, <mailto:unsubscribe@...>`
+ * - `List-Unsubscribe-Post`: `List-Unsubscribe=One-Click` (Gmail/Yahoo one-click)
  *
- * The mailto fallback goes to `unsubscribe@untamedbeverages.com`. That address
- * is monitored manually for now; AWS-SES doesn't auto-handle mailto unsubs.
+ * The HTTPS target is the API route, which accepts the one-click POST
+ * directly. The mailto fallback goes to `unsubscribe@untamedbeverages.com`,
+ * which is processed by hand.
  */
 export function buildListUnsubscribeHeaders(
   email: string,
   campaignId?: string | null,
   siteOrigin?: string
 ): { 'List-Unsubscribe': string; 'List-Unsubscribe-Post': string } {
-  const url = buildUnsubscribeUrl(email, campaignId, siteOrigin)
+  const token = signUnsubscribeToken(email, campaignId)
+  const url = `${resolveOrigin(siteOrigin)}/api/unsubscribe?t=${encodeURIComponent(token)}`
   const mailto = `unsubscribe@untamedbeverages.com?subject=${encodeURIComponent(
     `unsubscribe ${email}`
   )}`

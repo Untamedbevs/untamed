@@ -6,6 +6,10 @@
  * recipient to `email_suppressions` so future blasts skip them.
  *
  * The full SNS payload is appended to `email_webhook_events` for audit.
+ *
+ * Only messages with a valid Amazon SNS signature from a topic listed in
+ * SES_SNS_TOPIC_ARNS (comma-separated) are trusted. Anything else is refused
+ * before it can touch the suppression list or make us fetch a URL.
  */
 
 export const dynamic = 'force-dynamic'
@@ -13,14 +17,13 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { addSuppression } from '@/lib/messaging/suppressions'
+import { isSnsEnvelope, isSnsUrl, verifySnsSignature, type SnsEnvelope } from '@/lib/email/sns-verify'
 
-interface SnsEnvelope {
-  Type: string
-  MessageId?: string
-  Token?: string
-  TopicArn?: string
-  Message?: string
-  SubscribeURL?: string
+function allowedTopicArns(): string[] {
+  return (process.env.SES_SNS_TOPIC_ARNS || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
 }
 
 interface SesNotification {
@@ -51,19 +54,32 @@ interface SesNotification {
 export async function POST(request: NextRequest) {
   try {
     const raw = await request.text()
-    let envelope: SnsEnvelope
+    let parsed: unknown
     try {
-      envelope = JSON.parse(raw)
+      parsed = JSON.parse(raw)
     } catch {
       return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
+    }
+
+    if (!isSnsEnvelope(parsed)) {
+      return NextResponse.json({ error: 'Not an SNS message' }, { status: 400 })
+    }
+    const envelope: SnsEnvelope = parsed
+    if (!allowedTopicArns().includes(envelope.TopicArn)) {
+      console.warn('[SES webhook] Rejected message from unlisted topic')
+      return NextResponse.json({ error: 'Unknown topic' }, { status: 403 })
+    }
+    if (!(await verifySnsSignature(envelope))) {
+      console.warn('[SES webhook] Rejected message with invalid SNS signature')
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 403 })
     }
 
     const admin = createAdminClient()
 
     // Subscription handshake -- SNS sends this once when subscribing.
-    if (envelope.Type === 'SubscriptionConfirmation' && envelope.SubscribeURL) {
+    if (envelope.Type === 'SubscriptionConfirmation' && isSnsUrl(envelope.SubscribeURL)) {
       try {
-        const res = await fetch(envelope.SubscribeURL)
+        const res = await fetch(envelope.SubscribeURL!, { redirect: 'error' })
         console.log(`[SES webhook] Confirmed SNS subscription (${res.status})`)
       } catch (err) {
         console.error('[SES webhook] Failed to confirm subscription:', err)

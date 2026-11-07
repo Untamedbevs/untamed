@@ -77,6 +77,10 @@ export interface LayoutOptions {
   /** Bulk mail: include the unsubscribe footer */
   unsubscribeUrl?: string
   recipientEmail?: string
+  /** Bulk mail: sender's postal address (CAN-SPAM) */
+  postalAddress?: string
+  /** Bulk mail: privacy policy link */
+  privacyUrl?: string
 }
 
 /** Wrap a body in the branded Untamed email layout. */
@@ -85,14 +89,23 @@ export function renderEmailHtml({
   preheader,
   unsubscribeUrl,
   recipientEmail,
+  postalAddress,
+  privacyUrl,
 }: LayoutOptions): string {
+  const linkStyle = 'color:#9B30FF;text-decoration:underline;'
   const footer = unsubscribeUrl
     ? `You're receiving this because you signed up for Untamed updates${
         recipientEmail ? ` as <span style="color:#888;">${escapeHtml(recipientEmail)}</span>` : ''
       }.<br>
-              <a href="${unsubscribeUrl}" style="color:#9B30FF;text-decoration:underline;">Unsubscribe</a>
+              <a href="${escapeHtml(unsubscribeUrl)}" style="${linkStyle}">Unsubscribe</a>${
+                privacyUrl
+                  ? `
               &nbsp;&middot;&nbsp;
-              Untamed Beverages, LLC`
+              <a href="${escapeHtml(privacyUrl)}" style="${linkStyle}">Privacy Policy</a>`
+                  : ''
+              }<br>
+              Untamed Beverages, LLC${postalAddress ? ` &middot; ${escapeHtml(postalAddress)}` : ''}<br>
+              For adults 21 and over. Please enjoy responsibly.`
     : 'Untamed Beverages, LLC'
 
   const pre = preheader
@@ -127,8 +140,19 @@ export function renderEmailHtml({
 </html>`
 }
 
-/** Plain-text alternative: strip **bold** markers, append unsubscribe link. */
-export function renderEmailText(body: string, unsubscribeUrl?: string): string {
+/** Plain-text alternative: strip **bold** markers, append the bulk-mail footer. */
+export function renderEmailText(
+  body: string,
+  unsubscribeUrl?: string,
+  footer: { postalAddress?: string; privacyUrl?: string } = {}
+): string {
   const text = body.replace(/\*\*(.+?)\*\*/g, '$1').trim()
-  return unsubscribeUrl ? `${text}\n\n---\nUnsubscribe: ${unsubscribeUrl}` : text
+  if (!unsubscribeUrl) return text
+  const lines = [
+    `Unsubscribe: ${unsubscribeUrl}`,
+    footer.privacyUrl ? `Privacy Policy: ${footer.privacyUrl}` : null,
+    `Untamed Beverages, LLC${footer.postalAddress ? `, ${footer.postalAddress}` : ''}`,
+    'For adults 21 and over. Please enjoy responsibly.',
+  ].filter(Boolean)
+  return `${text}\n\n---\n${lines.join('\n')}`
 }

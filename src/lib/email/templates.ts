@@ -17,6 +17,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { sendAndLogEmail, type LoggedEmailParams } from '@/lib/messaging/email-log'
 import { applyVariables, missingVariables, renderEmailHtml, renderEmailText } from '@/lib/email/render'
 import { getSenderById } from '@/lib/crm/senders'
+import { getPostalAddress, getPrivacyUrl } from '@/lib/email/compliance'
 
 export interface EmailTemplate {
   id: string
@@ -55,6 +56,9 @@ export function renderTemplate(
   opts: { unsubscribeUrl?: string; recipientEmail?: string } = {}
 ): RenderedEmail {
   const body = applyVariables(template.body, vars)
+  const footer = opts.unsubscribeUrl
+    ? { postalAddress: getPostalAddress(), privacyUrl: getPrivacyUrl() }
+    : {}
   return {
     subject: applyVariables(template.subject, vars),
     html: renderEmailHtml({
@@ -62,8 +66,9 @@ export function renderTemplate(
       preheader: template.preheader ? applyVariables(template.preheader, vars) : undefined,
       unsubscribeUrl: opts.unsubscribeUrl,
       recipientEmail: opts.recipientEmail,
+      ...footer,
     }),
-    text: renderEmailText(body, opts.unsubscribeUrl),
+    text: renderEmailText(body, opts.unsubscribeUrl, footer),
   }
 }
 

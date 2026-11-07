@@ -1,17 +1,33 @@
 import Link from 'next/link'
+import type { Metadata } from 'next'
 import { CheckCircle, AlertCircle, Mail } from 'lucide-react'
+import { maskEmail, verifyUnsubscribeToken } from '@/lib/messaging/unsubscribe'
 
 export const dynamic = 'force-dynamic'
 
+export const metadata: Metadata = {
+  title: 'Unsubscribe | Untamed Beverages',
+  robots: { index: false, follow: false },
+}
+
 interface Props {
-  searchParams: Promise<{ status?: string; email?: string; msg?: string }>
+  searchParams: Promise<{ status?: string; t?: string }>
+}
+
+function emailFromToken(token: string | undefined): string | null {
+  if (!token) return null
+  try {
+    return verifyUnsubscribeToken(token)?.e || null
+  } catch {
+    return null
+  }
 }
 
 export default async function UnsubscribePage({ searchParams }: Props) {
   const params = await searchParams
   const status = params.status
-  const email = params.email
-  const msg = params.msg
+  const token = params.t
+  const email = emailFromToken(token)
 
   if (status === 'ok') {
     return (
@@ -23,7 +39,7 @@ export default async function UnsubscribePage({ searchParams }: Props) {
         {email && (
           <p className="text-sm text-[#A0A0A0] mb-1">
             We&apos;ve removed{' '}
-            <span className="text-white font-mono">{email}</span> from all Untamed
+            <span className="text-white font-mono">{maskEmail(email)}</span> from all Untamed
             email lists.
           </p>
         )}
@@ -44,17 +60,19 @@ export default async function UnsubscribePage({ searchParams }: Props) {
     )
   }
 
-  if (status === 'error') {
+  if (status === 'error' || (token && !email)) {
     return (
       <Wrapper>
         <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-red-500/15 text-red-400 mb-5">
           <AlertCircle className="w-7 h-7" />
         </div>
         <h1 className="text-2xl font-bold text-white mb-2">
-          Unsubscribe link expired
+          {email ? 'Something went wrong' : 'This link isn’t valid'}
         </h1>
         <p className="text-sm text-[#A0A0A0] mb-6">
-          {msg || 'This link is no longer valid.'} Email{' '}
+          {email
+            ? 'We couldn’t process your unsubscribe just now. Please try again in a minute, or email '
+            : 'This unsubscribe link is incomplete or has been changed. Email '}
           <a
             href="mailto:unsubscribe@untamedbeverages.com"
             className="text-[#9B30FF] hover:underline"
@@ -63,12 +81,34 @@ export default async function UnsubscribePage({ searchParams }: Props) {
           </a>{' '}
           and we&apos;ll remove you manually within 1 business day.
         </p>
+        {email && token && <ConfirmForm token={token} label="Try again" />}
         <Link
           href="/"
-          className="inline-block px-5 py-2.5 rounded-full border border-[#2A2A2A] text-[#A0A0A0] text-sm hover:text-white hover:border-[#3A3A3A]"
+          className="inline-block mt-4 px-5 py-2.5 rounded-full border border-[#2A2A2A] text-[#A0A0A0] text-sm hover:text-white hover:border-[#3A3A3A]"
         >
           Back to Untamed
         </Link>
+      </Wrapper>
+    )
+  }
+
+  if (email && token) {
+    return (
+      <Wrapper>
+        <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-[#9B30FF]/15 text-[#9B30FF] mb-5">
+          <Mail className="w-7 h-7" />
+        </div>
+        <h1 className="text-2xl font-bold text-white mb-2">Unsubscribe?</h1>
+        <p className="text-sm text-[#A0A0A0] mb-6">
+          Stop all Untamed marketing email to{' '}
+          <span className="text-white font-mono">{maskEmail(email)}</span>. Takes effect
+          immediately.
+        </p>
+        <ConfirmForm token={token} label="Unsubscribe from all Untamed emails" />
+        <p className="text-xs text-[#666] mt-6">
+          Transactional emails about a purchase, your account, or a loyalty receipt
+          may still be sent.
+        </p>
       </Wrapper>
     )
   }
@@ -97,6 +137,21 @@ export default async function UnsubscribePage({ searchParams }: Props) {
         Back to Untamed
       </Link>
     </Wrapper>
+  )
+}
+
+function ConfirmForm({ token, label }: { token: string; label: string }) {
+  return (
+    <form method="post" action="/api/unsubscribe">
+      <input type="hidden" name="t" value={token} />
+      <input type="hidden" name="confirm" value="1" />
+      <button
+        type="submit"
+        className="w-full px-5 py-3 rounded-full bg-[#9B30FF] text-white text-sm font-medium hover:bg-[#B560FF] transition-colors"
+      >
+        {label}
+      </button>
+    </form>
   )
 }
 

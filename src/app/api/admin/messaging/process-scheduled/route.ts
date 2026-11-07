@@ -5,7 +5,10 @@
  *   1. Releases rows stuck in `processing` (crashed run) back to `pending`.
  *   2. Works out how much of the rolling 24h send budget is left
  *      (EMAIL_DAILY_LIMIT, default 1800 — smtp.gmail.com allows ~2,000
- *      recipients/day; the Workspace SMTP relay allows ~10,000).
+ *      recipients/day; the Workspace SMTP relay allows ~10,000), minus
+ *      EMAIL_TRANSACTIONAL_RESERVE (default 200) kept free for sign-in links
+ *      and rewards notices, which share the same Workspace account.
+ *      Blasts are held entirely while EMAIL_POSTAL_ADDRESS is unset.
  *   3. Claims due rows atomically via `claim_scheduled_messages`
  *      (FOR UPDATE SKIP LOCKED, so overlapping runs never double-send).
  *   4. Sends with small concurrency; transient failures are retried with
@@ -24,6 +27,7 @@ import { sendAndLogEmail } from '@/lib/messaging/email-log'
 import { getSenderById, DEFAULT_CRM_SENDER } from '@/lib/crm/senders'
 import { buildListUnsubscribeHeaders, buildUnsubscribeUrl } from '@/lib/messaging/unsubscribe'
 import { renderEmailHtml, renderEmailText } from '@/lib/email/render'
+import { getPostalAddress, getPrivacyUrl, POSTAL_ADDRESS_MISSING } from '@/lib/email/compliance'
 
 const CONCURRENCY = 5
 const TIME_BUDGET_MS = 45_000
@@ -34,6 +38,12 @@ const RETRY_BACKOFF_MS = [2 * 60_000, 10 * 60_000, 30 * 60_000]
 function dailyLimit(): number {
   const n = parseInt(process.env.EMAIL_DAILY_LIMIT || '', 10)
   return Number.isFinite(n) && n > 0 ? n : 1800
+}
+
+/** Sends left unused by blasts so sign-in links and notices still go out. */
+function transactionalReserve(): number {
+  const n = parseInt(process.env.EMAIL_TRANSACTIONAL_RESERVE || '', 10)
+  return Number.isFinite(n) && n >= 0 ? n : 200
 }
 
 function isPermanentFailure(err: unknown): boolean {
@@ -72,6 +82,14 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  // CAN-SPAM: no postal address, no marketing. Rows stay pending until it's set.
+  const postalAddress = getPostalAddress()
+  if (!postalAddress) {
+    console.warn(`[process-scheduled] ${POSTAL_ADDRESS_MISSING}`)
+    return NextResponse.json({ sent: 0, held: true, reason: POSTAL_ADDRESS_MISSING })
+  }
+  const privacyUrl = getPrivacyUrl()
+
   const startedAt = Date.now()
   const admin = createAdminClient()
   let sent = 0
@@ -94,7 +112,7 @@ export async function GET(request: NextRequest) {
     .select('id', { count: 'exact', head: true })
     .eq('direction', 'outbound')
     .gte('sent_at', since)
-  let budget = Math.max(0, dailyLimit() - (sentLast24h || 0))
+  let budget = Math.max(0, dailyLimit() - transactionalReserve() - (sentLast24h || 0))
 
   const campaignCache = new Map<string, CampaignInfo>()
   const touchedCampaigns = new Set<string>()
@@ -179,8 +197,10 @@ export async function GET(request: NextRequest) {
         preheader: campaign?.preheader,
         unsubscribeUrl: unsubUrl,
         recipientEmail: msg.recipient_email,
+        postalAddress,
+        privacyUrl,
       }),
-      text: renderEmailText(body, unsubUrl),
+      text: renderEmailText(body, unsubUrl, { postalAddress, privacyUrl }),
       from: senderEmail,
       replyTo: senderEmail,
       headers: buildListUnsubscribeHeaders(msg.recipient_email, campaignId),
