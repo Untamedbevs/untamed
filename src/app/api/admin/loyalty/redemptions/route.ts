@@ -87,7 +87,7 @@ export async function PUT(request: NextRequest) {
 
     const { data: redemption } = await supabase
       .from('loyalty_redemptions')
-      .select('*, member:loyalty_members(id, points_balance)')
+      .select('*')
       .eq('id', id)
       .maybeSingle()
 
@@ -104,7 +104,9 @@ export async function PUT(request: NextRequest) {
     const now = new Date().toISOString()
 
     if (action === 'fulfill') {
-      const { error: updateErr } = await supabase
+      // Conditional on 'pending', so a redemption cancelled (and refunded) a
+      // moment ago can't also be marked fulfilled.
+      const { data: fulfilled, error: updateErr } = await supabase
         .from('loyalty_redemptions')
         .update({
           status: 'fulfilled',
@@ -113,72 +115,44 @@ export async function PUT(request: NextRequest) {
           admin_notes: notes ?? redemption.admin_notes,
         })
         .eq('id', id)
+        .eq('status', 'pending')
+        .select('id')
+        .maybeSingle()
 
       if (updateErr) {
         console.error('[admin/loyalty/redemptions PUT] Fulfill failed:', updateErr)
         return NextResponse.json({ error: updateErr.message }, { status: 500 })
       }
+      if (!fulfilled) {
+        return NextResponse.json({ error: 'Already decided' }, { status: 409 })
+      }
 
       return NextResponse.json({ ok: true, status: 'fulfilled' })
     }
 
-    // action === 'cancel' — refund the points
-    const member = redemption.member as { id: string; points_balance: number } | null
-    if (!member) {
-      return NextResponse.json({ error: 'Member missing' }, { status: 500 })
-    }
-
-    const { data: refundTxn, error: txnErr } = await supabase
-      .from('loyalty_transactions')
-      .insert({
-        member_id: member.id,
-        points: redemption.points_cost,
-        type: 'adjustment',
-        description: `Refund for cancelled redemption: ${redemption.reward_label}`,
-        created_by_staff_id: staff.id,
-      })
-      .select('id')
-      .single()
-
-    if (txnErr || !refundTxn) {
-      console.error('[admin/loyalty/redemptions PUT] Refund txn failed:', txnErr)
+    // action === 'cancel': one locked call moves the redemption out of
+    // 'pending' and refunds its points, so it is refunded at most once.
+    const { data, error: cancelErr } = await supabase.rpc('loyalty_cancel_redemption', {
+      p_redemption_id: id,
+      p_staff_id: staff.id,
+      p_notes: notes ?? null,
+    })
+    if (cancelErr) {
+      console.error('[admin/loyalty/redemptions PUT] Cancel failed:', cancelErr)
       return NextResponse.json({ error: 'Refund failed' }, { status: 500 })
     }
-
-    const newBalance = (member.points_balance ?? 0) + redemption.points_cost
-    const { error: balErr } = await supabase
-      .from('loyalty_members')
-      .update({ points_balance: newBalance })
-      .eq('id', member.id)
-
-    if (balErr) {
-      console.error('[admin/loyalty/redemptions PUT] Balance refund failed:', balErr)
-      // Roll back the refund txn
-      await supabase.from('loyalty_transactions').delete().eq('id', refundTxn.id)
-      return NextResponse.json({ error: balErr.message }, { status: 500 })
-    }
-
-    const { error: cancelErr } = await supabase
-      .from('loyalty_redemptions')
-      .update({
-        status: 'cancelled',
-        cancelled_at: now,
-        admin_notes: notes ?? redemption.admin_notes,
-        refund_transaction_id: refundTxn.id,
-        fulfilled_by: staff.id,
-      })
-      .eq('id', id)
-
-    if (cancelErr) {
-      console.error('[admin/loyalty/redemptions PUT] Cancel update failed:', cancelErr)
-      return NextResponse.json({ error: cancelErr.message }, { status: 500 })
+    const row = (Array.isArray(data) ? data[0] : data) as
+      | { result: string; refunded_points: number; new_balance: number | null }
+      | undefined
+    if (row?.result !== 'cancelled') {
+      return NextResponse.json({ error: `Already ${row?.result ?? 'decided'}` }, { status: 409 })
     }
 
     return NextResponse.json({
       ok: true,
       status: 'cancelled',
-      refundedPoints: redemption.points_cost,
-      newBalance,
+      refundedPoints: row.refunded_points,
+      newBalance: row.new_balance,
     })
   } catch (error) {
     console.error('[admin/loyalty/redemptions PUT] Failed:', error)

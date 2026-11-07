@@ -1,6 +1,7 @@
 import { SupabaseClient } from '@supabase/supabase-js'
 import { RESERVED_CODES, CODE_REGEX } from './constants'
 import { POINTS } from '@/lib/loyalty/constants'
+import { applyPoints } from '@/lib/rewards/ledger'
 
 export function isValidReferralCode(code: string): { valid: boolean; error?: string } {
   if (code.length < 2 || code.length > 20) {
@@ -168,8 +169,9 @@ export async function ensureReferralParticipant(
 }
 
 /**
- * Insert a loyalty transaction for a referrer and bump their balance.
- * The referral program pays flat, instant points -- no tiers, no claiming.
+ * Credit a referrer's loyalty balance through the locked ledger, so it can't
+ * overwrite a change landing at the same time. The referral program pays
+ * flat, instant points -- no tiers, no claiming.
  */
 async function creditReferrerLoyaltyPoints(
   supabase: SupabaseClient,
@@ -178,24 +180,7 @@ async function creditReferrerLoyaltyPoints(
   type: 'referral_signup' | 'referral_purchase',
   description: string
 ): Promise<void> {
-  const { data: member } = await supabase
-    .from('loyalty_members')
-    .select('points_balance')
-    .eq('id', loyaltyMemberId)
-    .maybeSingle()
-  if (!member) return
-
-  await supabase.from('loyalty_transactions').insert({
-    member_id: loyaltyMemberId,
-    points,
-    type,
-    description,
-  })
-
-  await supabase
-    .from('loyalty_members')
-    .update({ points_balance: ((member.points_balance as number) || 0) + points })
-    .eq('id', loyaltyMemberId)
+  await applyPoints(supabase, { memberId: loyaltyMemberId, points, type, description })
 }
 
 /**

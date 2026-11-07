@@ -152,52 +152,51 @@ export async function PUT(
         ? POINTS.PER_UGC_FEATURED
         : POINTS.PER_UGC_APPROVED
 
+    if (
+      body.customPoints !== undefined &&
+      body.customPoints !== null &&
+      !(Number.isInteger(body.customPoints) && body.customPoints >= 0)
+    ) {
+      return NextResponse.json(
+        { error: 'customPoints must be a whole number, 0 or more' },
+        { status: 400 }
+      )
+    }
+
     const pointsToAward =
-      typeof body.customPoints === 'number' && body.customPoints >= 0
+      typeof body.customPoints === 'number'
         ? body.customPoints
         : Math.max(0, targetTotal - (submission.points_awarded || 0))
 
-    const updatePayload: Record<string, unknown> = {
-      status: targetStatus,
-      reviewed_by: staff.id,
-      reviewed_at: now,
-      rejection_reason: null,
-      updated_at: now,
+    // One locked call writes the status, the submission's points and the
+    // member's points together, and only if points_awarded is still what we
+    // read above, so two reviews at once can't both credit the member.
+    const { data: reviewed, error: reviewErr } = await admin.rpc('loyalty_review_ugc', {
+      p_submission_id: id,
+      p_status: targetStatus,
+      p_points: pointsToAward,
+      p_expected_points: submission.points_awarded ?? 0,
+      p_description:
+        targetStatus === 'featured'
+          ? `UGC featured (+${pointsToAward} pts)`
+          : `UGC approved (+${pointsToAward} pts)`,
+      p_staff_id: staff.id,
+    })
+    if (reviewErr) {
+      console.error('[admin/ugc PUT] Review failed:', reviewErr)
+      return NextResponse.json({ error: 'Review failed' }, { status: 500 })
     }
-
-    if (pointsToAward > 0) {
-      updatePayload.points_awarded =
-        (submission.points_awarded || 0) + pointsToAward
+    const row = (Array.isArray(reviewed) ? reviewed[0] : reviewed) as
+      | { result: string; awarded: number }
+      | undefined
+    if (row?.result === 'changed') {
+      return NextResponse.json(
+        { error: 'This submission was just reviewed by someone else. Refresh and try again.' },
+        { status: 409 }
+      )
     }
-
-    await admin.from('ugc_submissions').update(updatePayload).eq('id', id)
-
-    if (pointsToAward > 0 && submission.loyalty_member_id) {
-      await admin.from('loyalty_transactions').insert({
-        member_id: submission.loyalty_member_id,
-        points: pointsToAward,
-        type: 'ugc_approved',
-        description:
-          targetStatus === 'featured'
-            ? `UGC featured (+${pointsToAward} pts)`
-            : `UGC approved (+${pointsToAward} pts)`,
-        created_by_staff_id: staff.id,
-      })
-
-      const { data: member } = await admin
-        .from('loyalty_members')
-        .select('points_balance')
-        .eq('id', submission.loyalty_member_id)
-        .single()
-
-      if (member) {
-        await admin
-          .from('loyalty_members')
-          .update({
-            points_balance: (member.points_balance || 0) + pointsToAward,
-          })
-          .eq('id', submission.loyalty_member_id)
-      }
+    if (row?.result !== targetStatus) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
 
     if (body.promoteToLibrary) {

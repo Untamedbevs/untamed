@@ -1,0 +1,33 @@
+---
+title: "A member's points while an order is credited and a reward is redeemed"
+---
+stateDiagram-v2
+  state "Legend" as legend {
+    lg0: Waiting for the order
+    lg1: Order saved
+    lg2: Points added
+  }
+  class lg0 tan
+  class lg1 orange
+  class lg2 teal
+  s0: Order not saved yet
+  s1: Order saved, no points yet
+  s2: Order points added
+  s3: Order not saved yet, reward redeemed
+  s4: Order saved, no points yet, reward redeemed
+  s5: Order points added, reward redeemed
+  [*] --> s0
+  [*] --> s1
+  s0 --> s2: the order is saved and credited in one locked step
+  s0 --> s3: the member redeems in one locked step
+  s1 --> s2: a delivery finds the order saved without points and credits it in one locked step
+  s1 --> s4: the member redeems in one locked step
+  s2 --> s5: the member redeems in one locked step
+  s3 --> s5: the order is saved and credited in one locked step
+  s4 --> s5: a delivery finds the order saved without points and credits it in one locked step
+  class s0 tan
+  class s1 orange
+  class s2 teal
+  class s3 tan
+  class s4 orange
+  class s5 teal

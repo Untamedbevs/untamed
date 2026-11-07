@@ -1,0 +1,51 @@
+---
+title: "A member's points while an order is credited and a reward is redeemed"
+---
+stateDiagram-v2
+  state "Legend" as legend {
+    lg0: Waiting for the order
+    lg1: Order saved
+    lg2: Points added
+    lg3: Breaks BalanceMatchesHistory
+    lg4: Path to the BalanceMatchesHistory bug
+  }
+  class lg0 tan
+  class lg1 orange
+  class lg2 teal
+  class lg3 breaks
+  class lg4 bugPath
+  s0: Order not saved yet
+  s1: Order not saved yet, reward redeemed
+  s2: Order saved, no points yet
+  s3: Order points added
+  s4: Order saved, no points yet, reward redeemed
+  s5: Order points added, reward redeemed
+  s6: Order points added, reward redeemed, balance higher than the history (free points)
+  [*] --> s0
+  s0 --> s0: an order delivery starts and reads the balance
+  s0 --> s1: the reward's cost goes into the history
+  s0 --> s2: the order is saved
+  s2 --> s3: the order's points go into the history
+  s2 --> s2: an order delivery starts and reads the balance or another delivery finds the order already saved
+  s1 --> s4: the order is saved
+  s2 --> s4: the reward's cost goes into the history
+  s3 --> s5: the reward's cost goes into the history
+  s4 --> s5: the order's points go into the history
+  s3 --> s3: the member starts a redemption
+  s5 --> s3: the balance changed, so the redemption is undone
+  s5 --> s5: the balance had not changed, so the redemption saves
+  s5 --> s6: the balance is set to the balance read earlier plus the points or another delivery finds the order already saved
+  classDef breaks fill:#ffecee,stroke:#e72e3b,stroke-width:2.5px,color:#cd2834
+  class s0 tan
+  class s0 bugPath
+  class s1 tan
+  class s2 orange
+  class s2 bugPath
+  class s3 teal
+  class s3 bugPath
+  class s4 orange
+  class s5 teal
+  class s5 bugPath
+  class s6 teal
+  class s6 breaks
+  class s6 bugPath
