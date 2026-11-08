@@ -8,18 +8,39 @@ const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 /**
- * Mirrors the `link_auth_user_to_identities` DB trigger, but runs on demand.
- * The trigger only fires when auth.users is inserted; loyalty/referral rows
- * created afterward (e.g. via /referral join) stay unlinked until this runs.
+ * Linking by email is only safe once the auth user has proven they own that
+ * email. Reads the auth user server-side (callers pass only id + email) and
+ * requires a confirmed email that is the same address we are linking by.
+ * Every sign-in path in this app yields a confirmed user (magic links are
+ * created with email_confirm: true or confirmed by verifyOtp), so this only
+ * turns away users created some other way. Fails closed on a lookup error.
  */
-export async function linkAuthUserToIdentitiesByEmail(
+async function hasConfirmedEmail(
   admin: SupabaseClient,
   authUserId: string,
-  email: string
-): Promise<void> {
-  const normalized = email.toLowerCase().trim()
-  if (!normalized) return
+  normalizedEmail: string
+): Promise<boolean> {
+  const { data, error } = await admin.auth.admin.getUserById(authUserId)
+  if (error || !data?.user) {
+    console.error('[link-identities] auth user lookup failed:', error?.message)
+    return false
+  }
+  const user = data.user
+  if (!user.email_confirmed_at) return false
+  return (user.email || '').toLowerCase().trim() === normalizedEmail
+}
 
+/** Escapes LIKE wildcards. PostgREST also reads `*` as `%`, so it becomes a one-character `_` and is checked exactly afterwards. */
+function toExactIlikePattern(value: string): string {
+  return value.replace(/[\\%_]/g, '\\$&').replace(/\*/g, '_')
+}
+
+/** The linking itself. Callers must have checked `hasConfirmedEmail` first. */
+async function linkIdentityRows(
+  admin: SupabaseClient,
+  authUserId: string,
+  normalized: string
+): Promise<void> {
   const now = new Date().toISOString()
 
   await admin
@@ -28,11 +49,41 @@ export async function linkAuthUserToIdentitiesByEmail(
     .eq('email', normalized)
     .is('auth_user_id', null)
 
-  await admin
+  // Case-insensitive exact match: distributor_leads emails may be stored in
+  // any case, so narrow with an escaped ILIKE, then compare exactly.
+  const { data: leads } = await admin
     .from('distributor_leads')
-    .update({ auth_user_id: authUserId, updated_at: now })
-    .ilike('email', normalized)
+    .select('id, email')
+    .ilike('email', toExactIlikePattern(normalized))
     .is('auth_user_id', null)
+  const leadIds = (leads || [])
+    .filter((l) => typeof l.email === 'string' && l.email.toLowerCase() === normalized)
+    .map((l) => l.id as string)
+  if (leadIds.length > 0) {
+    await admin
+      .from('distributor_leads')
+      .update({ auth_user_id: authUserId, updated_at: now })
+      .in('id', leadIds)
+      .is('auth_user_id', null)
+  }
+}
+
+/**
+ * Mirrors the `link_auth_user_to_identities` DB trigger, but runs on demand.
+ * The trigger only fires when auth.users is inserted; loyalty/referral rows
+ * created afterward (e.g. via /referral join) stay unlinked until this runs.
+ * Links nothing unless the auth user's email is confirmed.
+ */
+export async function linkAuthUserToIdentitiesByEmail(
+  admin: SupabaseClient,
+  authUserId: string,
+  email: string
+): Promise<void> {
+  const normalized = email.toLowerCase().trim()
+  if (!normalized) return
+  if (!(await hasConfirmedEmail(admin, authUserId, normalized))) return
+
+  await linkIdentityRows(admin, authUserId, normalized)
 }
 
 /**
@@ -78,6 +129,7 @@ export interface EnsureMemberOptions {
  * signup bonus, copies first-touch attribution, and provisions a referral
  * participant. This is what makes "create a portal account" === "become a
  * loyalty member." Idempotent: only ever creates a member once per auth user.
+ * Does nothing and returns null when the auth user's email isn't confirmed.
  */
 export async function ensureMemberForAuthUser(
   admin: SupabaseClient,
@@ -88,10 +140,17 @@ export async function ensureMemberForAuthUser(
   const normalized = email.toLowerCase().trim()
   if (!normalized) return null
 
+  // 0. Only a confirmed email may claim rows (or points) filed under it, or
+  //    create a member that takes that email.
+  if (!(await hasConfirmedEmail(admin, authUserId, normalized))) {
+    console.warn('[ensureMemberForAuthUser] email not confirmed; not linking or creating a member')
+    return null
+  }
+
   const firstName = options.firstName?.trim() || null
 
   // 1. Link any existing identity rows that share this email.
-  await linkAuthUserToIdentitiesByEmail(admin, authUserId, normalized)
+  await linkIdentityRows(admin, authUserId, normalized)
 
   // 2. Already a member (either pre-existing+just-linked, or linked earlier)?
   const { data: linked } = await admin
@@ -175,7 +234,7 @@ export async function ensureMemberForAuthUser(
   if (insertError) {
     // Unique-email race: another request created/linked it first. Re-fetch.
     if (insertError.code === '23505') {
-      await linkAuthUserToIdentitiesByEmail(admin, authUserId, normalized)
+      await linkIdentityRows(admin, authUserId, normalized)
       const { data: existing } = await admin
         .from('loyalty_members')
         .select('id')
