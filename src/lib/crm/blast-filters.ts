@@ -62,6 +62,36 @@ type SupabaseAdmin = ReturnType<typeof createAdminClient>
 
 const MAX_ROWS_PER_QUERY = 50_000
 
+/**
+ * One plain address: exactly one @, something on each side, and none of the
+ * characters a mail library reads as list, group, display-name or comment
+ * syntax. A stored value like "a@x.com, b@y.com" would otherwise be expanded
+ * into several recipients at send time and slip past the suppression list.
+ */
+const SINGLE_ADDRESS_REGEX = /^[^\s@,;<>"():\\]+@[^\s@,;<>"():\\]+$/
+
+function isSingleEmailAddress(value: unknown): value is string {
+  return typeof value === 'string' && SINGLE_ADDRESS_REGEX.test(value)
+}
+
+/** Trims each email and drops rows that aren't a single plain address. */
+function keepSingleAddresses(rows: BlastRecipient[], source: string): BlastRecipient[] {
+  const kept: BlastRecipient[] = []
+  let dropped = 0
+  for (const r of rows) {
+    const email = typeof r.email === 'string' ? r.email.trim() : ''
+    if (isSingleEmailAddress(email)) {
+      kept.push(email === r.email ? r : { ...r, email })
+    } else {
+      dropped++
+    }
+  }
+  if (dropped > 0) {
+    console.warn(`[blast-filters] skipped ${dropped} ${source} row(s) whose email is not a single address`)
+  }
+  return kept
+}
+
 // ---------------------------------------------------------------------------
 // Top-level query
 // ---------------------------------------------------------------------------
@@ -77,7 +107,9 @@ export async function queryRecipients(
 ): Promise<BlastRecipient[]> {
   const admin = createAdminClient()
 
-  if (filters.audience === 'staff') return queryStaff(admin, filters, ctx)
+  if (filters.audience === 'staff') {
+    return keepSingleAddresses(await queryStaff(admin, filters, ctx), 'staff')
+  }
 
   const recipients: BlastRecipient[] = []
   const seenEmails = new Set<string>()
@@ -87,7 +119,7 @@ export async function queryRecipients(
   const wantsDistributors = filters.audience === 'distributors' || filters.audience === 'all'
 
   if (wantsLoyalty) {
-    const rows = await queryLoyalty(admin, filters)
+    const rows = keepSingleAddresses(await queryLoyalty(admin, filters), 'loyalty')
     for (const r of rows) {
       const key = r.email.toLowerCase()
       if (!seenEmails.has(key)) {
@@ -98,7 +130,7 @@ export async function queryRecipients(
   }
 
   if (wantsReferrers) {
-    const rows = await queryReferrers(admin, filters)
+    const rows = keepSingleAddresses(await queryReferrers(admin, filters), 'referrer')
     for (const r of rows) {
       const key = r.email.toLowerCase()
       if (!seenEmails.has(key)) {
@@ -109,7 +141,7 @@ export async function queryRecipients(
   }
 
   if (wantsDistributors) {
-    const rows = await queryDistributors(admin, filters)
+    const rows = keepSingleAddresses(await queryDistributors(admin, filters), 'distributor')
     for (const r of rows) {
       const key = r.email.toLowerCase()
       if (!seenEmails.has(key)) {

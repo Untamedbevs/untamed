@@ -8,6 +8,39 @@ export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 /**
+ * How long after the order row is saved a referral code can still be attached.
+ * The buyer's own tracker posts within seconds of checkout (before or just
+ * after the webhook), so this only shuts out late posts for other people's
+ * sales.
+ */
+const REF_CODE_WINDOW_MS = 2 * 60 * 60 * 1000
+
+/**
+ * Nothing proves the caller is the buyer, so a referral code is only accepted
+ * while the sale is fresh: either the webhook hasn't saved the order yet, or
+ * it saved it less than REF_CODE_WINDOW_MS ago. Fails closed if the lookup
+ * errors (the order still gets its UTM/visitor attribution).
+ */
+async function refCodeWindowOpen(
+  admin: ReturnType<typeof createAdminClient>,
+  saleId: number
+): Promise<boolean> {
+  const { data: order, error } = await admin
+    .from('loyalty_orders')
+    .select('created_at')
+    .eq('accelpay_sale_id', saleId)
+    .maybeSingle()
+  if (error) {
+    console.error('[tracking/attribute-order] order lookup failed:', error.message)
+    return false
+  }
+  if (!order) return true
+  const createdAt = order.created_at ? Date.parse(order.created_at as string) : NaN
+  if (!Number.isFinite(createdAt)) return false
+  return Date.now() - createdAt < REF_CODE_WINDOW_MS
+}
+
+/**
  * Client-side order attribution receiver.
  *
  * The AccelPay cart fires a `bc-sale` postMessage when a purchase completes.
@@ -15,7 +48,9 @@ export const runtime = 'nodejs'
  * `ut_ref` (referral) cookies plus the AccelPay sale id -- none of which appear
  * in the server-side order webhook. `AccelPaySaleTracker` POSTs them here so we
  * can attribute the order. Crediting itself requires a real AccelPay-sourced
- * `loyalty_orders` row, so fabricated sale ids can never credit anything.
+ * `loyalty_orders` row, so fabricated sale ids can never credit anything, and
+ * a referral code is only accepted while the sale is fresh (see
+ * `refCodeWindowOpen`), so a stranger can't attach their code to an old sale.
  */
 export async function POST(request: NextRequest) {
   let body: {
@@ -61,7 +96,7 @@ export async function POST(request: NextRequest) {
 
     // A stale/invalid ref code should not block base (UTM) attribution.
     let validRefCode: string | null = null
-    if (refCode) {
+    if (refCode && (await refCodeWindowOpen(admin, saleId))) {
       const referrer = await resolveReferralCode(admin, refCode)
       if (referrer) validRefCode = refCode
     }

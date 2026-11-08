@@ -2,6 +2,7 @@ import { SupabaseClient } from '@supabase/supabase-js'
 import { RESERVED_CODES, CODE_REGEX } from './constants'
 import { POINTS } from '@/lib/loyalty/constants'
 import { applyPoints } from '@/lib/rewards/ledger'
+import { CAPS } from '@/lib/rewards/program'
 
 export function isValidReferralCode(code: string): { valid: boolean; error?: string } {
   if (code.length < 2 || code.length > 20) {
@@ -184,14 +185,45 @@ async function creditReferrerLoyaltyPoints(
 }
 
 /**
+ * Whether a referrer is still under the Program Rules' yearly referral cap
+ * (CAPS.REFERRAL_CREDITS_PER_YEAR per calendar year, UTC, the same year
+ * boundary the portal's "Rewarded this year" count uses) for one kind of
+ * referral reward. Counts the referrer's positive ledger rows of that type,
+ * since applyPoints writes exactly one per credit. Fails closed: if the count
+ * can't be read, no points are credited.
+ *
+ * Not atomic: two credits landing at the same instant can both pass at 24.
+ */
+async function isUnderYearlyReferralCap(
+  supabase: SupabaseClient,
+  loyaltyMemberId: string,
+  type: 'referral_signup' | 'referral_purchase'
+): Promise<boolean> {
+  const yearStart = new Date(Date.UTC(new Date().getUTCFullYear(), 0, 1)).toISOString()
+  const { count, error } = await supabase
+    .from('loyalty_transactions')
+    .select('id', { count: 'exact', head: true })
+    .eq('member_id', loyaltyMemberId)
+    .eq('type', type)
+    .gt('points', 0)
+    .gte('created_at', yearStart)
+  if (error || count === null) {
+    console.error('[referral] yearly cap count failed; not crediting:', error?.message)
+    return false
+  }
+  return count < CAPS.REFERRAL_CREDITS_PER_YEAR
+}
+
+/**
  * Credit a referrer when a referred consumer signs up. Resolves the referral
  * code, increments the participant's consumer signups, logs the event, marks
  * the matching warm-intro invite converted, and instantly credits the flat
  * referral-signup points to the referrer's loyalty balance.
  *
- * Guards: self-referrals earn nothing, and each referred email can only ever
- * credit a given referrer once. Best-effort: never throws so it can't fail
- * the signup it accompanies.
+ * Guards: self-referrals earn nothing, each referred email can only ever
+ * credit a given referrer once, and a referrer earns points for at most
+ * CAPS.REFERRAL_CREDITS_PER_YEAR friends per calendar year. Best-effort:
+ * never throws so it can't fail the signup it accompanies.
  */
 export async function creditConsumerReferral(
   supabase: SupabaseClient,
@@ -250,6 +282,13 @@ export async function creditConsumerReferral(
       .eq('referred_email', normalizedEmail)
       .eq('invite_type', 'consumer')
       .neq('status', 'converted')
+
+    // Program Rules: at most CAPS.REFERRAL_CREDITS_PER_YEAR friends rewarded
+    // per referrer per calendar year. Past the cap the signup is still
+    // tracked above; it just earns no points.
+    if (!(await isUnderYearlyReferralCap(supabase, referrer.loyalty_member_id, 'referral_signup'))) {
+      return
+    }
 
     await creditReferrerLoyaltyPoints(
       supabase,
@@ -365,7 +404,14 @@ export async function creditPaidConversion(
       .update({ paid_conversions: (refParticipant.paid_conversions || 0) + 1 })
       .eq('id', referrer.id)
 
-    if (isFirstPurchase) {
+    // The Program Rules (src/app/rewards/rules/page.tsx) cap the first-purchase
+    // bonus at the same CAPS.REFERRAL_CREDITS_PER_YEAR friends per calendar
+    // year, listed separately from the signup reward, so it is counted on its
+    // own ledger type.
+    if (
+      isFirstPurchase &&
+      (await isUnderYearlyReferralCap(supabase, referrer.loyalty_member_id, 'referral_purchase'))
+    ) {
       await creditReferrerLoyaltyPoints(
         supabase,
         referrer.loyalty_member_id,
