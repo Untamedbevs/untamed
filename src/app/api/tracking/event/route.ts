@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { beaconTooLarge, boundedEventData, cleanId, clip, LIMITS } from '@/lib/tracking/beacon-limits'
 
 export async function POST(request: NextRequest) {
   try {
+    if (beaconTooLarge(request.headers.get('content-length'))) {
+      return NextResponse.json({ error: 'Payload too large' }, { status: 413 })
+    }
     const body = await request.json()
-    const { visitorId, sessionId, eventType, pagePath, eventData } = body
+    const visitorId = cleanId(body?.visitorId)
+    const eventType = clip(body?.eventType, 80)
     if (!visitorId || !eventType) {
       return NextResponse.json({ error: 'visitorId and eventType required' }, { status: 400 })
     }
@@ -12,10 +17,10 @@ export async function POST(request: NextRequest) {
     const supabase = createAdminClient()
     await supabase.from('tracking_events').insert({
       visitor_fingerprint: visitorId,
-      session_id: sessionId || null,
-      event_type: String(eventType).slice(0, 80),
-      page_path: pagePath || null,
-      event_data: eventData && typeof eventData === 'object' ? eventData : {},
+      session_id: cleanId(body.sessionId),
+      event_type: eventType,
+      page_path: clip(body.pagePath, LIMITS.url),
+      event_data: boundedEventData(body.eventData),
     })
 
     return NextResponse.json({ ok: true })

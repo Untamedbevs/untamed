@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resolveReferralCode } from '@/lib/referral/helpers'
 import { REF_COOKIE_NAME, REF_COOKIE_MAX_AGE } from '@/lib/referral/constants'
+import { clip, LIMITS } from '@/lib/tracking/beacon-limits'
+import crypto from 'crypto'
 
 export async function POST(request: NextRequest) {
   try {
@@ -27,8 +29,11 @@ export async function POST(request: NextRequest) {
     }
 
     const eventType = type === 'consumer' ? 'click_consumer' : 'click_distributor'
+    // Store a hash, as the column name says and as /api/tracking/session does;
+    // the raw client IP was being stored here.
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
-    const ua = request.headers.get('user-agent')
+    const ipHash = ip ? crypto.createHash('sha256').update(ip).digest('hex').slice(0, 16) : null
+    const ua = clip(request.headers.get('user-agent'), LIMITS.userAgent)
 
     // Log event + increment click counter
     const { data: current } = await supabase
@@ -41,8 +46,8 @@ export async function POST(request: NextRequest) {
       supabase.from('referral_events').insert({
         participant_id: participant.id,
         event_type: eventType,
-        ip_hash: ip || null,
-        user_agent: ua || null,
+        ip_hash: ipHash,
+        user_agent: ua,
       }),
       supabase
         .from('referral_participants')
