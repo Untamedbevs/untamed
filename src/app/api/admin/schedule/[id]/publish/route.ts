@@ -3,6 +3,19 @@ import { publishToFacebook, publishToInstagram, type PublishResult } from '@/lib
 import { NextRequest, NextResponse } from 'next/server'
 import { resolveStaff } from '@/lib/auth/resolve-staff'
 
+/**
+ * Statuses staff may publish from (the route has always allowed everything
+ * but 'posted'). 'publishing' is left out: that row is being posted right
+ * now, by the cron or another click.
+ */
+const PUBLISHABLE_STATUSES = ['scheduled', 'failed', 'cancelled']
+/**
+ * A 'publishing' row untouched this long is treated as stuck (its run died
+ * before recording a result), so staff can still publish it as before. The
+ * cron runs every 15 minutes and posts at most 10 items per run.
+ */
+const STUCK_PUBLISHING_MS = 60 * 60 * 1000
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -27,10 +40,41 @@ export async function POST(
     return NextResponse.json({ error: 'Already posted' }, { status: 400 })
   }
 
-  await supabase
+  // Claim atomically, like the cron: only the request that moves the row into
+  // 'publishing' posts it, so a click racing the cron (or a second click)
+  // cannot post the same item twice.
+  const claimedAt = new Date().toISOString()
+  const claim = await supabase
     .from('scheduled_posts')
-    .update({ status: 'publishing', updated_at: new Date().toISOString() })
+    .update({ status: 'publishing', updated_at: claimedAt })
     .eq('id', id)
+    .in('status', PUBLISHABLE_STATUSES)
+    .select('id')
+  if (claim.error) {
+    console.error('[admin/schedule/publish] claim failed', id, claim.error.message)
+    return NextResponse.json({ error: 'Could not publish' }, { status: 500 })
+  }
+  let claimed = (claim.data || []).length > 0
+  if (!claimed && post.status === 'publishing') {
+    const stuck = await supabase
+      .from('scheduled_posts')
+      .update({ status: 'publishing', updated_at: claimedAt })
+      .eq('id', id)
+      .eq('status', 'publishing')
+      .lt('updated_at', new Date(Date.now() - STUCK_PUBLISHING_MS).toISOString())
+      .select('id')
+    if (stuck.error) {
+      console.error('[admin/schedule/publish] claim failed', id, stuck.error.message)
+      return NextResponse.json({ error: 'Could not publish' }, { status: 500 })
+    }
+    claimed = (stuck.data || []).length > 0
+  }
+  if (!claimed) {
+    return NextResponse.json(
+      { error: 'This post is already being published or was just posted' },
+      { status: 409 }
+    )
+  }
 
   const mediaIds: string[] = post.media_ids || []
   let mediaUrls: { id: string; url: string; file_type: string }[] = []
