@@ -8,6 +8,20 @@ import { PROMOTION_COLUMNS, SUBMISSION_COLUMNS, promotionWindow, proofProblem, t
 export const dynamic = 'force-dynamic'
 
 /**
+ * True only for a proof screenshot key as buildUserUploadKey makes it for this
+ * member: user-uploads/<uid>/promotions/proofs/<file>, where <file> is a
+ * single segment of [A-Za-z0-9._-] and not '.' or '..' (the same per-segment
+ * rule as isOwnUploadKey in src/app/api/portal/receipts/route.ts). A plain
+ * prefix check would also pass .../proofs/../../<other uid>/... keys.
+ */
+function isOwnProofImageKey(key: string, authUserId: string): boolean {
+  const prefix = `user-uploads/${authUserId}/promotions/proofs/`
+  if (!key.startsWith(prefix)) return false
+  const file = key.slice(prefix.length)
+  return /^[A-Za-z0-9._-]{1,200}$/.test(file) && file !== '.' && file !== '..'
+}
+
+/**
  * POST /api/portal/hunts/submit
  *   { promotionId, proofUrl?, proofImageKey?, proofText?, confirmed: string[] }
  *
@@ -63,7 +77,7 @@ export async function POST(request: NextRequest) {
     const problem = proofProblem(promotion, proof)
     if (problem) return NextResponse.json({ error: 'INVALID_PROOF', message: problem }, { status: 400 })
     // Screenshots must be this member's own upload.
-    if (proof.imageKey && !proof.imageKey.startsWith(`user-uploads/${member.authUserId}/promotions/proofs/`)) {
+    if (proof.imageKey && !isOwnProofImageKey(proof.imageKey, member.authUserId)) {
       return NextResponse.json({ error: 'INVALID_PROOF', message: 'Upload the screenshot again.' }, { status: 400 })
     }
 

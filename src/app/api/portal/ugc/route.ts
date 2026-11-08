@@ -5,7 +5,11 @@ import type {
   UgcAssetType,
   UgcContributorType,
 } from '@/lib/ugc/types'
-import { triggerMediaConvertForVideoAssets } from '@/lib/video/mediaconvert'
+import {
+  isOwnOriginalUgcUploadKey,
+  triggerMediaConvertForVideoAssets,
+  VIDEO_EXT_REGEX,
+} from '@/lib/video/mediaconvert'
 import { s3PublicUrl } from '@/lib/storage/s3'
 
 export const dynamic = 'force-dynamic'
@@ -13,22 +17,86 @@ export const dynamic = 'force-dynamic'
 /** Video assets one member may submit per rolling 24 hours (each starts a MediaConvert job). */
 const MAX_VIDEOS_PER_DAY = 20
 
-/** Folders the portal UGC flow uploads into (see UGC_FOLDERS in src/lib/storage/user-uploads.ts). */
-const UGC_UPLOAD_FOLDERS = ['ugc/uploads', 'ugc/recordings']
+/**
+ * Video extensions the portal upload routes accept but the transcoder does not
+ * (VIDEO_EXT_REGEX). The upload routes also accept a video with no extension.
+ * Such files are still accepted as videos, as before, but they never get a
+ * MediaConvert job, so their rows are stored as 'failed' straight away
+ * instead of waiting a day as 'uploaded'.
+ */
+const UNTRANSCODED_VIDEO_EXT_REGEX = /\.(qt|3gp|3g2|mpg|mpeg|ogv|ogg|wmv)$/i
+
+/** File name part of a key, e.g. 1700000000000-abc123-clip.mp4. */
+function keyFileName(key: string): string {
+  return key.slice(key.lastIndexOf('/') + 1)
+}
+
+/** True when a video key can be transcoded (and so needs a daily slot). */
+function isTranscodableVideoKey(key: string): boolean {
+  return VIDEO_EXT_REGEX.test(key)
+}
 
 /**
- * True only for an original upload key as built by buildUserUploadKey for
- * this member in a UGC folder: user-uploads/<uid>/ugc/(uploads|recordings)/<file>,
- * where <file> is a single segment of [A-Za-z0-9._-] and not '.' or '..'.
+ * True for a video key the upload routes could have produced: a transcodable
+ * extension, another allowed video extension, or no extension at all.
  */
-function isOwnOriginalUgcUploadKey(key: unknown, authUserId: string): boolean {
-  if (typeof key !== 'string') return false
-  return UGC_UPLOAD_FOLDERS.some((folder) => {
-    const prefix = `user-uploads/${authUserId}/${folder}/`
-    if (!key.startsWith(prefix)) return false
-    const file = key.slice(prefix.length)
-    return /^[A-Za-z0-9._-]{1,200}$/.test(file) && file !== '.' && file !== '..'
+function isAcceptedVideoKey(key: string): boolean {
+  return (
+    isTranscodableVideoKey(key) ||
+    UNTRANSCODED_VIDEO_EXT_REGEX.test(key) ||
+    !keyFileName(key).includes('.')
+  )
+}
+
+type AdminClient = ReturnType<typeof createAdminClient>
+
+/**
+ * Reserve `count` transcode slots for this member in the last 24 hours.
+ * Uses ugc_reserve_video_slots (migration 00037), which locks per member and
+ * records slots in a log the member cannot delete from. Until that migration
+ * is applied, falls back to the previous count of the member's video rows.
+ */
+async function reserveVideoSlots(
+  admin: AdminClient,
+  authUserId: string,
+  count: number
+): Promise<'reserved' | 'over_limit' | 'unavailable'> {
+  const { data, error } = await admin.rpc('ugc_reserve_video_slots', {
+    p_auth_user_id: authUserId,
+    p_count: count,
+    p_max: MAX_VIDEOS_PER_DAY,
   })
+  if (!error) return data === true ? 'reserved' : 'over_limit'
+
+  // PGRST202: function not in the schema cache; 42883: undefined function.
+  if (error.code !== 'PGRST202' && error.code !== '42883') {
+    console.error('[portal/ugc] Video slot reservation failed:', error)
+    return 'unavailable'
+  }
+
+  console.warn(
+    '[portal/ugc] ugc_reserve_video_slots missing (apply migration 00037); using the non-atomic count'
+  )
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+  const { count: recentVideoCount, error: countError } = await admin
+    .from('ugc_submission_assets')
+    .select('id, ugc_submissions!inner(auth_user_id)', {
+      count: 'exact',
+      head: true,
+    })
+    .eq('asset_type', 'video')
+    .eq('ugc_submissions.auth_user_id', authUserId)
+    .gte('created_at', since)
+
+  if (countError) {
+    // Previous behaviour, kept only for this pre-migration fallback: a
+    // lookup problem never blocks a legitimate submission.
+    console.error('[portal/ugc] Daily video count failed:', countError)
+    return 'reserved'
+  }
+  return (recentVideoCount ?? 0) + count > MAX_VIDEOS_PER_DAY
+    ? 'over_limit'
+    : 'reserved'
 }
 
 const ALLOWED_DRINK_SLUGS = new Set([
@@ -179,36 +247,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const admin = createAdminClient()
-
-    // Per-member daily cap on video assets: each one starts an operator-billed
-    // MediaConvert job.
-    const newVideoCount = body.assets.filter((a) => a.assetType === 'video').length
-    if (newVideoCount > 0) {
-      const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-      const { count: recentVideoCount, error: countError } = await admin
-        .from('ugc_submission_assets')
-        .select('id, ugc_submissions!inner(auth_user_id)', {
-          count: 'exact',
-          head: true,
-        })
-        .eq('asset_type', 'video')
-        .eq('ugc_submissions.auth_user_id', member.authUserId)
-        .gte('created_at', since)
-
-      if (countError) {
-        // Fail open so a lookup problem never blocks a legitimate submission;
-        // the key-shape check above still stops the processed/ loop.
-        console.error('[portal/ugc] Daily video count failed:', countError)
-      } else if ((recentVideoCount ?? 0) + newVideoCount > MAX_VIDEOS_PER_DAY) {
-        return NextResponse.json(
-          {
-            error: `You can submit up to ${MAX_VIDEOS_PER_DAY} videos per day. Please try again tomorrow.`,
-          },
-          { status: 429 }
-        )
-      }
+    // A video key must be one the upload routes produce for a video, so a
+    // row marked 'video' is never a text or image file that can only sit in
+    // the reconcile batch.
+    if (
+      !body.assets.every(
+        (a) => a.assetType !== 'video' || isAcceptedVideoKey(a.s3Key)
+      )
+    ) {
+      return NextResponse.json({ error: 'Invalid file type' }, { status: 400 })
     }
+
+    const admin = createAdminClient()
 
     let contributorType: UgcContributorType = 'loyalty'
     let loyaltyMemberId: string | null = null
@@ -233,6 +283,34 @@ export async function POST(request: NextRequest) {
         },
         { status: 403 }
       )
+    }
+
+    // Per-member daily cap on transcodable videos: each one starts an
+    // operator-billed MediaConvert job. Reserved atomically before anything is
+    // inserted; slots are not given back if the submission is later deleted.
+    const newVideoCount = body.assets.filter(
+      (a) => a.assetType === 'video' && isTranscodableVideoKey(a.s3Key)
+    ).length
+    if (newVideoCount > 0) {
+      const reservation = await reserveVideoSlots(
+        admin,
+        member.authUserId,
+        newVideoCount
+      )
+      if (reservation === 'unavailable') {
+        return NextResponse.json(
+          { error: 'We could not accept videos right now. Please try again shortly.' },
+          { status: 503 }
+        )
+      }
+      if (reservation === 'over_limit') {
+        return NextResponse.json(
+          {
+            error: `You can submit up to ${MAX_VIDEOS_PER_DAY} videos per day. Please try again tomorrow.`,
+          },
+          { status: 429 }
+        )
+      }
     }
 
     const now = new Date().toISOString()
@@ -276,7 +354,12 @@ export async function POST(request: NextRequest) {
       // stored/displayed asset is always the member's own CDN object.
       url: s3PublicUrl(a.s3Key),
       mime_type: a.mimeType || null,
-      processing_status: a.assetType === 'video' ? 'uploaded' : 'ready',
+      processing_status:
+        a.assetType !== 'video'
+          ? 'ready'
+          : isTranscodableVideoKey(a.s3Key)
+            ? 'uploaded'
+            : 'failed',
       width: a.width ?? null,
       height: a.height ?? null,
       duration_seconds: a.durationSeconds ?? null,
@@ -302,11 +385,18 @@ export async function POST(request: NextRequest) {
     // inside the helper so the admin UI reflects state immediately.
     const videoAssets = (assets || []).filter(
       (a): a is { id: string; s3_key: string; asset_type: string } =>
-        a?.asset_type === 'video' && typeof a?.s3_key === 'string'
+        a?.asset_type === 'video' &&
+        a?.processing_status === 'uploaded' &&
+        typeof a?.s3_key === 'string'
     )
     if (videoAssets.length > 0) {
       try {
-        const results = await triggerMediaConvertForVideoAssets(videoAssets)
+        // Rows the trigger rejects for good (not a transcodable original
+        // upload) are marked 'failed' inside the helper.
+        const results = await triggerMediaConvertForVideoAssets(
+          videoAssets,
+          member.authUserId
+        )
         const submitted = results.filter((r) => r.ok).length
         console.log(
           `[portal/ugc] MediaConvert: ${submitted}/${videoAssets.length} jobs submitted`,
