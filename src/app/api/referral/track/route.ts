@@ -2,15 +2,18 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resolveReferralCode } from '@/lib/referral/helpers'
 import { REF_COOKIE_NAME, REF_COOKIE_MAX_AGE } from '@/lib/referral/constants'
-import { clip, LIMITS } from '@/lib/tracking/beacon-limits'
-import crypto from 'crypto'
+import { clip, hashIp, LIMITS, readBeaconJson } from '@/lib/tracking/beacon-limits'
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
+    const read = await readBeaconJson(request)
+    if (read.tooLarge) {
+      return NextResponse.json({ error: 'Payload too large' }, { status: 413 })
+    }
+    const body = (read.body ?? {}) as Record<string, unknown>
     const { code, type } = body
 
-    if (!code || !type) {
+    if (typeof code !== 'string' || !code || !type) {
       return NextResponse.json({ error: 'code and type are required' }, { status: 400 })
     }
 
@@ -32,7 +35,7 @@ export async function POST(request: NextRequest) {
     // Store a hash, as the column name says and as /api/tracking/session does;
     // the raw client IP was being stored here.
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
-    const ipHash = ip ? crypto.createHash('sha256').update(ip).digest('hex').slice(0, 16) : null
+    const ipHash = ip ? hashIp(ip) : null
     const ua = clip(request.headers.get('user-agent'), LIMITS.userAgent)
 
     // Log event + increment click counter

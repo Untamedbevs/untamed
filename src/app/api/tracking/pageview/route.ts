@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { beaconTooLarge, cleanId, clip, LIMITS } from '@/lib/tracking/beacon-limits'
+import { readBeaconJson, cleanId, clip, LIMITS } from '@/lib/tracking/beacon-limits'
 
 export async function POST(request: NextRequest) {
   try {
-    if (beaconTooLarge(request.headers.get('content-length'))) {
+    const read = await readBeaconJson(request)
+    if (read.tooLarge) {
       return NextResponse.json({ error: 'Payload too large' }, { status: 413 })
     }
-    const body = await request.json()
+    const body = (read.body ?? {}) as Record<string, unknown>
     const visitorId = cleanId(body?.visitorId)
     const sessionId = cleanId(body?.sessionId)
     const pagePath = clip(body?.pagePath, LIMITS.url)

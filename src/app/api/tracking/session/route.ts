@@ -1,21 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import crypto from 'crypto'
-import { beaconTooLarge, cleanId, clip, LIMITS } from '@/lib/tracking/beacon-limits'
+import { readBeaconJson, cleanId, clip, hashIp, LIMITS } from '@/lib/tracking/beacon-limits'
 
 export async function POST(request: NextRequest) {
   try {
-    if (beaconTooLarge(request.headers.get('content-length'))) {
+    const read = await readBeaconJson(request)
+    if (read.tooLarge) {
       return NextResponse.json({ error: 'Payload too large' }, { status: 413 })
     }
-    const body = await request.json()
+    const body = (read.body ?? {}) as Record<string, unknown>
     const { isNewVisitor, isNewSession } = body ?? {}
     const visitorId = cleanId(body?.visitorId)
     const sessionId = cleanId(body?.sessionId)
     const landingPage = clip(body?.landingPage, LIMITS.url)
     const referrer = clip(body?.referrer, LIMITS.url)
-    const urlParams = body?.urlParams && typeof body.urlParams === 'object' ? body.urlParams : {}
-    const rawDevice = body?.device && typeof body.device === 'object' ? body.device : {}
+    const urlParams = (body?.urlParams && typeof body.urlParams === 'object' ? body.urlParams : {}) as Record<string, unknown>
+    const rawDevice = (body?.device && typeof body.device === 'object' ? body.device : {}) as Record<string, unknown>
     const device = { type: clip(rawDevice.type, LIMITS.device), browser: clip(rawDevice.browser, LIMITS.device) }
 
     if (!visitorId || !sessionId) {
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     const fbclid = clip(urlParams.fbclid, LIMITS.utm)
 
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
-    const ipHash = crypto.createHash('sha256').update(ip).digest('hex').slice(0, 16)
+    const ipHash = hashIp(ip)
 
     if (isNewVisitor) {
       await supabase.from('visitors').insert({
