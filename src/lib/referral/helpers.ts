@@ -21,6 +21,46 @@ export function isValidReferralCode(code: string): { valid: boolean; error?: str
   return { valid: true }
 }
 
+/**
+ * The inbox an address delivers to, for self-referral and repeat-customer
+ * checks: lowercased, with any +tag removed, and for Gmail with dots removed
+ * and googlemail.com folded into gmail.com.
+ */
+export function mailboxKey(email: string): string {
+  const e = email.toLowerCase().trim()
+  const at = e.lastIndexOf('@')
+  if (at < 1) return e
+  let local = e.slice(0, at).split('+')[0]
+  let domain = e.slice(at + 1)
+  if (domain === 'googlemail.com') domain = 'gmail.com'
+  if (domain === 'gmail.com') local = local.replace(/\./g, '')
+  return `${local}@${domain}`
+}
+
+function sameMailbox(a: string, b: string): boolean {
+  return mailboxKey(a) === mailboxKey(b)
+}
+
+/**
+ * PostgREST or() filter that narrows loyalty_orders to rows that may share a
+ * mailbox with this address (the base address and its +tag variants). The
+ * caller still confirms each row with sameMailbox. Gmail dot variants are
+ * not matched by this filter.
+ */
+function mailboxVariantFilter(email: string): string {
+  const e = email.toLowerCase().trim()
+  const at = e.lastIndexOf('@')
+  // LIKE-escape % _ \ ; PostgREST reads * as %, so a literal * becomes the
+  // one-character _ (the sameMailbox check afterwards is exact).
+  const like = (s: string) => s.replace(/[\\%_]/g, (c) => `\\${c}`).replace(/\*/g, '_')
+  // Double-quote each value so commas or parentheses can't break the or() list.
+  const quote = (s: string) => `"${s.replace(/["\\]/g, (c) => `\\${c}`)}"`
+  if (at < 1) return `email.ilike.${quote(like(e))}`
+  const base = e.slice(0, at).split('+')[0]
+  const domain = e.slice(at + 1)
+  return `email.ilike.${quote(like(`${base}@${domain}`))},email.ilike.${quote(`${like(`${base}+`)}*${like(`@${domain}`)}`)}`
+}
+
 function generateCodeFromName(name: string): string {
   // CODE_MAX_LENGTH is 20; reserve 4 chars for the collision suffix
   // (`Math.random()*9000 + 1000` → always 4 digits) so the suffixed code
@@ -282,7 +322,7 @@ export async function creditConsumerReferral(
     const normalizedEmail = referredEmail.toLowerCase().trim()
 
     // Self-referral guard: signing yourself up earns nothing.
-    if (normalizedEmail === referrer.email.toLowerCase().trim()) return
+    if (sameMailbox(normalizedEmail, referrer.email)) return
 
     // Dedupe guard: a referred email only credits a referrer once, ever.
     const { data: priorSignup } = await supabase
@@ -392,8 +432,8 @@ export async function creditPaidConversion(
     if (!claimed) return
 
     const buyerEmail = (order.email as string | null)?.toLowerCase().trim() || null
-    const isSelfReferral =
-      !!buyerEmail && buyerEmail === referrer.email.toLowerCase().trim()
+    // Compare mailboxes, not strings: name+1@x reaches name@x's inbox.
+    const isSelfReferral = !!buyerEmail && sameMailbox(buyerEmail, referrer.email)
 
     // Is this the buyer's first tracked purchase through this referrer?
     // Checked BEFORE inserting the new event so the new row doesn't count.
@@ -407,15 +447,22 @@ export async function creditPaidConversion(
         .eq('referred_email', buyerEmail)
         .limit(1)
         .maybeSingle()
-      // A friend who has ordered from us before isn't a new customer.
-      const { data: earlierOrder } = await supabase
+      // A friend who has ordered from us before isn't a new customer. Look for
+      // earlier orders from the same mailbox, including its +tag variants.
+      const { data: earlierOrders, error: earlierError } = await supabase
         .from('loyalty_orders')
-        .select('id')
-        .ilike('email', buyerEmail.replace(/[\\%_]/g, '\\$&'))
+        .select('id, email')
+        .or(mailboxVariantFilter(buyerEmail))
         .neq('id', order.id)
         .lt('created_at', order.created_at as string)
-        .limit(1)
-        .maybeSingle()
+        .limit(50)
+      if (earlierError) {
+        console.error('[referral] earlier-order lookup failed; no first-purchase bonus:', earlierError.message)
+      }
+      // A failed lookup pays no bonus rather than treating the buyer as new.
+      const earlierOrder =
+        !!earlierError ||
+        (earlierOrders || []).some((o) => typeof o.email === 'string' && sameMailbox(o.email, buyerEmail))
       isFirstPurchase = !priorPurchase && !earlierOrder
     }
 
