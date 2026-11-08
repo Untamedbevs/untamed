@@ -3,6 +3,7 @@ import { resolveMember } from '@/lib/auth/resolve-member'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { REWARDS } from '@/lib/loyalty/constants'
 import { sendAndLogEmail } from '@/lib/messaging/email-log'
+import { escapeHtml } from '@/lib/email/render'
 import { redeemReward } from '@/lib/rewards/ledger'
 
 export const dynamic = 'force-dynamic'
@@ -133,10 +134,10 @@ export async function POST(request: NextRequest) {
         to: 'loyalty@untamedbeverages.com',
         subject: `New redemption: ${memberName} → ${reward.name}`,
         html: `
-          <p><strong>${memberName}</strong> (${freshMember.email}) redeemed
-          <strong>${reward.name}</strong> for ${reward.pointsCost} points.</p>
-          <p>New balance: ${newBalance} points.</p>
-          <p>Redemption ID: ${redemption.id}</p>
+          <p><strong>${escapeHtml(memberName)}</strong> (${escapeHtml(String(freshMember.email))}) redeemed
+          <strong>${escapeHtml(reward.name)}</strong> for ${escapeHtml(String(reward.pointsCost))} points.</p>
+          <p>New balance: ${escapeHtml(String(newBalance))} points.</p>
+          <p>Redemption ID: ${escapeHtml(String(redemption.id))}</p>
           <p>Manage in <a href="${process.env.NEXT_PUBLIC_SITE_URL || ''}/admin/loyalty">/admin/loyalty</a>.</p>
         `,
         text: `New redemption: ${memberName} (${freshMember.email}) redeemed ${reward.name} for ${reward.pointsCost} points. New balance: ${newBalance}. Redemption ID: ${redemption.id}.`,

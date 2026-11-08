@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireMember } from '@/lib/auth/resolve-member'
-import { WARM_INTRO_DAILY_LIMIT } from '@/lib/referral/constants'
+import {
+  CUSTOM_MESSAGE_MAX_LENGTH,
+  WARM_INTRO_DAILY_LIMIT,
+} from '@/lib/referral/constants'
 import type { InviteType } from '@/lib/referral/types'
 import { sendAndLogEmail } from '@/lib/messaging/email-log'
+import { filterSuppressed } from '@/lib/messaging/suppressions'
 import {
   buildListUnsubscribeHeaders,
   buildUnsubscribeUrl,
@@ -45,6 +49,15 @@ export async function POST(request: NextRequest) {
   if (inviteType !== 'consumer' && inviteType !== 'distributor') {
     return NextResponse.json(
       { error: 'inviteType must be "consumer" or "distributor"' },
+      { status: 400 }
+    )
+  }
+  // Same limit the portal textarea enforces (maxLength) and the message route checks.
+  if (customMessage.trim().length > CUSTOM_MESSAGE_MAX_LENGTH) {
+    return NextResponse.json(
+      {
+        error: `Message must be ${CUSTOM_MESSAGE_MAX_LENGTH} characters or less`,
+      },
       { status: 400 }
     )
   }
@@ -99,6 +112,19 @@ export async function POST(request: NextRequest) {
   if (existingInvite) {
     return NextResponse.json(
       { error: 'You already sent an invite to this email' },
+      { status: 409 }
+    )
+  }
+
+  // Never email an address that unsubscribed, hard-bounced or complained.
+  const { suppressed } = await filterSuppressed([{ email: normalizedReferred }])
+  if (suppressed.length > 0) {
+    return NextResponse.json(
+      {
+        error:
+          "That address has opted out of emails from Untamed, so we can't send them an intro. Share your referral link with them directly instead.",
+        code: 'RECIPIENT_OPTED_OUT',
+      },
       { status: 409 }
     )
   }

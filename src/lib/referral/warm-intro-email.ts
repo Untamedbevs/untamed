@@ -102,10 +102,12 @@ export function buildWarmIntroEmail(params: {
 </body>
 </html>`
 
+  // Fixed text: the subject never carries member-entered text (display names
+  // are free text chosen at sign-up). The body still names the referrer, escaped.
   const subject =
     inviteType === 'distributor'
-      ? `${referrerName} thinks Untamed is right for your business`
-      : `${referrerName} sent you something untamed`
+      ? 'A friend thinks Untamed is right for your business'
+      : 'A friend sent you something untamed'
 
   return { subject, html, text }
 }

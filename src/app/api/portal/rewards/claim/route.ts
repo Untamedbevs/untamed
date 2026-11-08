@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { resolveMember } from '@/lib/auth/resolve-member'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendAndLogEmail } from '@/lib/messaging/email-log'
+import { escapeHtml } from '@/lib/email/render'
 import { canRedeem, INELIGIBLE_MESSAGES, MEMBER_PROGRAM_COLUMNS, type MemberProgramFields } from '@/lib/rewards/eligibility'
 import { CAPS } from '@/lib/rewards/program'
 import { inRewardsPreview } from '@/lib/rewards/preview'
@@ -133,7 +134,7 @@ export async function POST(request: NextRequest) {
         fromAlias: 'loyalty',
         to: 'loyalty@untamedbeverages.com',
         subject: `Reward claimed: ${name} → ${reward.name}`,
-        html: `<p><strong>${name}</strong> (${fresh!.email}) reached <strong>${milestone.title}</strong> (${milestone.points.toLocaleString('en-US')} points) and claimed <strong>${reward.name}</strong> (${formatValue(reward.value_cents)}).</p><p>Fulfill it in <a href="${process.env.NEXT_PUBLIC_SITE_URL || ''}/admin/rewards">Admin → Rewards Program → Claims</a>.</p>`,
+        html: `<p><strong>${escapeHtml(String(name))}</strong> (${escapeHtml(String(fresh!.email))}) reached <strong>${escapeHtml(String(milestone.title))}</strong> (${escapeHtml(milestone.points.toLocaleString('en-US'))} points) and claimed <strong>${escapeHtml(String(reward.name))}</strong> (${escapeHtml(formatValue(reward.value_cents))}).</p><p>Fulfill it in <a href="${process.env.NEXT_PUBLIC_SITE_URL || ''}/admin/rewards">Admin → Rewards Program → Claims</a>.</p>`,
         text: `${name} (${fresh!.email}) reached ${milestone.title} and claimed ${reward.name} (${formatValue(reward.value_cents)}). Fulfill it in Admin > Rewards Program > Claims.`,
         loyaltyMemberId: fresh!.id,
       })

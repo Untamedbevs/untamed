@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createHash, timingSafeEqual } from 'crypto'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { accelPayConfigured, fetchRecentSales } from '@/lib/shop/accelpay-api'
 import { creditOnlineOrder, parseAccelPaySale } from '@/lib/loyalty/orders'
@@ -8,14 +9,29 @@ export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 /**
+ * True only when CRON_SECRET is set and the request carries it as
+ * `Authorization: Bearer <secret>` (Vercel Cron sends exactly that). A missing
+ * or empty CRON_SECRET refuses every request instead of skipping the check.
+ */
+function isCronAuthorized(request: NextRequest): boolean {
+  const cronSecret = process.env.CRON_SECRET
+  if (!cronSecret) {
+    console.error('[cron/reconcile-orders] CRON_SECRET is not set; refusing request')
+    return false
+  }
+  // Hash both sides so the comparison is constant-time regardless of length.
+  const given = createHash('sha256').update(request.headers.get('authorization') ?? '').digest()
+  const expected = createHash('sha256').update(`Bearer ${cronSecret}`).digest()
+  return timingSafeEqual(given, expected)
+}
+
+/**
  * Safety-net reconciliation: pulls recently completed AccelPay sales and credits
  * any the `new_order` webhook missed. Crediting is idempotent (unique sale id),
  * so re-processing already-recorded sales is a no-op.
  */
 export async function GET(request: NextRequest) {
-  const cronSecret = process.env.CRON_SECRET
-  const authHeader = request.headers.get('authorization')
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+  if (!isCronAuthorized(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

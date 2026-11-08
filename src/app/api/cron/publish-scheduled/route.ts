@@ -1,12 +1,27 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { publishToFacebook, publishToInstagram, type PublishResult } from '@/lib/social/meta-publish'
 import { NextRequest, NextResponse } from 'next/server'
+import { createHash, timingSafeEqual } from 'crypto'
+
+/**
+ * True only when CRON_SECRET is set and the request carries it as
+ * `Authorization: Bearer <secret>` (Vercel Cron sends exactly that). A missing
+ * or empty CRON_SECRET refuses every request instead of skipping the check.
+ */
+function isCronAuthorized(request: NextRequest): boolean {
+  const cronSecret = process.env.CRON_SECRET
+  if (!cronSecret) {
+    console.error('[cron/publish-scheduled] CRON_SECRET is not set; refusing request')
+    return false
+  }
+  // Hash both sides so the comparison is constant-time regardless of length.
+  const given = createHash('sha256').update(request.headers.get('authorization') ?? '').digest()
+  const expected = createHash('sha256').update(`Bearer ${cronSecret}`).digest()
+  return timingSafeEqual(given, expected)
+}
 
 export async function GET(request: NextRequest) {
-  const authHeader = request.headers.get('authorization')
-  const cronSecret = process.env.CRON_SECRET
-
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+  if (!isCronAuthorized(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -31,10 +46,19 @@ export async function GET(request: NextRequest) {
   let publishedCount = 0
 
   for (const post of duePosts) {
-    await supabase
+    // Claim atomically: only the run that moves the row out of 'scheduled'
+    // publishes it, so overlapping runs cannot post the same item twice.
+    const { data: claimed, error: claimError } = await supabase
       .from('scheduled_posts')
       .update({ status: 'publishing', updated_at: new Date().toISOString() })
       .eq('id', post.id)
+      .eq('status', 'scheduled')
+      .select('id')
+    if (claimError) {
+      console.error('[cron/publish-scheduled] Failed to claim post', post.id, claimError.message)
+      continue
+    }
+    if (!claimed || claimed.length === 0) continue
 
     const mediaIds: string[] = post.media_ids || []
     let mediaUrls: { id: string; url: string; file_type: string }[] = []

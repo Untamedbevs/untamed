@@ -12,13 +12,14 @@
  *      backoff, permanent (5xx) failures are marked failed.
  *   5. Rolls campaign counters/status forward.
  *
- * Guarded by `CRON_SECRET` when set.
+ * Requires `CRON_SECRET` (Bearer); refuses every request when it is unset.
  */
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
 import { NextRequest, NextResponse } from 'next/server'
+import { createHash, timingSafeEqual } from 'crypto'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendAndLogEmail } from '@/lib/messaging/email-log'
 import { getSenderById, DEFAULT_CRM_SENDER } from '@/lib/crm/senders'
@@ -30,6 +31,23 @@ const TIME_BUDGET_MS = 45_000
 const STUCK_THRESHOLD_MS = 5 * 60 * 1000
 const MAX_ATTEMPTS = 3
 const RETRY_BACKOFF_MS = [2 * 60_000, 10 * 60_000, 30 * 60_000]
+
+/**
+ * True only when CRON_SECRET is set and the request carries it as
+ * `Authorization: Bearer <secret>` (Vercel Cron sends exactly that). A missing
+ * or empty CRON_SECRET refuses every request instead of skipping the check.
+ */
+function isCronAuthorized(request: NextRequest): boolean {
+  const cronSecret = process.env.CRON_SECRET
+  if (!cronSecret) {
+    console.error('[messaging/process-scheduled] CRON_SECRET is not set; refusing request')
+    return false
+  }
+  // Hash both sides so the comparison is constant-time regardless of length.
+  const given = createHash('sha256').update(request.headers.get('authorization') ?? '').digest()
+  const expected = createHash('sha256').update(`Bearer ${cronSecret}`).digest()
+  return timingSafeEqual(given, expected)
+}
 
 function dailyLimit(): number {
   const n = parseInt(process.env.EMAIL_DAILY_LIMIT || '', 10)
@@ -65,12 +83,8 @@ interface CampaignInfo {
 }
 
 export async function GET(request: NextRequest) {
-  const cronSecret = process.env.CRON_SECRET
-  if (cronSecret) {
-    const auth = request.headers.get('authorization')
-    if (auth !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+  if (!isCronAuthorized(request)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   const startedAt = Date.now()

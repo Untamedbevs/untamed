@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createHash, timingSafeEqual } from 'crypto'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { creditOnlineOrder, parseAccelPaySale } from '@/lib/loyalty/orders'
 import { captureWebhookEvent } from '@/lib/shop/webhook-capture'
@@ -20,13 +21,22 @@ export const runtime = 'nodejs'
  */
 function isAuthorized(request: NextRequest): boolean {
   const secret = process.env.ACCELPAY_WEBHOOK_SECRET
-  // If no secret is configured we accept (dev); in prod set the secret.
-  if (!secret) return true
+  // Fail closed: with no secret configured, nobody is authorized.
+  if (!secret) {
+    console.error(
+      '[webhooks/untamed-order-fulfillment] ACCELPAY_WEBHOOK_SECRET is not set; rejecting webhook. Set it in the environment and in the AccelPay webhook URL (?token=).'
+    )
+    return false
+  }
   const provided =
     new URL(request.url).searchParams.get('token') ||
     request.headers.get('x-webhook-token') ||
     request.headers.get('authorization')?.replace(/^Bearer\s+/i, '')
-  return provided === secret
+  if (!provided) return false
+  // Hash both sides so the comparison is constant-time regardless of length.
+  const given = createHash('sha256').update(provided).digest()
+  const expected = createHash('sha256').update(secret).digest()
+  return timingSafeEqual(given, expected)
 }
 
 /**

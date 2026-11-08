@@ -25,16 +25,30 @@ const VOLUME_LABELS: Record<string, string> = {
   large: 'Large',
 }
 
+// The form's inputs have no maxLength, so these caps are generous on purpose:
+// they only stop oversized payloads, never a real business or person's name.
 const leadSchema = z.object({
-  businessName: z.string().min(1, 'Business name is required'),
-  contactName: z.string().min(1, 'Contact name is required'),
+  businessName: z
+    .string()
+    .min(1, 'Business name is required')
+    .max(200, 'Business name must be 200 characters or less'),
+  contactName: z
+    .string()
+    .min(1, 'Contact name is required')
+    .max(200, 'Contact name must be 200 characters or less'),
   email: z.string().email('Valid email is required'),
-  phone: z.string().optional(),
-  location: z.string().optional(),
+  phone: z.string().max(100, 'Phone must be 100 characters or less').optional(),
+  location: z.string().max(200, 'Location must be 200 characters or less').optional(),
   businessType: z.enum(['bar_restaurant', 'liquor_store', 'distributor', 'event_venue', 'other']),
   volumeInterest: z.enum(['small', 'medium', 'large']).optional(),
   message: z.string().max(2000).optional(),
-  ref: z.string().optional(),
+  // ref comes from the page URL, not something the visitor types. Referral
+  // codes are at most 20 characters, so an overlong value is dropped (the
+  // ref cookie is then used) rather than rejecting the whole inquiry.
+  ref: z
+    .string()
+    .optional()
+    .transform((v) => (v && v.length <= 64 ? v : undefined)),
   visitor_id: z.string().max(80).optional(),
   session_id: z.string().max(80).optional(),
   utm_source: z.string().max(200).optional(),
