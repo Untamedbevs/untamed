@@ -4,18 +4,30 @@
  * /api/tracking/attribute-order is posted by the buyer's own browser within
  * seconds of checkout (AccelPaySaleTracker on `bc-sale`), but nothing proves
  * the caller is the buyer. So attribution only counts when it was attached
- * close to the sale: data attached more than ATTRIBUTION_WINDOW_MS before the
- * sale (for example a referral code posted for a sale id weeks before that
- * sale existed) is ignored when crediting referrals, snapshotting UTM and
- * sending the Meta Purchase.
+ * close to the sale: data attached more than ATTACHED_BEFORE_SALE_MS before
+ * the sale (for example a referral code posted for a sale id before that sale
+ * existed) is ignored when crediting referrals, snapshotting UTM and sending
+ * the Meta Purchase.
  *
- * `loyalty_order_attributions.created_at` is the "attached at" time. The
- * attribute-order route re-stamps it whenever it replaces a stale row, and
- * nothing else writes it.
+ * `loyalty_order_attributions.created_at` is the "attached at" time. It is
+ * set once, by the column default when the row is inserted; nothing renews
+ * or re-stamps it. A row posted for a sale id ahead of the sale therefore
+ * stays too old to count, however often it is re-posted, so a pre-seeded
+ * code can at worst block that sale's referral, never take it.
  */
 
-/** How close to the sale browser attribution must be attached to count. */
+/**
+ * How long after the order row is saved the attribute-order route still
+ * accepts posts for it. The buyer's tracker posts within seconds.
+ */
 export const ATTRIBUTION_WINDOW_MS = 2 * 60 * 60 * 1000
+
+/**
+ * How long before the sale attribution may have been attached and still
+ * count. The buyer's tracker posts after the sale, so this only absorbs clock
+ * differences between AccelPay's sale time and ours.
+ */
+export const ATTACHED_BEFORE_SALE_MS = 10 * 60 * 1000
 
 /**
  * How far before the saved time AccelPay's own sale time may be and still be
@@ -75,13 +87,13 @@ export function orderSaleTimeMs(order: { created_at?: unknown; raw_payload?: unk
 
 /**
  * Whether attribution attached at `attachedAt` can belong to a sale made at
- * `saleTimeMs`: false when it was attached more than ATTRIBUTION_WINDOW_MS
+ * `saleTimeMs`: false when it was attached more than ATTACHED_BEFORE_SALE_MS
  * before the sale. Fails closed when either time is unreadable.
  */
 export function attachedNearSale(attachedAt: unknown, saleTimeMs: number): boolean {
   const attached = parseTime(attachedAt)
   if (!Number.isFinite(attached) || !Number.isFinite(saleTimeMs)) return false
-  return attached >= saleTimeMs - ATTRIBUTION_WINDOW_MS
+  return attached >= saleTimeMs - ATTACHED_BEFORE_SALE_MS
 }
 
 /** attachedNearSale against a saved `loyalty_orders` row. */

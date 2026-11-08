@@ -3,12 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { resolveReferralCode } from '@/lib/referral/helpers'
 import { applyOrderAttribution } from '@/lib/tracking/order-attribution'
 import { sendOrderPurchaseToMeta } from '@/lib/tracking/order-meta-purchase'
-import {
-  ATTRIBUTION_WINDOW_MS,
-  attachedNearSale,
-  isUuid,
-  orderSaleTimeMs,
-} from '@/lib/tracking/attribution-window'
+import { ATTRIBUTION_WINDOW_MS, isUuid } from '@/lib/tracking/attribution-window'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -38,11 +33,15 @@ function parseSaleId(value: unknown): number | null {
  * while the sale is fresh (see lib/tracking/attribution-window):
  *   - once the order row is older than ATTRIBUTION_WINDOW_MS, nothing is
  *     written;
- *   - a row attached more than ATTRIBUTION_WINDOW_MS before the sale (or, with
- *     no order yet, before now) is stale: the next post replaces all of it and
- *     re-stamps `created_at`, so the buyer's own post at checkout replaces a
- *     pre-seeded one. Otherwise later posts only fill missing fields.
- * Crediting and the Meta send ignore stale rows too.
+ *   - the first post for a sale id creates the row and fixes its `created_at`
+ *     (the "attached at" time). Later posts only fill fields that are still
+ *     empty; they never replace the row or renew `created_at`, whether or not
+ *     the order exists yet;
+ *   - crediting, the UTM snapshot and the Meta send ignore a row attached more
+ *     than ATTACHED_BEFORE_SALE_MS before the sale.
+ * So a code posted for a sale id ahead of the sale, however often it is
+ * re-posted, stays too old to count: it can block that sale's referral but
+ * never take it.
  */
 export async function POST(request: NextRequest) {
   let body: {
@@ -89,7 +88,7 @@ export async function POST(request: NextRequest) {
 
     const { data: order, error: orderError } = await admin
       .from('loyalty_orders')
-      .select('created_at, raw_payload')
+      .select('created_at')
       .eq('accelpay_sale_id', saleId)
       .maybeSingle()
     if (orderError) throw new Error(`order lookup failed: ${orderError.message}`)
@@ -111,34 +110,24 @@ export async function POST(request: NextRequest) {
 
     const { data: existing, error: existingError } = await admin
       .from('loyalty_order_attributions')
-      .select('id, created_at, visitor_fingerprint, ref_code, fbp, fbc, client_ip, client_user_agent, event_source_url')
+      .select('id, visitor_fingerprint, ref_code, fbp, fbc, client_ip, client_user_agent, event_source_url')
       .eq('accelpay_sale_id', saleId)
       .maybeSingle()
     if (existingError) throw new Error(`attribution lookup failed: ${existingError.message}`)
 
     if (existing) {
-      const saleTime = order ? orderSaleTimeMs(order) : now
-      const stale = !attachedNearSale(existing.created_at, saleTime)
-      let update: Record<string, unknown> = {}
-      if (stale) {
-        // Attached long before this sale, so not this buyer's: replace it all.
-        update = {
-          visitor_fingerprint: visitorFingerprint,
-          ref_code: validRefCode,
-          ...browser,
-          created_at: new Date(now).toISOString(),
-        }
-      } else {
-        // Fill only missing fields; never clobber already-applied/credited state.
-        if (!existing.visitor_fingerprint && visitorFingerprint) {
-          update.visitor_fingerprint = visitorFingerprint
-        }
-        if (!existing.ref_code && validRefCode) {
-          update.ref_code = validRefCode
-        }
-        for (const [key, value] of Object.entries(browser)) {
-          if (value && !existing[key as keyof typeof existing]) update[key] = value
-        }
+      // Fill only missing fields. Never replace the row or touch created_at:
+      // renewing it would let a code posted ahead of the sale stay "fresh".
+      // A row attached too long before the sale is ignored downstream.
+      const update: Record<string, unknown> = {}
+      if (!existing.visitor_fingerprint && visitorFingerprint) {
+        update.visitor_fingerprint = visitorFingerprint
+      }
+      if (!existing.ref_code && validRefCode) {
+        update.ref_code = validRefCode
+      }
+      for (const [key, value] of Object.entries(browser)) {
+        if (value && !existing[key as keyof typeof existing]) update[key] = value
       }
       if (Object.keys(update).length > 0) {
         const { error: updateError } = await admin

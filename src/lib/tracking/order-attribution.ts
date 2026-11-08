@@ -42,8 +42,8 @@ async function applyBaseAttribution(
     .eq('accelpay_sale_id', accelPaySaleId)
     .maybeSingle()
   if (!attribution || attribution.attribution_applied) return
-  // Attached long before this sale, so not the buyer's. Left unapplied so the
-  // buyer's own post, which replaces it, is applied instead.
+  // Attached before this sale (e.g. posted for a sale id ahead of the sale),
+  // so not the buyer's: its visitor and ref code are not snapshotted.
   if (!attributionBelongsToOrder(attribution.created_at, order)) return
 
   const fingerprint = (attribution.visitor_fingerprint as string | null) || null
