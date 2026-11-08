@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { safeReturnPath } from '@/lib/auth/safe-return-path'
 import {
   AlertCircle,
   Eye,
@@ -32,8 +33,7 @@ function SetupPasswordForm() {
   const searchParams = useSearchParams()
   const supabase = createClient()
 
-  const returnTo = searchParams.get('returnTo') || '/portal'
-  const safeReturnTo = returnTo.startsWith('/') ? returnTo : '/portal'
+  const safeReturnTo = safeReturnPath(searchParams.get('returnTo'))
 
   const [checking, setChecking] = useState(true)
   const [password, setPassword] = useState('')

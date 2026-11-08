@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { PORTAL_OTP_LENGTH } from '@/lib/auth/portal-otp'
+import { safeReturnPath } from '@/lib/auth/safe-return-path'
 import {
   AlertCircle,
   CheckCircle,
@@ -39,7 +40,7 @@ function PortalLoginForm() {
   const supabase = createClient()
 
   const initialEmail = searchParams.get('email') || ''
-  const returnTo = searchParams.get('returnTo') || '/portal'
+  const returnTo = safeReturnPath(searchParams.get('returnTo'))
 
   // Email-first by default: customers auto-enrolled at checkout have an
   // account but no password yet, so the magic-link path works for everyone.

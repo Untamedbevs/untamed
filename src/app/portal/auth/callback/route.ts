@@ -3,6 +3,7 @@ import type { EmailOtpType } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { ensureMemberForAuthUser } from '@/lib/auth/link-identities'
+import { safeReturnPath } from '@/lib/auth/safe-return-path'
 import { creditConsumerReferral } from '@/lib/referral/helpers'
 import { REF_COOKIE_NAME } from '@/lib/referral/constants'
 
@@ -17,9 +18,7 @@ export async function GET(request: NextRequest) {
   const code = url.searchParams.get('code')
   const tokenHash = url.searchParams.get('token_hash')
   const type = url.searchParams.get('type') as EmailOtpType | null
-  const returnTo = url.searchParams.get('returnTo') || '/portal'
-
-  const safeReturnTo = returnTo.startsWith('/') ? returnTo : '/portal'
+  const safeReturnTo = safeReturnPath(url.searchParams.get('returnTo'))
 
   const supabase = await createClient()
 
