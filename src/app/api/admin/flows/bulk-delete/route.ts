@@ -1,6 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { NextRequest, NextResponse } from 'next/server'
-import { resolveStaff } from '@/lib/auth/resolve-staff'
+import { ADMIN_ROLES, resolveStaff } from '@/lib/auth/resolve-staff'
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
@@ -12,6 +12,11 @@ const UUID_RE =
 export async function POST(request: NextRequest) {
   const staff = await resolveStaff()
   if (!staff) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  // Deleting flows is admin-only (matches the 'Admins can delete flows' RLS
+  // policy, which the service-role client below would otherwise bypass).
+  if (!ADMIN_ROLES.includes(staff.role)) {
+    return NextResponse.json({ error: 'Only admins can delete flows' }, { status: 403 })
+  }
 
   let body: { ids?: unknown }
   try {

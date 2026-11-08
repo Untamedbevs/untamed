@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { resolveMember } from '@/lib/auth/resolve-member'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { s3PublicUrl } from '@/lib/storage/s3'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,6 +14,24 @@ const ALLOWED_DRINK_SLUGS = new Set([
 
 const MAX_ASSETS_PER_RECEIPT = 10
 const MAX_QUANTITY_PER_ITEM = 100
+
+/**
+ * True for a key under this member's own user-uploads/<uid>/ prefix whose
+ * remaining segments are non-empty, use only [A-Za-z0-9._-] (the characters
+ * buildUserUploadKey produces) and are never '.' or '..'.
+ */
+function isOwnUploadKey(key: unknown, authUserId: string): key is string {
+  if (typeof key !== 'string') return false
+  const prefix = `user-uploads/${authUserId}/`
+  if (!key.startsWith(prefix)) return false
+  const segments = key.slice(prefix.length).split('/')
+  return (
+    segments.length >= 2 &&
+    segments.every(
+      (s) => /^[A-Za-z0-9._-]{1,200}$/.test(s) && s !== '.' && s !== '..'
+    )
+  )
+}
 
 interface IncomingAsset {
   s3Key: string
@@ -170,9 +189,8 @@ export async function POST(request: NextRequest) {
     const resolvedDrinkSlug = topItem?.drinkSlug || drinkSlug || null
 
     // Ownership gate: every s3 key must live under this user's prefix.
-    const ownsAllAssets = body.assets.every((a) =>
-      typeof a.s3Key === 'string' &&
-      a.s3Key.startsWith(`user-uploads/${member.authUserId}/`)
+    const ownsAllAssets = body.assets.every(
+      (a) => a && isOwnUploadKey(a.s3Key, member.authUserId)
     )
     if (!ownsAllAssets) {
       return NextResponse.json(
@@ -187,7 +205,9 @@ export async function POST(request: NextRequest) {
     const orderedAssets = [...body.assets]
       .map((a, i) => ({ ...a, displayOrder: a.displayOrder ?? i }))
       .sort((a, b) => a.displayOrder - b.displayOrder)
-    const coverUrl = orderedAssets[0].url
+    // Derived from the verified key; client-sent urls are ignored so the
+    // stored image is always the member's own CDN object.
+    const coverUrl = s3PublicUrl(orderedAssets[0].s3Key)
 
     const { data: receipt, error: receiptError } = await admin
       .from('loyalty_receipts')
@@ -212,7 +232,7 @@ export async function POST(request: NextRequest) {
     const assetRows = orderedAssets.map((a, i) => ({
       receipt_id: receipt.id,
       s3_key: a.s3Key,
-      url: a.url,
+      url: s3PublicUrl(a.s3Key),
       mime_type: a.mimeType || null,
       width: a.width ?? null,
       height: a.height ?? null,

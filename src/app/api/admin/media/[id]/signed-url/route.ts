@@ -3,6 +3,7 @@ import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { NextRequest, NextResponse } from 'next/server'
 import { resolveStaff } from '@/lib/auth/resolve-staff'
+import { isLibraryKey } from '@/lib/media/library-key'
 
 function getS3Client() {
   return new S3Client({
@@ -37,6 +38,14 @@ export async function GET(
   if (!media.is_private) {
     return NextResponse.json(
       { error: 'File is not private — use the public URL' },
+      { status: 400 }
+    )
+  }
+
+  // Only sign objects the media library owns (media/... or private/...).
+  if (!isLibraryKey(media.s3_key)) {
+    return NextResponse.json(
+      { error: 'File is not a media library file' },
       { status: 400 }
     )
   }

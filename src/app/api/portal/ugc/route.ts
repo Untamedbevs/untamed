@@ -6,8 +6,30 @@ import type {
   UgcContributorType,
 } from '@/lib/ugc/types'
 import { triggerMediaConvertForVideoAssets } from '@/lib/video/mediaconvert'
+import { s3PublicUrl } from '@/lib/storage/s3'
 
 export const dynamic = 'force-dynamic'
+
+/** Video assets one member may submit per rolling 24 hours (each starts a MediaConvert job). */
+const MAX_VIDEOS_PER_DAY = 20
+
+/** Folders the portal UGC flow uploads into (see UGC_FOLDERS in src/lib/storage/user-uploads.ts). */
+const UGC_UPLOAD_FOLDERS = ['ugc/uploads', 'ugc/recordings']
+
+/**
+ * True only for an original upload key as built by buildUserUploadKey for
+ * this member in a UGC folder: user-uploads/<uid>/ugc/(uploads|recordings)/<file>,
+ * where <file> is a single segment of [A-Za-z0-9._-] and not '.' or '..'.
+ */
+function isOwnOriginalUgcUploadKey(key: unknown, authUserId: string): boolean {
+  if (typeof key !== 'string') return false
+  return UGC_UPLOAD_FOLDERS.some((folder) => {
+    const prefix = `user-uploads/${authUserId}/${folder}/`
+    if (!key.startsWith(prefix)) return false
+    const file = key.slice(prefix.length)
+    return /^[A-Za-z0-9._-]{1,200}$/.test(file) && file !== '.' && file !== '..'
+  })
+}
 
 const ALLOWED_DRINK_SLUGS = new Set([
   'black-panther',
@@ -135,14 +157,57 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid drink' }, { status: 400 })
     }
 
+    if (
+      !body.assets.every(
+        (a) => a && (a.assetType === 'image' || a.assetType === 'video')
+      )
+    ) {
+      return NextResponse.json({ error: 'Invalid file type' }, { status: 400 })
+    }
+
+    // Every key must be an original upload the upload routes created for this
+    // member (user-uploads/<uid>/ugc/uploads/<file> or .../ugc/recordings/<file>).
+    // This excludes transcoder outputs under .../processed/, other members'
+    // keys and dot segments.
     const ownsAllAssets = body.assets.every((a) =>
-      a.s3Key.startsWith(`user-uploads/${member.authUserId}/`)
+      isOwnOriginalUgcUploadKey(a.s3Key, member.authUserId)
     )
     if (!ownsAllAssets) {
       return NextResponse.json(
         { error: 'One or more files do not belong to your account.' },
         { status: 403 }
       )
+    }
+
+    const admin = createAdminClient()
+
+    // Per-member daily cap on video assets: each one starts an operator-billed
+    // MediaConvert job.
+    const newVideoCount = body.assets.filter((a) => a.assetType === 'video').length
+    if (newVideoCount > 0) {
+      const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+      const { count: recentVideoCount, error: countError } = await admin
+        .from('ugc_submission_assets')
+        .select('id, ugc_submissions!inner(auth_user_id)', {
+          count: 'exact',
+          head: true,
+        })
+        .eq('asset_type', 'video')
+        .eq('ugc_submissions.auth_user_id', member.authUserId)
+        .gte('created_at', since)
+
+      if (countError) {
+        // Fail open so a lookup problem never blocks a legitimate submission;
+        // the key-shape check above still stops the processed/ loop.
+        console.error('[portal/ugc] Daily video count failed:', countError)
+      } else if ((recentVideoCount ?? 0) + newVideoCount > MAX_VIDEOS_PER_DAY) {
+        return NextResponse.json(
+          {
+            error: `You can submit up to ${MAX_VIDEOS_PER_DAY} videos per day. Please try again tomorrow.`,
+          },
+          { status: 429 }
+        )
+      }
     }
 
     let contributorType: UgcContributorType = 'loyalty'
@@ -170,7 +235,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const admin = createAdminClient()
     const now = new Date().toISOString()
 
     const { data: submission, error: submissionError } = await admin
@@ -208,7 +272,9 @@ export async function POST(request: NextRequest) {
       submission_id: submission.id,
       asset_type: a.assetType,
       s3_key: a.s3Key,
-      url: a.url,
+      // Derived from the verified key; the client-sent url is ignored so the
+      // stored/displayed asset is always the member's own CDN object.
+      url: s3PublicUrl(a.s3Key),
       mime_type: a.mimeType || null,
       processing_status: a.assetType === 'video' ? 'uploaded' : 'ready',
       width: a.width ?? null,

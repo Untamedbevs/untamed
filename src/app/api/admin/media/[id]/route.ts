@@ -2,7 +2,8 @@ import { withResolvedPublicMediaUrl } from '@/lib/media-cdn-url'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { S3Client, DeleteObjectCommand } from '@aws-sdk/client-s3'
 import { NextRequest, NextResponse } from 'next/server'
-import { resolveStaff } from '@/lib/auth/resolve-staff'
+import { ADMIN_ROLES, resolveStaff } from '@/lib/auth/resolve-staff'
+import { isLibraryKey } from '@/lib/media/library-key'
 
 function getS3Client() {
   return new S3Client({
@@ -73,6 +74,11 @@ export async function DELETE(
 ) {
   const staff = await resolveStaff()
   if (!staff) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  // Deleting media is admin-only (matches the 'Admins can delete media' RLS
+  // policy, which the service-role client below would otherwise bypass).
+  if (!ADMIN_ROLES.includes(staff.role)) {
+    return NextResponse.json({ error: 'Only admins can delete media' }, { status: 403 })
+  }
 
   const { id } = await params
   const supabase = createAdminClient()
@@ -83,7 +89,10 @@ export async function DELETE(
     .eq('id', id)
     .single()
 
-  if (media?.s3_key) {
+  // Only remove the S3 object when the library owns the key (media/ or
+  // private/). Rows pointing elsewhere, such as promoted UGC in folder /ugc
+  // (the member's user-uploads/... original), only lose the library row.
+  if (media?.s3_key && isLibraryKey(media.s3_key)) {
     try {
       const s3 = getS3Client()
       await s3.send(

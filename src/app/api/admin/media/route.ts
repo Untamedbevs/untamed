@@ -3,6 +3,7 @@ import { withResolvedPublicMediaUrl } from '@/lib/media-cdn-url'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import { NextRequest, NextResponse } from 'next/server'
 import { resolveStaff } from '@/lib/auth/resolve-staff'
+import { isLibraryKey } from '@/lib/media/library-key'
 
 function getS3Client() {
   return new S3Client({
@@ -103,6 +104,17 @@ async function registerMedia(supabase: ReturnType<typeof createAdminClient>, req
 
   if (!filename || !s3_key || !file_type) {
     return NextResponse.json({ error: 'filename, s3_key, and file_type are required' }, { status: 400 })
+  }
+
+  // Only keys the library itself creates (media/... or private/..., as built by
+  // /api/admin/media/presigned) can be registered. Anything else (member
+  // uploads, site assets) would let library delete/sign reach objects the
+  // library does not own.
+  if (!isLibraryKey(s3_key)) {
+    return NextResponse.json(
+      { error: 's3_key must be a media library key (media/... or private/...)' },
+      { status: 400 }
+    )
   }
 
   if (!is_private && !url) {

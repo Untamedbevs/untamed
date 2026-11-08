@@ -41,6 +41,12 @@ export interface TriggerResult {
 
 const VIDEO_EXT_REGEX = /\.(mp4|mov|m4v|webm|mkv|avi)$/i
 
+/** Transcoder outputs live under a processed/ folder; they are never inputs. */
+const PROCESSED_SEGMENT_REGEX = /(^|\/)processed\//
+
+/** 'uploaded' rows that never got a job after this long are given up on. */
+const STALE_UPLOADED_MS = 24 * 60 * 60 * 1000
+
 /**
  * Confirm the source object actually exists in S3 before we push a job.
  * "Make sure it hits S3, THEN process." S3 is read-after-write consistent for
@@ -88,6 +94,12 @@ export async function triggerMediaConvertForAsset(
 ): Promise<TriggerResult> {
   if (!VIDEO_EXT_REGEX.test(input.s3Key)) {
     return { ok: false, reason: 'not_a_video_extension' }
+  }
+  // Never transcode our own outputs (processed/{base}-1080p.mp4 etc.): doing so
+  // lets one upload multiply into 3, 9, 27... jobs. Covers the submission
+  // route, the reconcile cron and the staff retry route.
+  if (PROCESSED_SEGMENT_REGEX.test(input.s3Key)) {
+    return { ok: false, reason: 'not_an_original_upload' }
   }
 
   const bucket = process.env.AWS_S3_BUCKET
@@ -322,11 +334,30 @@ export async function reconcileVideoAsset(asset: {
  */
 export async function reconcileStuckVideoAssets(limit = 100) {
   const admin = createAdminClient()
+
+  // Give up on 'uploaded' rows that never got a MediaConvert job within 24h
+  // (missing source object, non-video key, ...). Without this they stay in
+  // the batch forever and can crowd out other members' videos. Staff can
+  // still re-trigger them from /admin/ugc/[id] (retry-processing).
+  const staleBefore = new Date(Date.now() - STALE_UPLOADED_MS).toISOString()
+  const { error: staleError } = await admin
+    .from('ugc_submission_assets')
+    .update({ processing_status: 'failed' })
+    .eq('asset_type', 'video')
+    .eq('processing_status', 'uploaded')
+    .is('mediaconvert_job_id', null)
+    .lt('created_at', staleBefore)
+  if (staleError) {
+    console.error('[mediaconvert] marking stale uploaded rows failed', staleError)
+  }
+
+  // Newest first, so a backlog of old rows cannot starve fresh uploads.
   const { data: assets, error } = await admin
     .from('ugc_submission_assets')
     .select('id, s3_key, mediaconvert_job_id, processing_status')
     .eq('asset_type', 'video')
     .in('processing_status', ['uploaded', 'processing'])
+    .order('created_at', { ascending: false, nullsFirst: false })
     .limit(limit)
 
   if (error) {

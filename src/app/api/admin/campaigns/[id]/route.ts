@@ -1,6 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { NextRequest, NextResponse } from 'next/server'
-import { resolveStaff } from '@/lib/auth/resolve-staff'
+import { ADMIN_ROLES, resolveStaff } from '@/lib/auth/resolve-staff'
 
 export async function GET(
   request: NextRequest,
@@ -93,6 +93,11 @@ export async function DELETE(
 ) {
   const staff = await resolveStaff()
   if (!staff) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  // Deleting campaigns is admin-only (matches the 'Admins can delete campaigns' RLS
+  // policy, which the service-role client below would otherwise bypass).
+  if (!ADMIN_ROLES.includes(staff.role)) {
+    return NextResponse.json({ error: 'Only admins can delete campaigns' }, { status: 403 })
+  }
 
   const { id } = await params
   const supabase = createAdminClient()
