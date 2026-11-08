@@ -8,6 +8,7 @@ import {
 import type { InviteType } from '@/lib/referral/types'
 import { sendAndLogEmail } from '@/lib/messaging/email-log'
 import { filterSuppressed } from '@/lib/messaging/suppressions'
+import { isSingleEmailAddress } from '@/lib/messaging/address'
 import {
   buildListUnsubscribeHeaders,
   buildUnsubscribeUrl,
@@ -35,7 +36,7 @@ export async function POST(request: NextRequest) {
   const referredEmail =
     typeof body?.referredEmail === 'string' ? body.referredEmail : null
   const referredName =
-    typeof body?.referredName === 'string' ? body.referredName : null
+    typeof body?.referredName === 'string' ? body.referredName.trim().slice(0, 100) || null : null
   const inviteType = body?.inviteType as InviteType | undefined
   const customMessage =
     typeof body?.customMessage === 'string' ? body.customMessage : ''
@@ -64,6 +65,12 @@ export async function POST(request: NextRequest) {
 
   const supabase = createAdminClient()
   const normalizedReferred = referredEmail.toLowerCase().trim()
+  // One plain mailbox only. Mail libraries read "a@x, b@y" or "Pal <b@y>" as
+  // other recipients, which would slip past the suppression check, the
+  // per-recipient dedupe and the daily limit below.
+  if (!isSingleEmailAddress(normalizedReferred)) {
+    return NextResponse.json({ error: 'Enter one email address' }, { status: 400 })
+  }
 
   const { data: participant } = await supabase
     .from('referral_participants')
