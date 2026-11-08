@@ -37,7 +37,7 @@ const leadSchema = z.object({
     .string()
     .min(1, 'Contact name is required')
     .max(200, 'Contact name must be 200 characters or less'),
-  email: z.string().email('Valid email is required'),
+  email: z.string().max(254, 'Email is too long').email('Valid email is required'),
   phone: z.string().max(100, 'Phone must be 100 characters or less').optional(),
   location: z.string().max(200, 'Location must be 200 characters or less').optional(),
   businessType: z.enum(['bar_restaurant', 'liquor_store', 'distributor', 'event_venue', 'other']),
@@ -263,7 +263,7 @@ export async function POST(request: NextRequest) {
             email: normalizedEmail,
             first_name: data.contactName,
             visitor_id: isUuid(attribution.visitor_fingerprint) ? attribution.visitor_fingerprint : randomUUID(),
-            points_balance: POINTS.SIGNUP_BONUS,
+            points_balance: 0,
             first_utm_source: attribution.first_utm_source,
             first_utm_medium: attribution.first_utm_medium,
             first_utm_campaign: attribution.first_utm_campaign,
@@ -275,12 +275,13 @@ export async function POST(request: NextRequest) {
 
         if (newMember) {
           loyaltyMemberId = newMember.id
-          await supabase.from('loyalty_transactions').insert({
-            member_id: loyaltyMemberId,
-            points: POINTS.SIGNUP_BONUS,
-            type: 'signup_bonus',
-            description: 'Welcome to the Pack! Retailer signup bonus.',
+          // Grant through the locked RPC so balance and ledger row land together.
+          const { error: bonusError } = await supabase.rpc('loyalty_grant_signup_bonus', {
+            p_member_id: loyaltyMemberId,
+            p_points: POINTS.SIGNUP_BONUS,
+            p_description: 'Welcome to the Pack! Retailer signup bonus.',
           })
+          if (bonusError) console.error('[distributor/lead] signup bonus grant failed:', bonusError.message)
         }
       }
 

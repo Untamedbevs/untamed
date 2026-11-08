@@ -212,7 +212,10 @@ export async function ensureMemberForAuthUser(
     first_name: firstName,
     favorite_drink_slug: options.favoriteDrinkSlug || null,
     visitor_id: fingerprint || randomUUID(),
-    points_balance: POINTS.SIGNUP_BONUS,
+    // The bonus is granted below through the locked RPC, so the balance and
+    // its ledger row appear together and an overlapping request can't add a
+    // second bonus in between.
+    points_balance: 0,
     auth_user_id: authUserId,
   }
 
@@ -258,12 +261,11 @@ export async function ensureMemberForAuthUser(
     return null
   }
 
-  await admin.from('loyalty_transactions').insert({
-    member_id: created.id,
-    points: POINTS.SIGNUP_BONUS,
-    type: 'signup_bonus',
-    description: 'Welcome to the Pack! Signup bonus.',
-  })
+  try {
+    await grantSignupBonusIfMissing(admin, created.id)
+  } catch (err) {
+    console.error('[ensureMemberForAuthUser] signup bonus grant failed:', err)
+  }
 
   // 5. Link the visitor row to the new member (waterfall completion).
   if (visitor) {

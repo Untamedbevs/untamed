@@ -1,7 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { POINTS } from '@/lib/loyalty/constants'
 import { isOfLegalAge, parseBirthdate } from './age'
-import { applyPoints } from './ledger'
 import { PROGRAM_RULES_VERSION } from './program'
 import { engagementAllowed } from './state-rules'
 import { normalizeStateCode } from './states'
@@ -125,23 +124,16 @@ export async function enrollMember(
   })
 
   // One-time signup bonus (members who got one under the old program keep it).
+  // The locked RPC checks for a prior signup_bonus row and credits under the
+  // member-row lock, so two concurrent enrollments can't both grant it.
   let bonusGranted = 0
-  const { data: priorBonus } = await admin
-    .from('loyalty_transactions')
-    .select('id')
-    .eq('member_id', member.id)
-    .eq('type', 'signup_bonus')
-    .limit(1)
-    .maybeSingle()
-  if (!priorBonus) {
-    await applyPoints(admin, {
-      memberId: member.id,
-      points: POINTS.SIGNUP_BONUS,
-      type: 'signup_bonus',
-      description: 'Welcome to Pack Rewards! Signup bonus.',
-    })
-    bonusGranted = POINTS.SIGNUP_BONUS
-  }
+  const { data: granted, error: bonusError } = await admin.rpc('loyalty_grant_signup_bonus', {
+    p_member_id: member.id,
+    p_points: POINTS.SIGNUP_BONUS,
+    p_description: 'Welcome to Pack Rewards! Signup bonus.',
+  })
+  if (bonusError) throw new Error(`loyalty_grant_signup_bonus failed: ${bonusError.message}`)
+  if (granted === true) bonusGranted = POINTS.SIGNUP_BONUS
 
   // While Pack Rewards runs as a staff preview, online orders still credit
   // points at purchase and referrers are credited at signup (the current
