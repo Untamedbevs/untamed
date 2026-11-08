@@ -17,6 +17,7 @@
 
 import nodemailer, { type Transporter } from 'nodemailer'
 import type SMTPTransport from 'nodemailer/lib/smtp-transport'
+import addressparser from 'nodemailer/lib/addressparser'
 import { isSingleEmailAddress } from '@/lib/messaging/address'
 
 // ---------------------------------------------------------------------------
@@ -168,8 +169,11 @@ async function send(
   // nodemailer parses a recipient string as an address list, so a value like
   // "a@x, b@y" or "Pal <b@y>" would reach mailboxes that no caller checked
   // against suppressions or limits. Every caller passes plain addresses.
+  // The value checked must be exactly what nodemailer delivers to, so also
+  // require its own parser to read it back unchanged as one address.
   for (const address of [...toAddresses, ...ccAddresses]) {
-    if (!isSingleEmailAddress(address)) {
+    const parsed = addressparser(address) as Array<{ address?: string }>
+    if (!isSingleEmailAddress(address) || parsed.length !== 1 || parsed[0].address !== address) {
       throw new Error('Refusing to send: recipient is not a single email address')
     }
   }

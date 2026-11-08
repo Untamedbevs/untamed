@@ -1,4 +1,15 @@
 import { createAdminClient } from '@/lib/supabase/admin'
+import { mailboxKey } from '@/lib/referral/helpers'
+
+/**
+ * The suppression keys for an address: the address itself and its mailbox
+ * key (+tag removed; Gmail dots and googlemail.com folded). addSuppression
+ * stores both, so an opt-out also covers the aliases that reach the same inbox.
+ */
+export function suppressionKeys(email: string): string[] {
+  const exact = email.toLowerCase().trim()
+  return [...new Set([exact, mailboxKey(exact)])]
+}
 
 /**
  * Filter out suppressed emails from a recipient list.
@@ -9,7 +20,7 @@ export async function filterSuppressed<T extends { email: string }>(
 ): Promise<{ allowed: T[]; suppressed: T[] }> {
   if (recipients.length === 0) return { allowed: [], suppressed: [] }
 
-  const emails = [...new Set(recipients.map((r) => r.email.toLowerCase()))]
+  const emails = [...new Set(recipients.flatMap((r) => suppressionKeys(r.email)))]
   const supabase = createAdminClient()
 
   const CHUNK = 500
@@ -33,7 +44,7 @@ export async function filterSuppressed<T extends { email: string }>(
   const suppressed: T[] = []
 
   for (const r of recipients) {
-    if (suppressedSet.has(r.email.toLowerCase())) {
+    if (suppressionKeys(r.email).some((k) => suppressedSet.has(k))) {
       suppressed.push(r)
     } else {
       allowed.push(r)
@@ -57,12 +68,12 @@ export async function addSuppression(params: {
   const { error } = await supabase
     .from('email_suppressions')
     .upsert(
-      {
-        email: params.email.toLowerCase().trim(),
+      suppressionKeys(params.email).map((email) => ({
+        email,
         reason: params.reason,
         source_message_id: params.sourceMessageId || null,
         notes: params.notes || null,
-      },
+      })),
       { onConflict: 'email', ignoreDuplicates: true }
     )
 

@@ -25,6 +25,7 @@ import { sendAndLogEmail } from '@/lib/messaging/email-log'
 import { getSenderById, DEFAULT_CRM_SENDER } from '@/lib/crm/senders'
 import { buildListUnsubscribeHeaders, buildUnsubscribeUrl } from '@/lib/messaging/unsubscribe'
 import { renderEmailHtml, renderEmailText, type EmailLayout } from '@/lib/email/render'
+import { suppressionKeys } from '@/lib/messaging/suppressions'
 
 const CONCURRENCY = 5
 const TIME_BUDGET_MS = 45_000
@@ -56,7 +57,9 @@ function dailyLimit(): number {
 
 function isPermanentFailure(err: unknown): boolean {
   const code = (err as { responseCode?: number })?.responseCode
-  return typeof code === 'number' && code >= 500
+  if (typeof code === 'number' && code >= 500) return true
+  // The SMTP sink refusing a malformed recipient won't succeed on retry.
+  return err instanceof Error && err.message.startsWith('Refusing to send')
 }
 
 interface QueuedMessage {
@@ -173,7 +176,8 @@ export async function GET(request: NextRequest) {
     const { data: suppression } = await admin
       .from('email_suppressions')
       .select('id')
-      .eq('email', msg.recipient_email.toLowerCase())
+      .in('email', suppressionKeys(msg.recipient_email))
+      .limit(1)
       .maybeSingle()
     if (suppression) {
       await admin

@@ -23,7 +23,7 @@ const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'https://untamedbeverages.com'
 
 const applySchema = z.object({
   name: z.string().min(1, 'Name is required').max(200),
-  email: z.string().email('Valid email is required'),
+  email: z.string().max(254, 'Email is too long').email('Valid email is required'),
   phone: z.string().max(40).optional(),
   location: z.string().min(1, 'City is required').max(200),
   primaryPlatform: z.enum(INFLUENCER_PLATFORMS),
