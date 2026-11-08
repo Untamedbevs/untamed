@@ -19,6 +19,7 @@ import { randomUUID } from 'crypto'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { ensureReferralParticipant } from '@/lib/referral/helpers'
 import { applyOrderAttribution } from '@/lib/tracking/order-attribution'
+import { attributionBelongsToOrder, isUuid } from '@/lib/tracking/attribution-window'
 
 export interface ParsedSaleItem {
   listingId?: number
@@ -241,7 +242,9 @@ async function ensureMemberForOrder(
   const insertData: Record<string, unknown> = {
     email: normalized,
     first_name: args.firstName,
-    visitor_id: (visitor && args.visitorFingerprint) || randomUUID(),
+    // visitor_id is UUID NOT NULL: only a real (UUID) fingerprint may fill it.
+    visitor_id:
+      visitor && isUuid(args.visitorFingerprint) ? args.visitorFingerprint : randomUUID(),
     points_balance: 0,
   }
   if (visitor) {
@@ -325,13 +328,20 @@ export async function creditOnlineOrder(
 
   // The visitor fingerprint may already be stashed (client posted before the
   // webhook); use it so the new customer inherits first-touch UTM at creation.
+  // Ignored when it was attached long before this sale (not the buyer's).
   let visitorFingerprint: string | null = null
   const { data: priorAttribution } = await admin
     .from('loyalty_order_attributions')
-    .select('visitor_fingerprint')
+    .select('visitor_fingerprint, created_at')
     .eq('accelpay_sale_id', sale.saleId)
     .maybeSingle()
-  if (priorAttribution?.visitor_fingerprint) {
+  if (
+    priorAttribution?.visitor_fingerprint &&
+    attributionBelongsToOrder(priorAttribution.created_at, {
+      created_at: new Date().toISOString(),
+      raw_payload: sale.raw ?? null,
+    })
+  ) {
     visitorFingerprint = priorAttribution.visitor_fingerprint as string
   }
 

@@ -3,6 +3,7 @@ import { RESERVED_CODES, CODE_REGEX } from './constants'
 import { POINTS } from '@/lib/loyalty/constants'
 import { applyPoints } from '@/lib/rewards/ledger'
 import { CAPS } from '@/lib/rewards/program'
+import { attributionBelongsToOrder } from '@/lib/tracking/attribution-window'
 
 export function isValidReferralCode(code: string): { valid: boolean; error?: string } {
   if (code.length < 2 || code.length > 20) {
@@ -38,6 +39,12 @@ export async function generateUniqueCode(
   let candidate = baseCode
 
   for (let i = 0; i < 100; i++) {
+    // Generated codes follow the same rules as member-chosen ones: a name like
+    // "Admin" or "Untamed" (reserved) or "A" (too short) gets a numeric suffix.
+    if (!isValidReferralCode(candidate).valid) {
+      candidate = `${baseCode}${Math.floor(Math.random() * 9000) + 1000}`
+      continue
+    }
     const { data: existing } = await supabase
       .from('referral_participants')
       .select('id')
@@ -185,6 +192,40 @@ async function creditReferrerLoyaltyPoints(
 }
 
 /**
+ * Credits a referral reward only while the referrer is under the yearly cap.
+ * Prefers loyalty_apply_referral_points (migration 00035), which counts and
+ * inserts under one member-row lock so concurrent credits cannot pass the cap.
+ * Until that migration is applied, falls back to the separate count plus
+ * applyPoints, which is not atomic. Returns whether points were credited.
+ */
+async function creditReferrerWithinYearlyCap(
+  supabase: SupabaseClient,
+  loyaltyMemberId: string,
+  points: number,
+  type: 'referral_signup' | 'referral_purchase',
+  description: string
+): Promise<boolean> {
+  const { data, error } = await supabase.rpc('loyalty_apply_referral_points', {
+    p_member_id: loyaltyMemberId,
+    p_points: points,
+    p_type: type,
+    p_description: description,
+    p_cap: CAPS.REFERRAL_CREDITS_PER_YEAR,
+  })
+  if (!error) {
+    const row = (Array.isArray(data) ? data[0] : data) as { capped?: boolean } | undefined
+    return !row?.capped
+  }
+  // PGRST202: function not in the schema cache; 42883: undefined function.
+  if (error.code !== 'PGRST202' && error.code !== '42883') {
+    throw new Error(`referral credit failed: ${error.message}`)
+  }
+  if (!(await isUnderYearlyReferralCap(supabase, loyaltyMemberId, type))) return false
+  await creditReferrerLoyaltyPoints(supabase, loyaltyMemberId, points, type, description)
+  return true
+}
+
+/**
  * Whether a referrer is still under the Program Rules' yearly referral cap
  * (CAPS.REFERRAL_CREDITS_PER_YEAR per calendar year, UTC, the same year
  * boundary the portal's "Rewarded this year" count uses) for one kind of
@@ -192,7 +233,8 @@ async function creditReferrerLoyaltyPoints(
  * since applyPoints writes exactly one per credit. Fails closed: if the count
  * can't be read, no points are credited.
  *
- * Not atomic: two credits landing at the same instant can both pass at 24.
+ * Used only as the fallback before migration 00035 is applied; not atomic, so
+ * two credits landing at the same instant can both pass at 24.
  */
 async function isUnderYearlyReferralCap(
   supabase: SupabaseClient,
@@ -286,11 +328,7 @@ export async function creditConsumerReferral(
     // Program Rules: at most CAPS.REFERRAL_CREDITS_PER_YEAR friends rewarded
     // per referrer per calendar year. Past the cap the signup is still
     // tracked above; it just earns no points.
-    if (!(await isUnderYearlyReferralCap(supabase, referrer.loyalty_member_id, 'referral_signup'))) {
-      return
-    }
-
-    await creditReferrerLoyaltyPoints(
+    await creditReferrerWithinYearlyCap(
       supabase,
       referrer.loyalty_member_id,
       POINTS.REFERRAL_SIGNUP,
@@ -321,17 +359,21 @@ export async function creditPaidConversion(
 
     const { data: order } = await supabase
       .from('loyalty_orders')
-      .select('id, email, created_at')
+      .select('id, email, created_at, raw_payload')
       .eq('accelpay_sale_id', accelPaySaleId)
       .maybeSingle()
     if (!order) return // Order row not created yet; the other path will retry.
 
     const { data: attribution } = await supabase
       .from('loyalty_order_attributions')
-      .select('ref_code, conversion_credited')
+      .select('ref_code, conversion_credited, created_at')
       .eq('accelpay_sale_id', accelPaySaleId)
       .maybeSingle()
     if (!attribution || attribution.conversion_credited) return
+    // A code attached long before this sale (e.g. posted for a sale id that
+    // didn't exist yet) isn't the buyer's. Left unclaimed so the buyer's own
+    // post, which replaces it, can still be credited.
+    if (!attributionBelongsToOrder(attribution.created_at, order)) return
 
     const refCode = (attribution.ref_code as string | null)?.trim()
     if (!refCode) return
@@ -408,11 +450,8 @@ export async function creditPaidConversion(
     // bonus at the same CAPS.REFERRAL_CREDITS_PER_YEAR friends per calendar
     // year, listed separately from the signup reward, so it is counted on its
     // own ledger type.
-    if (
-      isFirstPurchase &&
-      (await isUnderYearlyReferralCap(supabase, referrer.loyalty_member_id, 'referral_purchase'))
-    ) {
-      await creditReferrerLoyaltyPoints(
+    if (isFirstPurchase) {
+      await creditReferrerWithinYearlyCap(
         supabase,
         referrer.loyalty_member_id,
         POINTS.REFERRAL_FIRST_PURCHASE,

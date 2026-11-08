@@ -8,6 +8,7 @@ import { sendAndLogEmail } from '@/lib/messaging/email-log'
 import { resolveLeadAttribution } from '@/lib/tracking/lead-attribution'
 import { fbcFromFbclid, sendMetaCapiEvent } from '@/lib/tracking/meta-capi'
 import { z } from 'zod'
+import { isUuid } from '@/lib/tracking/attribution-window'
 
 const LEAD_NOTIFY_EMAIL = 'joe.colella@untamedbeverages.com'
 
@@ -261,7 +262,7 @@ export async function POST(request: NextRequest) {
           .insert({
             email: normalizedEmail,
             first_name: data.contactName,
-            visitor_id: attribution.visitor_fingerprint || randomUUID(),
+            visitor_id: isUuid(attribution.visitor_fingerprint) ? attribution.visitor_fingerprint : randomUUID(),
             points_balance: POINTS.SIGNUP_BONUS,
             first_utm_source: attribution.first_utm_source,
             first_utm_medium: attribution.first_utm_medium,

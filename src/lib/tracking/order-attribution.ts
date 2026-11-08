@@ -15,6 +15,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { creditPaidConversion } from '@/lib/referral/helpers'
+import { attributionBelongsToOrder } from '@/lib/tracking/attribution-window'
 
 interface VisitorAttribution {
   first_utm_source: string | null
@@ -30,17 +31,20 @@ async function applyBaseAttribution(
 ): Promise<void> {
   const { data: order } = await admin
     .from('loyalty_orders')
-    .select('id, member_id')
+    .select('id, member_id, created_at, raw_payload')
     .eq('accelpay_sale_id', accelPaySaleId)
     .maybeSingle()
   if (!order) return // Order row not created yet; the other path will retry.
 
   const { data: attribution } = await admin
     .from('loyalty_order_attributions')
-    .select('visitor_fingerprint, ref_code, attribution_applied')
+    .select('visitor_fingerprint, ref_code, attribution_applied, created_at')
     .eq('accelpay_sale_id', accelPaySaleId)
     .maybeSingle()
   if (!attribution || attribution.attribution_applied) return
+  // Attached long before this sale, so not the buyer's. Left unapplied so the
+  // buyer's own post, which replaces it, is applied instead.
+  if (!attributionBelongsToOrder(attribution.created_at, order)) return
 
   const fingerprint = (attribution.visitor_fingerprint as string | null) || null
   const refCode = (attribution.ref_code as string | null) || null

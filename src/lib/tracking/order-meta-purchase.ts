@@ -14,6 +14,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { isMetaCapiConfigured, sendMetaCapiEvent } from '@/lib/tracking/meta-capi'
+import { attributionBelongsToOrder } from '@/lib/tracking/attribution-window'
 
 const MAX_EVENT_AGE_SECONDS = 7 * 86400 - 3600
 
@@ -39,11 +40,24 @@ export async function sendOrderPurchaseToMeta(
   if (!accelPaySaleId || !isMetaCapiConfigured()) return
 
   try {
-    const { data: browser } = await admin
+    const { data: attached } = await admin
       .from('loyalty_order_attributions')
-      .select('fbp, fbc, client_ip, client_user_agent, event_source_url')
+      .select('fbp, fbc, client_ip, client_user_agent, event_source_url, created_at')
       .eq('accelpay_sale_id', accelPaySaleId)
-      .maybeSingle<BrowserContext>()
+      .maybeSingle<BrowserContext & { created_at: string | null }>()
+
+    let browser: BrowserContext | null = attached
+    if (attached) {
+      const { data: saved } = await admin
+        .from('loyalty_orders')
+        .select('created_at, raw_payload')
+        .eq('accelpay_sale_id', accelPaySaleId)
+        .maybeSingle()
+      if (!saved) return // Order not created yet; nothing to send.
+      // Browser fields attached long before this sale aren't the buyer's, so
+      // they count as no browser context at all.
+      if (!attributionBelongsToOrder(attached.created_at, saved)) browser = null
+    }
 
     const hasBrowserContext = Boolean(browser?.client_ip || browser?.client_user_agent)
     if (options.requireBrowserContext && !hasBrowserContext) return
