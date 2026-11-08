@@ -2,9 +2,15 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { sendEmail, resolveAlias } from '@/lib/email/smtp'
 import { buildMagicLinkEmail } from '@/lib/auth/magic-link-email'
 import { safeReturnPath } from '@/lib/auth/safe-return-path'
+import { mailboxKey, mailboxVariantFilter } from '@/lib/referral/helpers'
 
 const TEMPLATE_SLUG = 'portal-magic-link'
 const MAX_PER_HOUR = 5
+/**
+ * The public site, the same default other code uses when NEXT_PUBLIC_SITE_URL
+ * is unset (unsubscribe route, portal pages, crm/recipient-vars).
+ */
+const CANONICAL_SITE_ORIGIN = 'https://untamedbeverages.com'
 
 export class MagicLinkError extends Error {
   constructor(
@@ -18,18 +24,24 @@ export class MagicLinkError extends Error {
 /**
  * The origin the emailed sign-in link points at. The link carries a live
  * token_hash, so it uses the configured site URL rather than the request's
- * Host header. The request origin is used only when NEXT_PUBLIC_SITE_URL is
- * unset (local dev), or, so a bad value can't stop sign-in, when it isn't a
- * valid http(s) URL; that case is logged.
+ * Host header. When NEXT_PUBLIC_SITE_URL is unset or not a valid http(s) URL:
+ *   - in a deployed environment (Vercel sets VERCEL_ENV) the link uses the
+ *     canonical site, never the request origin; this is logged;
+ *   - in local development (no VERCEL_ENV) it uses the request origin.
  */
 function linkOrigin(requestOrigin: string): string {
   const configured = process.env.NEXT_PUBLIC_SITE_URL?.trim()
   if (configured) {
     const site = parseHttpOrigin(configured)
     if (site) return site
-    console.error(
-      '[magic-link] NEXT_PUBLIC_SITE_URL is not an http(s) URL; using the request origin'
-    )
+  }
+  const problem = configured ? 'is not an http(s) URL' : 'is not set'
+  if (process.env.VERCEL_ENV) {
+    console.error(`[magic-link] NEXT_PUBLIC_SITE_URL ${problem}; using ${CANONICAL_SITE_ORIGIN}`)
+    return CANONICAL_SITE_ORIGIN
+  }
+  if (configured) {
+    console.error(`[magic-link] NEXT_PUBLIC_SITE_URL ${problem}; using the request origin (local)`)
   }
   const request = parseHttpOrigin(requestOrigin)
   if (!request) {
@@ -48,67 +60,126 @@ function parseHttpOrigin(value: string): string | null {
 }
 
 /**
- * The address the per-recipient cap is counted on: the mailbox with any
- * `+tag` removed from the local part, so `name+1@x` and `name+2@x` share
- * `name@x`'s limit. Only the count uses it; the email still goes to the
- * address that was entered.
- */
-function rateLimitMailbox(email: string): { base: string; local: string; domain: string } {
-  const at = email.lastIndexOf('@')
-  const local = email.slice(0, at)
-  const domain = email.slice(at + 1)
-  const plus = local.indexOf('+')
-  const baseLocal = plus > 0 ? local.slice(0, plus) : local
-  return { base: `${baseLocal}@${domain}`, local: baseLocal, domain }
-}
-
-/**
- * Sign-in emails sent in the last hour to the mailbox or any `+tag` variant
- * of it. Returns null when a lookup fails, so the caller can keep its
- * fail-open behavior.
+ * Sign-in emails sent in the last hour to this mailbox, counted on
+ * mailboxKey (the referral code's key: +tags removed, and for Gmail dots
+ * removed and googlemail.com folded in), so every spelling that reaches one
+ * inbox shares one limit. Only the count uses it; the email still goes to
+ * the address that was entered. An escaped ILIKE narrows the rows and each
+ * one is then confirmed with mailboxKey. If that lookup fails, the exact
+ * address is counted instead; null when that fails too, so the caller can
+ * keep its fail-open behavior.
  */
 async function recentSendCount(
   admin: ReturnType<typeof createAdminClient>,
   email: string
 ): Promise<number | null> {
   const since = new Date(Date.now() - 60 * 60 * 1000).toISOString()
-  const mailbox = rateLimitMailbox(email)
+  const key = mailboxKey(email)
+
+  const candidates = await admin
+    .from('email_messages')
+    .select('to_email')
+    .eq('template_slug', TEMPLATE_SLUG)
+    .gte('sent_at', since)
+    .or(mailboxVariantFilter(email, 'to_email'))
+    .limit(500)
+  if (!candidates.error) {
+    return (candidates.data || []).filter(
+      (row) => typeof row.to_email === 'string' && mailboxKey(row.to_email) === key
+    ).length
+  }
+  console.error(
+    '[magic-link] rate-limit lookup failed; counting the exact address only',
+    candidates.error.message
+  )
 
   const exact = await admin
     .from('email_messages')
     .select('id', { count: 'exact', head: true })
-    .eq('to_email', mailbox.base)
+    .eq('to_email', email)
     .eq('template_slug', TEMPLATE_SLUG)
     .gte('sent_at', since)
   if (exact.error) {
     console.error('[magic-link] rate-limit lookup failed', exact.error.message)
     return null
   }
-  let count = exact.count || 0
+  return exact.count || 0
+}
 
-  // `+tag` variants. The pattern is not escaped, so `_`, `%` and `*` in the
-  // address only widen the match; rows are then compared exactly here. A
-  // backslash would be read as a LIKE escape, so those addresses (rare) keep
-  // the exact-address count only.
-  if (!mailbox.base.includes('\\')) {
-    const variants = await admin
-      .from('email_messages')
-      .select('to_email')
-      .like('to_email', `${mailbox.local}+%@${mailbox.domain}`)
-      .eq('template_slug', TEMPLATE_SLUG)
-      .gte('sent_at', since)
-      .limit(500)
-    if (variants.error) {
-      console.error('[magic-link] rate-limit lookup failed', variants.error.message)
-    } else {
-      for (const row of variants.data || []) {
-        const to = typeof row.to_email === 'string' ? row.to_email : ''
-        if (to !== mailbox.base && rateLimitMailbox(to).base === mailbox.base) count++
-      }
+const SEND_FAILED = 'Could not send the sign-in email. Please try again.'
+
+/**
+ * The app creates portal users already confirmed (createUser with
+ * email_confirm: true, below and in the staff route). An existing auth user
+ * whose email is still unconfirmed was created outside the app, for example
+ * by a public sign-up that set its own password and user_metadata before
+ * anyone proved the mailbox. Signing the customer in through it would confirm
+ * it and keep those, so it is deleted and replaced with a fresh confirmed
+ * user carrying the requester's metadata. Returns true when it replaced the
+ * user (the caller then generates a new link).
+ *
+ * Unconfirmed users cannot have member or lead rows linked (the
+ * confirmed-email gate), and those links are ON DELETE SET NULL and are
+ * rebuilt for the new user at sign-in. staff and ugc_submissions rows are ON
+ * DELETE CASCADE, so a user that owns any of those (an unconfirmed staff
+ * login made in the Supabase dashboard) is left alone, as before, and logged.
+ */
+async function replaceUnconfirmedUser(
+  admin: ReturnType<typeof createAdminClient>,
+  linkUser: { id?: string; email_confirmed_at?: string | null } | null | undefined,
+  email: string,
+  metadata: Record<string, string>
+): Promise<boolean> {
+  if (!linkUser?.id || linkUser.email_confirmed_at) return false
+
+  // Confirm from the user record itself before deleting anything.
+  const { data: fetched, error: fetchError } = await admin.auth.admin.getUserById(linkUser.id)
+  if (fetchError || !fetched?.user) {
+    console.error('[magic-link] could not re-read an unconfirmed user', fetchError?.message)
+    throw new MagicLinkError(SEND_FAILED, 500)
+  }
+  const user = fetched.user
+  if (user.email_confirmed_at) return false
+  if ((user.email || '').toLowerCase() !== email) {
+    console.error('[magic-link] generateLink returned a user for another address')
+    throw new MagicLinkError(SEND_FAILED, 500)
+  }
+
+  for (const table of ['staff', 'ugc_submissions']) {
+    const { count, error } = await admin
+      .from(table)
+      .select('id', { count: 'exact', head: true })
+      .eq('auth_user_id', user.id)
+    if (error) {
+      console.error(`[magic-link] ${table} lookup failed; not sending`, error.message)
+      throw new MagicLinkError(SEND_FAILED, 500)
+    }
+    if ((count || 0) > 0) {
+      console.error(
+        `[magic-link] auth user ${user.id} is unconfirmed but owns ${table} rows; ` +
+          'left in place. Confirm or recreate it in Supabase Auth.'
+      )
+      return false
     }
   }
 
-  return count
+  const removed = await admin.auth.admin.deleteUser(user.id)
+  if (removed.error) {
+    console.error('[magic-link] deleteUser failed', removed.error.message)
+    throw new MagicLinkError(SEND_FAILED, 500)
+  }
+  console.warn(`[magic-link] replaced unconfirmed auth user ${user.id} created outside the app`)
+
+  const created = await admin.auth.admin.createUser({
+    email,
+    email_confirm: true,
+    user_metadata: metadata,
+  })
+  if (created.error && !/already been registered/i.test(created.error.message)) {
+    console.error('[magic-link] createUser failed', created.error.message)
+    throw new MagicLinkError(SEND_FAILED, 500)
+  }
+  return true
 }
 
 function isUserMissing(error: { status?: number; code?: string; message?: string }): boolean {
@@ -176,6 +247,21 @@ export async function sendPortalMagicLink(args: {
       email,
       options: linkOptions,
     })
+  } else if (
+    !link.error &&
+    (await replaceUnconfirmedUser(admin, link.data?.user, email, metadata))
+  ) {
+    link = await admin.auth.admin.generateLink({
+      type: 'magiclink',
+      email,
+      options: linkOptions,
+    })
+    // Someone re-created an unconfirmed user in between: send nothing.
+    const user = link.data?.user
+    if (!link.error && user?.id && !user.email_confirmed_at) {
+      console.error('[magic-link] user is still unconfirmed after replacement; not sending')
+      throw new MagicLinkError(SEND_FAILED, 500)
+    }
   }
 
   if (link.error || !link.data?.properties) {

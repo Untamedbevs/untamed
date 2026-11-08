@@ -41,24 +41,41 @@ function sameMailbox(a: string, b: string): boolean {
   return mailboxKey(a) === mailboxKey(b)
 }
 
+const GMAIL_DOMAINS = ['gmail.com', 'googlemail.com']
+/** Most earlier-order candidates the repeat-customer check reads per sale. */
+const EARLIER_ORDER_SCAN = 1000
+
 /**
- * PostgREST or() filter that narrows loyalty_orders to rows that may share a
- * mailbox with this address (the base address and its +tag variants). The
- * caller still confirms each row with sameMailbox. Gmail dot variants are
- * not matched by this filter.
+ * PostgREST or() filter that narrows `column` to rows that may share a
+ * mailbox with this address. It can match extra rows, so the caller confirms
+ * each row with sameMailbox.
+ *   - Most domains: the base address and its +tag variants.
+ *   - gmail.com / googlemail.com: Gmail ignores dots, and ILIKE cannot strip
+ *     dots from the stored value, so the pattern puts a wildcard after every
+ *     character of the dotless base, on both Gmail domains
+ *     (j*o*h*n*@gmail.com, j*o*h*n*@googlemail.com). That matches every dot
+ *     and +tag spelling of the mailbox, plus some unrelated addresses
+ *     (jo.hann@...), which sameMailbox then drops.
  */
-function mailboxVariantFilter(email: string): string {
+export function mailboxVariantFilter(email: string, column = 'email'): string {
   const e = email.toLowerCase().trim()
   const at = e.lastIndexOf('@')
   // LIKE-escape % _ \ ; PostgREST reads * as %, so a literal * becomes the
   // one-character _ (the sameMailbox check afterwards is exact).
   const like = (s: string) => s.replace(/[\\%_]/g, (c) => `\\${c}`).replace(/\*/g, '_')
   // Double-quote each value so commas or parentheses can't break the or() list.
-  const quote = (s: string) => `"${s.replace(/["\\]/g, (c) => `\\${c}`)}"`
-  if (at < 1) return `email.ilike.${quote(like(e))}`
+  const term = (pattern: string) =>
+    `${column}.ilike."${pattern.replace(/["\\]/g, (c) => `\\${c}`)}"`
+  if (at < 1) return term(like(e))
   const base = e.slice(0, at).split('+')[0]
   const domain = e.slice(at + 1)
-  return `email.ilike.${quote(like(`${base}@${domain}`))},email.ilike.${quote(`${like(`${base}+`)}*${like(`@${domain}`)}`)}`
+  const key = mailboxKey(e)
+  const keyLocal = key.slice(0, key.lastIndexOf('@'))
+  if (GMAIL_DOMAINS.includes(domain) && keyLocal) {
+    const spread = Array.from(keyLocal, (ch) => `${like(ch)}*`).join('')
+    return GMAIL_DOMAINS.map((d) => term(`${spread}${like(`@${d}`)}`)).join(',')
+  }
+  return `${term(like(`${base}@${domain}`))},${term(`${like(`${base}+`)}*${like(`@${domain}`)}`)}`
 }
 
 function generateCodeFromName(name: string): string {
@@ -260,6 +277,13 @@ async function creditReferrerWithinYearlyCap(
   if (error.code !== 'PGRST202' && error.code !== '42883') {
     throw new Error(`referral credit failed: ${error.message}`)
   }
+  // Kept so referral credits don't stop before 00035 is applied, but the
+  // fallback is not atomic, so say so every time it runs.
+  console.warn(
+    `[referral] loyalty_apply_referral_points is missing (${error.code}); apply ` +
+      'supabase/migrations/00035_referral_cap_locked.sql. Using the unlocked ' +
+      `yearly-cap fallback for ${type}, which concurrent credits can push past the cap.`
+  )
   if (!(await isUnderYearlyReferralCap(supabase, loyaltyMemberId, type))) return false
   await creditReferrerLoyaltyPoints(supabase, loyaltyMemberId, points, type, description)
   return true
@@ -324,16 +348,37 @@ export async function creditConsumerReferral(
     // Self-referral guard: signing yourself up earns nothing.
     if (sameMailbox(normalizedEmail, referrer.email)) return
 
-    // Dedupe guard: a referred email only credits a referrer once, ever.
-    const { data: priorSignup } = await supabase
+    // Dedupe guard: a referred mailbox only credits a referrer once, ever, so
+    // friend@, friend+1@ and (on Gmail) f.riend@ count as one friend.
+    const { data: priorSignups, error: priorError } = await supabase
       .from('referral_events')
-      .select('id')
+      .select('referred_email')
       .eq('participant_id', referrer.id)
       .eq('event_type', 'consumer_signup')
-      .eq('referred_email', normalizedEmail)
-      .limit(1)
-      .maybeSingle()
-    if (priorSignup) return
+      .or(mailboxVariantFilter(normalizedEmail, 'referred_email'))
+      .limit(1000)
+    if (priorError) {
+      // Fall back to the exact-address check rather than skipping the guard.
+      console.error(
+        '[referral] signup dedupe lookup failed; checking the exact address only:',
+        priorError.message
+      )
+      const { data: priorSignup } = await supabase
+        .from('referral_events')
+        .select('id')
+        .eq('participant_id', referrer.id)
+        .eq('event_type', 'consumer_signup')
+        .eq('referred_email', normalizedEmail)
+        .limit(1)
+        .maybeSingle()
+      if (priorSignup) return
+    } else if (
+      (priorSignups || []).some(
+        (e) => typeof e.referred_email === 'string' && sameMailbox(e.referred_email, normalizedEmail)
+      )
+    ) {
+      return
+    }
 
     const { data: refParticipant } = await supabase
       .from('referral_participants')
@@ -410,9 +455,9 @@ export async function creditPaidConversion(
       .eq('accelpay_sale_id', accelPaySaleId)
       .maybeSingle()
     if (!attribution || attribution.conversion_credited) return
-    // A code attached long before this sale (e.g. posted for a sale id that
-    // didn't exist yet) isn't the buyer's. Left unclaimed so the buyer's own
-    // post, which replaces it, can still be credited.
+    // A code attached before this sale (e.g. posted for a sale id that didn't
+    // exist yet) isn't the buyer's, so nobody is credited. The attribute-order
+    // route never renews created_at, so re-posting can't make such a row count.
     if (!attributionBelongsToOrder(attribution.created_at, order)) return
 
     const refCode = (attribution.ref_code as string | null)?.trim()
@@ -448,21 +493,34 @@ export async function creditPaidConversion(
         .limit(1)
         .maybeSingle()
       // A friend who has ordered from us before isn't a new customer. Look for
-      // earlier orders from the same mailbox, including its +tag variants.
+      // earlier orders from the same mailbox: its +tag variants and, for Gmail,
+      // its dot spellings on gmail.com and googlemail.com (mailboxVariantFilter
+      // narrows, sameMailbox confirms).
       const { data: earlierOrders, error: earlierError } = await supabase
         .from('loyalty_orders')
         .select('id, email')
         .or(mailboxVariantFilter(buyerEmail))
         .neq('id', order.id)
         .lt('created_at', order.created_at as string)
-        .limit(50)
+        .limit(EARLIER_ORDER_SCAN)
       if (earlierError) {
         console.error('[referral] earlier-order lookup failed; no first-purchase bonus:', earlierError.message)
       }
-      // A failed lookup pays no bonus rather than treating the buyer as new.
-      const earlierOrder =
-        !!earlierError ||
-        (earlierOrders || []).some((o) => typeof o.email === 'string' && sameMailbox(o.email, buyerEmail))
+      const candidates = earlierOrders || []
+      const sameMailboxOrder = candidates.some(
+        (o) => typeof o.email === 'string' && sameMailbox(o.email, buyerEmail)
+      )
+      // A full page with no match may have cut off the real one.
+      const truncated = !sameMailboxOrder && candidates.length >= EARLIER_ORDER_SCAN
+      if (truncated) {
+        console.warn(
+          '[referral] earlier-order lookup hit its limit; no first-purchase bonus for sale',
+          accelPaySaleId
+        )
+      }
+      // A failed or incomplete lookup pays no bonus rather than treating the
+      // buyer as new.
+      const earlierOrder = !!earlierError || truncated || sameMailboxOrder
       isFirstPurchase = !priorPurchase && !earlierOrder
     }
 
