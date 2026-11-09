@@ -1,5 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin'
-import { sendEmail, resolveAlias } from '@/lib/email/smtp'
+import { sendEmail, resolveAlias, type SendResult } from '@/lib/email/transport'
 import { buildMagicLinkEmail } from '@/lib/auth/magic-link-email'
 import { safeReturnPath } from '@/lib/auth/safe-return-path'
 import { mailboxKey, mailboxVariantFilter } from '@/lib/referral/helpers'
@@ -387,9 +387,9 @@ async function generateAndSend(
     code,
   })
 
-  let messageId: string
+  let sent: SendResult
   try {
-    messageId = await sendEmail({
+    sent = await sendEmail({
       to: email,
       from,
       replyTo: from,
@@ -399,7 +399,7 @@ async function generateAndSend(
     })
   } catch (err) {
     console.error(
-      '[magic-link] SMTP send failed',
+      '[magic-link] email send failed',
       err instanceof Error ? err.message : err
     )
     throw new MagicLinkError(
@@ -415,7 +415,7 @@ async function generateAndSend(
   const { error: logError } = reservationId
     ? await admin
         .from('email_messages')
-        .update({ subject: message.subject, ses_message_id: messageId, thread_id: messageId })
+        .update({ subject: message.subject, ses_message_id: sent.messageId, thread_id: sent.messageId })
         .eq('id', reservationId)
     : await admin.from('email_messages').insert({
         from_email: from,
@@ -425,9 +425,11 @@ async function generateAndSend(
         body_text: LOG_BODY_TEXT,
         direction: 'outbound',
         status: 'sent',
-        ses_message_id: messageId,
-        thread_id: messageId,
+        ses_message_id: sent.messageId,
+        thread_id: sent.messageId,
         template_slug: TEMPLATE_SLUG,
+        stream: 'transactional',
+        transport: sent.transport,
         sent_at: new Date().toISOString(),
       })
   if (logError) {

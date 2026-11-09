@@ -47,6 +47,11 @@ import {
   Gem,
   Crosshair,
   ClipboardCheck,
+  Workflow,
+  LayoutTemplate,
+  Mail,
+  Settings,
+  Contact,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { LucideIcon } from 'lucide-react'
@@ -98,6 +103,12 @@ const ALL_NAV_ITEMS: NavItem[] = [
       { href: '/admin/crm/campaigns', label: 'Campaigns', icon: ListChecks },
       { href: '/admin/crm/templates', label: 'Templates', icon: FileText },
       { href: '/admin/crm/segments', label: 'Segments', icon: Users },
+      { href: '/admin/crm/email', label: 'Email Dashboard', icon: BarChart3 },
+      { href: '/admin/crm/contacts', label: 'Contacts', icon: Contact },
+      { href: '/admin/crm/email/flows', label: 'Automated Flows', icon: Workflow },
+      { href: '/admin/crm/email/templates', label: 'Flow Designs', icon: LayoutTemplate },
+      { href: '/admin/crm/outreach', label: 'Outreach', icon: Mail },
+      { href: '/admin/crm/email/settings', label: 'Email Settings', icon: Settings },
     ],
   },
   {
@@ -146,7 +157,7 @@ const ARCHIVE_ITEM: NavItem = {
   ],
 }
 
-const RESTRICTED_PATHS = ['/admin/loyalty', '/admin/ugc', '/admin/financial']
+const RESTRICTED_PATHS = ['/admin/loyalty', '/admin/ugc', '/admin/financial', '/admin/crm/contacts', '/admin/crm/outreach', '/admin/crm/email/settings']
 
 /** Admins and super admins only (not contractors). */
 const ADMIN_ONLY_PATHS = ['/admin/view-as', '/admin/rewards']
@@ -157,9 +168,12 @@ function getNavItems(role: string | undefined): NavItem[] {
     items = items.filter((item) => !ADMIN_ONLY_PATHS.includes(item.href))
   }
   if (role === 'contractor_limited') {
-    items = items.filter(
-      (item) => !RESTRICTED_PATHS.some((p) => item.href.startsWith(p))
-    )
+    const allowed = (href: string) => !RESTRICTED_PATHS.some((p) => href.startsWith(p))
+    items = items
+      .filter((item) => allowed(item.href))
+      .map((item) =>
+        item.children ? { ...item, children: item.children.filter((c) => allowed(c.href)) } : item
+      )
   }
   if (role === 'super_admin') {
     items = [...items, ...SUPER_ADMIN_ITEMS]

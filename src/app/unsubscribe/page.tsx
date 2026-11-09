@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import { CheckCircle, AlertCircle, Mail } from 'lucide-react'
-import { maskEmail, verifyUnsubscribeToken } from '@/lib/messaging/unsubscribe'
+import { maskEmail, signManageToken, verifyUnsubscribeToken } from '@/lib/messaging/unsubscribe'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,11 +23,22 @@ function emailFromToken(token: string | undefined): string | null {
   }
 }
 
+/** Preference-center link for the verified address, signed here so the URL never carries one. */
+function preferencesHref(email: string | null): string | null {
+  if (!email) return null
+  try {
+    return `/email/preferences?t=${encodeURIComponent(signManageToken(email))}`
+  } catch {
+    return null
+  }
+}
+
 export default async function UnsubscribePage({ searchParams }: Props) {
   const params = await searchParams
   const status = params.status
   const token = params.t
   const email = emailFromToken(token)
+  const manageHref = preferencesHref(email)
 
   if (status === 'ok') {
     return (
@@ -56,6 +67,14 @@ export default async function UnsubscribePage({ searchParams }: Props) {
         >
           Back to Untamed
         </Link>
+        {manageHref && (
+          <p className="text-xs text-[#666] mt-6">
+            Unsubscribed by mistake?{' '}
+            <Link href={manageHref} className="text-[#9B30FF] hover:underline">
+              Manage your preferences
+            </Link>
+          </p>
+        )}
       </Wrapper>
     )
   }
@@ -105,6 +124,14 @@ export default async function UnsubscribePage({ searchParams }: Props) {
           immediately.
         </p>
         <ConfirmForm token={token} label="Unsubscribe from all Untamed emails" />
+        {manageHref && (
+          <p className="text-sm text-[#A0A0A0] mt-4">
+            Rather choose topics or take a break?{' '}
+            <Link href={manageHref} className="text-[#9B30FF] hover:underline">
+              Manage preferences instead
+            </Link>
+          </p>
+        )}
         <p className="text-xs text-[#666] mt-6">
           Transactional emails about a purchase, your account, or a loyalty receipt
           may still be sent.
@@ -130,12 +157,20 @@ export default async function UnsubscribePage({ searchParams }: Props) {
         </a>{' '}
         and we&apos;ll remove you within 1 business day.
       </p>
-      <Link
-        href="/"
-        className="inline-block px-5 py-2.5 rounded-full border border-[#2A2A2A] text-[#A0A0A0] text-sm hover:text-white hover:border-[#3A3A3A]"
-      >
-        Back to Untamed
-      </Link>
+      <div className="flex flex-col gap-3">
+        <Link
+          href="/email/preferences"
+          className="inline-block px-5 py-2.5 rounded-full bg-[#9B30FF] text-white text-sm font-medium hover:bg-[#B560FF] transition-colors"
+        >
+          Email me a preferences link
+        </Link>
+        <Link
+          href="/"
+          className="inline-block px-5 py-2.5 rounded-full border border-[#2A2A2A] text-[#A0A0A0] text-sm hover:text-white hover:border-[#3A3A3A]"
+        >
+          Back to Untamed
+        </Link>
+      </div>
     </Wrapper>
   )
 }

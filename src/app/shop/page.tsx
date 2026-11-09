@@ -8,6 +8,7 @@ import { Gift, LayoutDashboard, Receipt, Sparkles } from 'lucide-react'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
 import { AddToCartButton } from '@/components/AddToCartButton'
+import { EmailSignupForm } from '@/components/EmailSignupForm'
 import { ProductGallery } from '@/components/ProductGallery'
 import { ShippingRates } from '@/components/ShippingRates'
 import { HolidayHero } from '@/components/holiday/HolidayHero'
@@ -315,10 +316,27 @@ export default function ShopPage() {
               Add multiple flavors to build your own mix. Adjust quantities in the cart sidebar.
             </p>
           </motion.div>
+
+          {/* Email signup */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="mt-16 max-w-3xl mx-auto rounded-2xl border border-card-border bg-untamed-black-card p-6 md:p-8"
+          >
+            <h2 className="font-condensed text-2xl md:text-3xl font-bold uppercase tracking-wider text-untamed-white text-center mb-2">
+              Hear About New Drops First
+            </h2>
+            <p className="text-untamed-white-muted text-sm text-center mb-6">
+              Restocks, limited releases, and shop offers. Choose your topics.
+            </p>
+            <EmailSignupForm variant="full" placement="shop" />
+          </motion.div>
         </div>
       </div>
 
-      <Footer />
+      <Footer showSignup={false} />
     </div>
   )
 }

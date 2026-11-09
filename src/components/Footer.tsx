@@ -5,8 +5,14 @@ import Image from 'next/image'
 import { Instagram } from 'lucide-react'
 import { drinks } from '@/lib/drinks'
 import { HolidayFooterBand } from '@/components/holiday/HolidayFooterBand'
+import { EmailSignupForm } from '@/components/EmailSignupForm'
 
-export function Footer() {
+interface FooterProps {
+  /** Email signup strip; off on pages that already show the full signup form. */
+  showSignup?: boolean
+}
+
+export function Footer({ showSignup = true }: FooterProps = {}) {
   return (
     <footer className="bg-untamed-black border-t border-card-border">
       <HolidayFooterBand />
@@ -144,6 +150,21 @@ export function Footer() {
           </div>
         </div>
 
+        {/* Email signup */}
+        {showSignup && (
+          <div className="mt-12 pt-8 border-t border-card-border grid md:grid-cols-2 gap-6 md:gap-12 items-start">
+            <div>
+              <h3 className="text-untamed-white font-semibold uppercase tracking-wider text-sm mb-2">
+                Get First Word
+              </h3>
+              <p className="text-untamed-white-muted text-sm leading-relaxed max-w-md">
+                New flavors, limited drops, and offers, straight to your inbox. Pick your topics. 21+ only.
+              </p>
+            </div>
+            <EmailSignupForm variant="compact" placement="footer" />
+          </div>
+        )}
+
         {/* Bottom Bar */}
         <div className="mt-12 pt-8 border-t border-card-border">
           <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-5 gap-y-2 mb-6 text-xs text-untamed-white-muted/70">
@@ -153,7 +174,7 @@ export function Footer() {
             <Link href="/terms" className="hover:text-untamed-white transition-colors duration-300">
               Terms of Service
             </Link>
-            <Link href="/unsubscribe" className="hover:text-untamed-white transition-colors duration-300">
+            <Link href="/email/preferences" className="hover:text-untamed-white transition-colors duration-300">
               Email Preferences
             </Link>
             <Link href="/contact" className="hover:text-untamed-white transition-colors duration-300">

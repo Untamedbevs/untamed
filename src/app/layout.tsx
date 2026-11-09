@@ -5,12 +5,12 @@ import './globals.css'
 import Script from 'next/script'
 import { Suspense } from 'react'
 import { AgeGate } from '@/components/AgeGate'
+import { AccelPayBrandScript } from '@/components/AccelPayBrandScript'
 import { TrackingProvider } from '@/components/TrackingProvider'
 import { ReferralBanner } from '@/components/ReferralBanner'
 import { AccelPayRouteSync } from '@/components/AccelPayRouteSync'
 import { AccelPaySaleTracker } from '@/components/AccelPaySaleTracker'
 import { MarketingPixels } from '@/components/MarketingPixels'
-import { AccelPayBrandScript } from '@/components/AccelPayBrandScript'
 
 const inter = Inter({
   subsets: ['latin'],

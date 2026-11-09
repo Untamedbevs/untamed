@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     'How Untamed Beverages, LLC collects, uses, and protects your personal information, including email communications and your choices.',
 }
 
-const LAST_UPDATED = 'June 26, 2026'
+const LAST_UPDATED = 'November 5, 2026'
 
 export default function PrivacyPage() {
   return (
@@ -154,7 +154,8 @@ export default function PrivacyPage() {
               </p>
               <ul className="list-disc pl-6 space-y-1.5 mt-2">
                 <li>
-                  <span className="text-untamed-white">Amazon Web Services (Amazon SES)</span> — email delivery.
+                  <span className="text-untamed-white">Amazon Web Services (Amazon SES)</span> and{' '}
+                  <span className="text-untamed-white">Google Workspace</span> — email delivery.
                 </li>
                 <li>
                   <span className="text-untamed-white">Supabase</span> — database and authentication.

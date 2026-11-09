@@ -12,6 +12,7 @@ import {
 } from '@/lib/referral/constants'
 import type { DistributorBusinessType, VolumeInterest } from '@/lib/referral/types'
 import { useTracking } from '@/components/TrackingProvider'
+import { EmailOptInCheckbox, emailOptInPayload } from '@/components/EmailSignupForm'
 import { trackLead } from '@/lib/tracking/meta-pixel'
 
 interface DistributorLeadFormProps {
@@ -40,6 +41,7 @@ export function DistributorLeadForm({ referrerName, onSuccess, defaultBusinessTy
   const [businessType, setBusinessType] = useState<DistributorBusinessType>(defaultBusinessType || 'bar_restaurant')
   const [volumeInterest, setVolumeInterest] = useState<VolumeInterest | ''>('')
   const [message, setMessage] = useState('')
+  const [emailOptIn, setEmailOptIn] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [submitted, setSubmitted] = useState(false)
@@ -71,6 +73,8 @@ export function DistributorLeadForm({ referrerName, onSuccess, defaultBusinessTy
           businessType,
           volumeInterest: volumeInterest || undefined,
           message: message || undefined,
+          // Separate trade-updates opt-in; starts a double opt-in when ticked.
+          emailSignup: emailOptInPayload(emailOptIn),
           ref: ref || undefined,
           event_id: eventId,
           fbp: readCookie('_fbp'),
@@ -232,6 +236,13 @@ export function DistributorLeadForm({ referrerName, onSuccess, defaultBusinessTy
           className="w-full pl-12 pr-4 py-3.5 bg-untamed-black-light border border-card-border rounded-xl text-white placeholder:text-muted focus:outline-none transition-colors resize-none"
         />
       </div>
+
+      <EmailOptInCheckbox
+        form="trade"
+        checked={emailOptIn}
+        onChange={setEmailOptIn}
+        accentColor="#FF8C2A"
+      />
 
       {error && <p className="text-red-400 text-sm">{error}</p>}
 

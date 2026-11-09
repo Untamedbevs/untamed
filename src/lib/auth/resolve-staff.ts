@@ -8,6 +8,29 @@ export interface StaffMember {
   role: string
 }
 
+/** Limited contractors don't see customer contact or consent records. */
+export function canViewContacts(role: string): boolean {
+  return role !== 'contractor_limited'
+}
+
+/** Recording opt-ins, exporting, and deleting a person's data are admin actions. */
+export function canManageContactData(role: string): boolean {
+  return role === 'super_admin' || role === 'admin'
+}
+
+/** Drafting campaigns, templates, and flow copy. */
+export function canDraftMarketing(role: string): boolean {
+  return role === 'super_admin' || role === 'admin' || role === 'contractor_full'
+}
+
+/**
+ * Sending or scheduling marketing, approving someone else's campaign,
+ * activating flows, and changing email settings.
+ */
+export function canSendMarketing(role: string): boolean {
+  return role === 'super_admin' || role === 'admin'
+}
+
 /**
  * Resolve the current authenticated staff member from the request session.
  * Returns the staff row or null if not authenticated / not an active staff member.

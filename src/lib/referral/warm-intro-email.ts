@@ -3,6 +3,8 @@
  * /api/portal/referrals/send).
  */
 
+import { complianceFooterLines } from '@/lib/messaging/marketing-email'
+
 export function buildWarmIntroEmail(params: {
   referredFirstName: string | null
   referrerName: string
@@ -29,6 +31,7 @@ export function buildWarmIntroEmail(params: {
       : `${referrerName} wanted you to try Untamed Beverages.`
 
   const cta = inviteType === 'distributor' ? 'See the retail program' : 'Try Untamed'
+  const { postalLine, responsibleLine } = complianceFooterLines()
 
   const text = [
     greeting,
@@ -41,6 +44,8 @@ export function buildWarmIntroEmail(params: {
     '— The Untamed Pack',
     '',
     `Unsubscribe: ${unsubUrl}`,
+    postalLine,
+    responsibleLine,
   ]
     .filter((l) => l !== null && l !== undefined)
     .join('\n')
@@ -91,8 +96,9 @@ export function buildWarmIntroEmail(params: {
           <tr>
             <td style="padding:16px 32px;border-top:1px solid #2A2A2A;color:#666;font-size:11px;line-height:1.5;text-align:center;">
               Sent to <span style="color:#888;">${safeRecipient}</span> &middot;
-              <a href="${unsubUrl}" style="color:#9B30FF;text-decoration:underline;">Unsubscribe</a>
-              &middot; Untamed Beverages, LLC
+              <a ses:no-track href="${unsubUrl}" style="color:#9B30FF;text-decoration:underline;">Unsubscribe</a><br>
+              ${escapeHtml(postalLine)}<br>
+              ${escapeHtml(responsibleLine)}
             </td>
           </tr>
         </table>

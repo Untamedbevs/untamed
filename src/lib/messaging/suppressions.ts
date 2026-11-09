@@ -28,15 +28,17 @@ export async function filterSuppressed<T extends { email: string }>(
 
   for (let i = 0; i < emails.length; i += CHUNK) {
     const batch = emails.slice(i, i + CHUNK)
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('email_suppressions')
       .select('email')
       .in('email', batch)
 
-    if (data) {
-      for (const row of data) {
-        suppressedSet.add(row.email.toLowerCase())
-      }
+    // Failing open would mail people who opted out, so a lookup error aborts.
+    if (error) {
+      throw new Error(`Suppression lookup failed: ${error.message}`)
+    }
+    for (const row of data || []) {
+      suppressedSet.add(row.email.toLowerCase())
     }
   }
 
@@ -67,12 +69,13 @@ export async function isSuppressed(email: string): Promise<boolean> {
 
 /**
  * Add an email to the suppression list.
- * Uses upsert to avoid duplicates. Logs failures; pass `throwOnError` when the
- * caller must not report success without the row (e.g. an unsubscribe).
+ * Uses upsert to avoid duplicates. Prefer `applyConsent()` from
+ * `@/lib/messaging/consent`, which also records the consent evidence; this is
+ * the fallback when that path is unavailable.
  */
 export async function addSuppression(params: {
   email: string
-  reason: 'hard_bounce' | 'complaint' | 'manual' | 'unsubscribe'
+  reason: 'hard_bounce' | 'complaint' | 'manual' | 'unsubscribe' | 'data_deletion'
   sourceMessageId?: string
   notes?: string
   throwOnError?: boolean

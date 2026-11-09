@@ -1,15 +1,15 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Image from 'next/image'
-import { motion, AnimatePresence } from 'framer-motion'
 import { usePathname } from 'next/navigation'
+import Image from 'next/image'
 import { isPrivateEmailPath } from '@/lib/email/private-paths'
+import { motion, AnimatePresence } from 'framer-motion'
 
 export function AgeGate() {
+  const pathname = usePathname()
   const [verified, setVerified] = useState<boolean | null>(null)
   const [declined, setDeclined] = useState(false)
-  const pathname = usePathname()
 
   useEffect(() => {
     const stored = localStorage.getItem('untamed-age-verified')
@@ -29,8 +29,8 @@ export function AgeGate() {
     setDeclined(true)
   }
 
-  // Email links must work without extra steps: an unsubscribe can't be
-  // gated behind anything (CAN-SPAM).
+  // Email links must work without extra steps: CAN-SPAM forbids gating an
+  // unsubscribe, and the confirm page records its own 21+ attestation.
   if (isPrivateEmailPath(pathname)) return null
 
   // Still loading from localStorage

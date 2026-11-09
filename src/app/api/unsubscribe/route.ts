@@ -18,26 +18,24 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyUnsubscribeToken } from '@/lib/messaging/unsubscribe'
 import { addSuppression } from '@/lib/messaging/suppressions'
-
-function siteOrigin(): string {
-  return (process.env.NEXT_PUBLIC_SITE_URL || 'https://untamedbeverages.com').replace(/\/$/, '')
-}
+import { applyConsent, requestEvidence } from '@/lib/messaging/consent'
+import { getSiteOrigin } from '@/lib/email/config'
 
 async function readForm(request: NextRequest): Promise<URLSearchParams> {
   const type = request.headers.get('content-type') || ''
-  if (!type.includes('application/x-www-form-urlencoded') && !type.includes('multipart/form-data')) {
-    return new URLSearchParams()
-  }
-  try {
-    const form = await request.formData()
-    const params = new URLSearchParams()
-    for (const [key, value] of form.entries()) {
-      if (typeof value === 'string') params.set(key, value)
+  if (type.includes('application/x-www-form-urlencoded') || type.includes('multipart/form-data')) {
+    try {
+      const form = await request.formData()
+      const params = new URLSearchParams()
+      for (const [key, value] of form.entries()) {
+        if (typeof value === 'string') params.set(key, value)
+      }
+      return params
+    } catch {
+      return new URLSearchParams()
     }
-    return params
-  } catch {
-    return new URLSearchParams()
   }
+  return new URLSearchParams()
 }
 
 export async function POST(request: NextRequest) {
@@ -45,7 +43,7 @@ export async function POST(request: NextRequest) {
   const token = form.get('t') || request.nextUrl.searchParams.get('t') || ''
   const fromConfirmPage = form.has('confirm')
   const payload = verifyUnsubscribeToken(token)
-  const origin = siteOrigin()
+  const origin = getSiteOrigin()
 
   if (!payload) {
     if (fromConfirmPage) {
@@ -54,12 +52,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid or expired link' }, { status: 400 })
   }
 
+  const evidence = requestEvidence(request.headers)
+  const campaignId = payload.c || null
+
+  // The suppression row (exact address and its mailbox key) is what stops
+  // mail, so it must be written before we report success.
   try {
     await addSuppression({
       email: payload.e,
       reason: 'unsubscribe',
-      sourceMessageId: payload.c || undefined,
-      notes: payload.c ? `Unsubscribed via campaign ${payload.c}` : 'Unsubscribed via link',
+      sourceMessageId: campaignId || undefined,
+      notes: campaignId ? `Unsubscribed via campaign ${campaignId}` : 'Unsubscribed via link',
       throwOnError: true,
     })
   } catch (err) {
@@ -73,6 +76,21 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Could not process unsubscribe' }, { status: 500 })
   }
 
+  // Also record it in the contact's consent history (evidence and list
+  // opt-outs). The suppression above already stops mail if this fails.
+  try {
+    await applyConsent({
+      email: payload.e,
+      action: 'unsubscribe_all',
+      source: fromConfirmPage ? 'unsubscribe_link' : 'one_click',
+      sourceDetail: campaignId ? `campaign ${campaignId}` : null,
+      campaignId,
+      ...evidence,
+    })
+  } catch (err) {
+    console.error('[unsubscribe] consent history not updated:', err)
+  }
+
   if (fromConfirmPage) {
     return NextResponse.redirect(
       `${origin}/unsubscribe?status=ok&t=${encodeURIComponent(token)}`,
@@ -82,11 +100,11 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({ ok: true })
 }
 
-/** Opening the link in a browser shows the confirm page; nothing changes. */
+/** Opening the header link in a browser shows the confirm page; nothing changes. */
 export async function GET(request: NextRequest) {
   const token = request.nextUrl.searchParams.get('t') || ''
   const target = token
-    ? `${siteOrigin()}/unsubscribe?t=${encodeURIComponent(token)}`
-    : `${siteOrigin()}/unsubscribe`
+    ? `${getSiteOrigin()}/unsubscribe?t=${encodeURIComponent(token)}`
+    : `${getSiteOrigin()}/unsubscribe`
   return NextResponse.redirect(target, { status: 303 })
 }

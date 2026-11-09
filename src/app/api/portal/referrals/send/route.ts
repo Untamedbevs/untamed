@@ -12,8 +12,8 @@ import {
   buildListUnsubscribeHeaders,
   buildUnsubscribeUrl,
 } from '@/lib/messaging/unsubscribe'
-import { buildWarmIntroEmail } from '@/lib/referral/warm-intro-email'
 import { isSuppressed } from '@/lib/messaging/suppressions'
+import { buildWarmIntroEmail } from '@/lib/referral/warm-intro-email'
 
 const NOT_DELIVERABLE_MESSAGE =
   "We couldn't deliver the warm intro to that address. Copy your referral link below and share it directly — they'll still get full credit when they sign up."

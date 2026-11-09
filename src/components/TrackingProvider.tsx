@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, Suspense, type ReactNode } from 'react'
 import { usePathname } from 'next/navigation'
+import { isPrivateEmailPath } from '@/lib/email/private-paths'
 import {
   getAttribution,
   initTracking,
@@ -10,7 +11,6 @@ import {
   type AttributionPayload,
   type TrackingIds,
 } from '@/lib/tracking/client'
-import { isPrivateEmailPath } from '@/lib/email/private-paths'
 
 interface TrackingContext extends TrackingIds {
   ready: boolean

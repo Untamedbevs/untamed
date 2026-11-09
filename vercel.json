@@ -15,6 +15,22 @@
     {
       "path": "/api/cron/reconcile-ugc",
       "schedule": "*/2 * * * *"
+    },
+    {
+      "path": "/api/cron/email-flows",
+      "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/cron/email-daily",
+      "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/cron/gmail-sync",
+      "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/cron/outreach",
+      "schedule": "*/15 * * * *"
     }
   ]
 }
