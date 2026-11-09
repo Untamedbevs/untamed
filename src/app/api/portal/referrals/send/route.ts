@@ -154,6 +154,27 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  // The count above is only an early exit: requests sent at the same moment
+  // all read the same count. Count again now that this invite is saved; every
+  // request that gets past here has its row included, so no more than the
+  // daily limit can be sent, however many arrive at once.
+  const { count: countAfter, error: countAfterError } = await supabase
+    .from('referral_invites')
+    .select('id', { count: 'exact', head: true })
+    .eq('participant_id', participant.id)
+    .gte('sent_at', todayStart.toISOString())
+  if (countAfterError) {
+    await supabase.from('referral_invites').delete().eq('id', invite.id)
+    return NextResponse.json({ error: 'Failed to record invite' }, { status: 500 })
+  }
+  if ((countAfter || 0) > WARM_INTRO_DAILY_LIMIT) {
+    await supabase.from('referral_invites').delete().eq('id', invite.id)
+    return NextResponse.json(
+      { error: `Daily limit of ${WARM_INTRO_DAILY_LIMIT} warm intros reached` },
+      { status: 429 }
+    )
+  }
+
   await supabase.from('referral_events').insert({
     participant_id: participant.id,
     event_type: 'referral_sent',
