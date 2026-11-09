@@ -11,9 +11,10 @@
  *
  * `loyalty_order_attributions.created_at` is the "attached at" time. It is
  * set once, by the column default when the row is inserted; nothing renews
- * or re-stamps it. A row posted for a sale id ahead of the sale therefore
- * stays too old to count, however often it is re-posted, so a pre-seeded
- * code can at worst block that sale's referral, never take it.
+ * or re-stamps it. A row posted for a sale id well ahead of the sale therefore
+ * stays too old to count, however often it is re-posted. A row posted within
+ * ATTACHED_BEFORE_SALE_MS before the sale is not told apart from the buyer's
+ * and does count.
  */
 
 /**

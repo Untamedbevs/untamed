@@ -34,14 +34,15 @@ function parseSaleId(value: unknown): number | null {
  *   - once the order row is older than ATTRIBUTION_WINDOW_MS, nothing is
  *     written;
  *   - the first post for a sale id creates the row and fixes its `created_at`
- *     (the "attached at" time). Later posts only fill fields that are still
- *     empty; they never replace the row or renew `created_at`, whether or not
- *     the order exists yet;
+ *     (the "attached at" time). Later posts change nothing: they never fill,
+ *     replace or renew the row, whether or not the order exists yet;
  *   - crediting, the UTM snapshot and the Meta send ignore a row attached more
  *     than ATTACHED_BEFORE_SALE_MS before the sale.
- * So a code posted for a sale id ahead of the sale, however often it is
- * re-posted, stays too old to count: it can block that sale's referral but
- * never take it.
+ * So a code posted for a sale id well ahead of the sale stays too old to
+ * count, and a post after the buyer's cannot add to their row. What remains:
+ * a post within ATTACHED_BEFORE_SALE_MS before the sale, or one made when the
+ * buyer's tracker never posted, still counts, because nothing in the post
+ * proves it came from the buyer's checkout.
  */
 export async function POST(request: NextRequest) {
   let body: {
@@ -108,35 +109,19 @@ export async function POST(request: NextRequest) {
       if (referrer) validRefCode = refCode
     }
 
+    // The first post for a sale id is the only one that counts. The buyer's
+    // tracker posts once per sale; a later post is someone else, and filling
+    // in fields the buyer left empty (an unreferred order's ref code, or the
+    // Meta browser fields) would let them take that order's referral credit
+    // or put their browser in the buyer's Purchase event.
     const { data: existing, error: existingError } = await admin
       .from('loyalty_order_attributions')
-      .select('id, visitor_fingerprint, ref_code, fbp, fbc, client_ip, client_user_agent, event_source_url')
+      .select('id')
       .eq('accelpay_sale_id', saleId)
       .maybeSingle()
     if (existingError) throw new Error(`attribution lookup failed: ${existingError.message}`)
 
-    if (existing) {
-      // Fill only missing fields. Never replace the row or touch created_at:
-      // renewing it would let a code posted ahead of the sale stay "fresh".
-      // A row attached too long before the sale is ignored downstream.
-      const update: Record<string, unknown> = {}
-      if (!existing.visitor_fingerprint && visitorFingerprint) {
-        update.visitor_fingerprint = visitorFingerprint
-      }
-      if (!existing.ref_code && validRefCode) {
-        update.ref_code = validRefCode
-      }
-      for (const [key, value] of Object.entries(browser)) {
-        if (value && !existing[key as keyof typeof existing]) update[key] = value
-      }
-      if (Object.keys(update).length > 0) {
-        const { error: updateError } = await admin
-          .from('loyalty_order_attributions')
-          .update(update)
-          .eq('accelpay_sale_id', saleId)
-        if (updateError) throw updateError
-      }
-    } else {
+    if (!existing) {
       const { error: insertError } = await admin
         .from('loyalty_order_attributions')
         .insert({
