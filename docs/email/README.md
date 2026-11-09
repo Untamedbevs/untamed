@@ -13,6 +13,25 @@ untamedbeverages.com. All six phases of the email roadmap are built:
 
 Database: migrations `00039_email_contacts_and_consent.sql` and `00040_email_platform.sql`.
 
+> **How this was merged (2026-11-09).** The email system below was built on Nov 5-6
+> alongside a separate email system on main (templates with layouts, segments, scheduled
+> blasts, team test sends). When the two were combined:
+>
+> - **Blasts use main's pipeline**: `/admin/crm/blast`, the blast API, the
+>   `process-scheduled` worker, `email_templates` and `email_segments` are main's and send
+>   through Google Workspace. The block-editor blast page, campaign approvals and SES-only
+>   marketing described below were **not** merged (SES isn't in use). The "no opt-in, no
+>   marketing" rule therefore applies to automated flows, not to blasts; blasts still skip
+>   suppressed addresses.
+> - Everything else here is merged: the dashboard, contacts and consent, signup forms and
+>   preference center, flows (all drafts), flow designs (table `email_block_templates`),
+>   Gmail sync and outreach (off until configured), settings.
+> - Migrations are `00039_email_contacts_and_consent.sql` and `00040_email_platform.sql`.
+>   Both were applied to the live database on 2026-11-09 (165 contacts built, no consent
+>   created, every flow a draft).
+> - Marketing flows send on the `marketing` stream, which uses SES unless
+>   `EMAIL_MARKETING_TRANSPORT=smtp`; account-notice flows go through Workspace.
+
 ## How it fits together
 
 ```
@@ -195,7 +214,7 @@ Roles:
   which is subscribed to `https://untamedbeverages.com/api/webhooks/ses`.
 - AccelPay checkout has a marketing checkbox: `buyerAcceptsMarketing` appeared on 59 of
   103 stored orders, ticked on 54. No age field is sent.
-- Migration 00039 has **not** been applied to the live database.
+- Migrations 00039 and 00040 were applied to the live database on 2026-11-09.
 
 ## Go-live checklist
 
