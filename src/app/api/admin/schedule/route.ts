@@ -115,15 +115,20 @@ export async function PUT(request: NextRequest) {
     if (p.scheduled_at !== undefined) update.scheduled_at = p.scheduled_at
     if (p.sort_order !== undefined) update.sort_order = p.sort_order
     if (p.media_ids !== undefined) update.media_ids = p.media_ids
-    if (p.status !== undefined) update.status = p.status
+    // Status may only move between scheduled, cancelled and failed posts and
+    // only to scheduled or cancelled. 'publishing' and 'posted' belong to the
+    // publish claim (cron and Post Now); setting them by hand, or moving a
+    // posted or in-flight post back to scheduled, would let it post twice.
+    const changesStatus = p.status !== undefined
+    if (changesStatus) {
+      if (p.status !== 'scheduled' && p.status !== 'cancelled') continue
+      update.status = p.status
+    }
     update.updated_at = new Date().toISOString()
 
-    const { data, error } = await supabase
-      .from('scheduled_posts')
-      .update(update)
-      .eq('id', p.id)
-      .select()
-      .single()
+    let query = supabase.from('scheduled_posts').update(update).eq('id', p.id)
+    if (changesStatus) query = query.in('status', ['scheduled', 'cancelled', 'failed'])
+    const { data, error } = await query.select().single()
 
     if (!error && data) results.push(data)
   }

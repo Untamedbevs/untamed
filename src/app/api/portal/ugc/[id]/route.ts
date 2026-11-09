@@ -3,6 +3,7 @@ import { DeleteObjectCommand } from '@aws-sdk/client-s3'
 import { resolveMember } from '@/lib/auth/resolve-member'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getS3Client } from '@/lib/storage/s3'
+import { isOwnOriginalUgcUploadKey } from '@/lib/video/mediaconvert'
 
 export const dynamic = 'force-dynamic'
 
@@ -82,6 +83,13 @@ export async function DELETE(
     const s3 = getS3Client()
 
     for (const asset of assets || []) {
+      // Only delete the member's own original uploads. Asset rows written
+      // directly through the database (allowed until migration 00034 is
+      // applied) could name a library file or another member's upload.
+      if (!isOwnOriginalUgcUploadKey(asset.s3_key, member.authUserId)) {
+        console.warn('[portal/ugc DELETE] Skipping S3 delete of a key outside the member\'s uploads')
+        continue
+      }
       try {
         await s3.send(
           new DeleteObjectCommand({ Bucket: bucket, Key: asset.s3_key })
