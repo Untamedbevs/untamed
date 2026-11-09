@@ -20,12 +20,12 @@ export const runtime = 'nodejs'
  */
 function isAuthorized(request: NextRequest): boolean {
   const secret = process.env.ACCELPAY_WEBHOOK_SECRET
-  // Fail closed: with no secret configured, nobody is authorized.
+  // While no secret is configured, deliveries are accepted as they were
+  // before the security fixes. Setting ACCELPAY_WEBHOOK_SECRET (and ?token=
+  // on the AccelPay webhook URL) turns the check on with no code change.
   if (!secret) {
-    console.error(
-      '[webhooks/untamed-orders] ACCELPAY_WEBHOOK_SECRET is not set; rejecting webhook. Set it in the environment and in the AccelPay webhook URL (?token=).'
-    )
-    return false
+    console.warn('[webhooks/untamed-orders] ACCELPAY_WEBHOOK_SECRET is not set; accepting the delivery unauthenticated.')
+    return true
   }
   const provided =
     new URL(request.url).searchParams.get('token') ||
