@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendEmail, resolveAlias, type SendResult } from '@/lib/email/transport'
+import { APP_ACCOUNT_METADATA, isAppAccount } from '@/lib/auth/app-account'
 import { buildMagicLinkEmail } from '@/lib/auth/magic-link-email'
 import { safeReturnPath } from '@/lib/auth/safe-return-path'
 import { mailboxKey, mailboxVariantFilter } from '@/lib/referral/helpers'
@@ -129,37 +130,40 @@ async function countExact(
 const SEND_FAILED = 'Could not send the sign-in email. Please try again.'
 
 /**
- * The app creates portal users already confirmed (createUser with
- * email_confirm: true, below and in the staff route). An existing auth user
- * whose email is still unconfirmed was created outside the app, for example
- * by a public sign-up that set its own password and user_metadata before
- * anyone proved the mailbox. Signing the customer in through it would confirm
- * it and keep those, so it is deleted and replaced with a fresh confirmed
- * user carrying the requester's metadata. Returns true when it replaced the
- * user (the caller then generates a new link).
+ * The app creates portal users already confirmed and marked as its own
+ * (createUser with email_confirm: true and APP_ACCOUNT_METADATA, below and in
+ * the staff route). An existing auth user that is unconfirmed or unmarked was
+ * created outside the app, for example by Supabase's public sign-up, which
+ * sets its own password and user_metadata and may have been confirmed by the
+ * customer clicking Supabase's own sign-up email. Signing the customer in
+ * through it would share the account with whoever made it, so it is deleted
+ * and replaced with a fresh, marked user carrying the requester's metadata.
+ * Returns true when it replaced the user (the caller then generates a new
+ * link).
  *
- * Unconfirmed users cannot have member or lead rows linked (the
- * confirmed-email gate), and those links are ON DELETE SET NULL and are
- * rebuilt for the new user at sign-in. staff and ugc_submissions rows are ON
- * DELETE CASCADE, so a user that owns any of those (an unconfirmed staff
- * login made in the Supabase dashboard) is left alone, as before, and logged.
+ * Unmarked users never get member or lead rows linked (the linking gate), and
+ * links made before the marker existed are ON DELETE SET NULL and are rebuilt
+ * for the new user at sign-in. staff and ugc_submissions rows are ON DELETE
+ * CASCADE, so a user that owns any of those is never deleted: a confirmed
+ * staff login is marked instead (an admin created it), and anything else is
+ * left alone and logged.
  */
-async function replaceUnconfirmedUser(
+async function replaceOutsideUser(
   admin: ReturnType<typeof createAdminClient>,
   linkUser: { id?: string; email_confirmed_at?: string | null } | null | undefined,
   email: string,
   metadata: Record<string, string>
 ): Promise<boolean> {
-  if (!linkUser?.id || linkUser.email_confirmed_at) return false
+  if (!linkUser?.id) return false
 
-  // Confirm from the user record itself before deleting anything.
+  // Decide from the user record itself before deleting anything.
   const { data: fetched, error: fetchError } = await admin.auth.admin.getUserById(linkUser.id)
   if (fetchError || !fetched?.user) {
-    console.error('[magic-link] could not re-read an unconfirmed user', fetchError?.message)
+    console.error('[magic-link] could not re-read the auth user', fetchError?.message)
     throw new MagicLinkError(SEND_FAILED, 500)
   }
   const user = fetched.user
-  if (user.email_confirmed_at) return false
+  if (user.email_confirmed_at && isAppAccount(user)) return false
   if ((user.email || '').toLowerCase() !== email) {
     console.error('[magic-link] generateLink returned a user for another address')
     throw new MagicLinkError(SEND_FAILED, 500)
@@ -175,9 +179,17 @@ async function replaceUnconfirmedUser(
       throw new MagicLinkError(SEND_FAILED, 500)
     }
     if ((count || 0) > 0) {
+      if (table === 'staff' && user.email_confirmed_at) {
+        // A staff row means an admin set this login up; adopt it.
+        const marked = await admin.auth.admin.updateUserById(user.id, {
+          app_metadata: { ...(user.app_metadata || {}), ...APP_ACCOUNT_METADATA },
+        })
+        if (marked.error) console.error('[magic-link] could not mark a staff login', marked.error.message)
+        return false
+      }
       console.error(
-        `[magic-link] auth user ${user.id} is unconfirmed but owns ${table} rows; ` +
-          'left in place. Confirm or recreate it in Supabase Auth.'
+        `[magic-link] auth user ${user.id} was not created by the app but owns ${table} rows; ` +
+          'left in place. Recreate it in Supabase Auth.'
       )
       return false
     }
@@ -188,12 +200,13 @@ async function replaceUnconfirmedUser(
     console.error('[magic-link] deleteUser failed', removed.error.message)
     throw new MagicLinkError(SEND_FAILED, 500)
   }
-  console.warn(`[magic-link] replaced unconfirmed auth user ${user.id} created outside the app`)
+  console.warn(`[magic-link] replaced auth user ${user.id} created outside the app`)
 
   const created = await admin.auth.admin.createUser({
     email,
     email_confirm: true,
     user_metadata: metadata,
+    app_metadata: APP_ACCOUNT_METADATA,
   })
   if (created.error && !/already been registered/i.test(created.error.message)) {
     console.error('[magic-link] createUser failed', created.error.message)
@@ -329,6 +342,7 @@ async function generateAndSend(
       email,
       email_confirm: true,
       user_metadata: metadata,
+      app_metadata: APP_ACCOUNT_METADATA,
     })
     if (created.error && !/already been registered/i.test(created.error.message)) {
       console.error('[magic-link] createUser failed', created.error.message)
@@ -344,17 +358,17 @@ async function generateAndSend(
     })
   } else if (
     !link.error &&
-    (await replaceUnconfirmedUser(admin, link.data?.user, email, metadata))
+    (await replaceOutsideUser(admin, link.data?.user, email, metadata))
   ) {
     link = await admin.auth.admin.generateLink({
       type: 'magiclink',
       email,
       options: linkOptions,
     })
-    // Someone re-created an unconfirmed user in between: send nothing.
+    // Someone re-created an outside user in between: send nothing.
     const user = link.data?.user
-    if (!link.error && user?.id && !user.email_confirmed_at) {
-      console.error('[magic-link] user is still unconfirmed after replacement; not sending')
+    if (!link.error && user?.id && (!user.email_confirmed_at || !isAppAccount(user))) {
+      console.error('[magic-link] user is still not the app account after replacement; not sending')
       throw new MagicLinkError(SEND_FAILED, 500)
     }
   }

@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { ensureMemberForAuthUser, grantSignupBonusIfMissing } from '@/lib/auth/link-identities'
+import { APP_ACCOUNT_METADATA } from '@/lib/auth/app-account'
 
 /**
  * One shared test customer for walking through signup, Pack Rewards
@@ -43,6 +44,7 @@ export async function ensureTestCustomer(admin: SupabaseClient): Promise<TestCus
       email: TEST_CUSTOMER.email,
       email_confirm: true,
       user_metadata: FRESH_METADATA,
+      app_metadata: APP_ACCOUNT_METADATA,
     })
     if (created.error || !created.data.user) {
       throw new Error(`Could not create the test customer login: ${created.error?.message}`)

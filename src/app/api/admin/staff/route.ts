@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { APP_ACCOUNT_METADATA } from '@/lib/auth/app-account'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient as createServerClient } from '@/lib/supabase/server'
 
@@ -105,6 +106,7 @@ export async function POST(request: NextRequest) {
       password: password.trim(),
       email_confirm: true,
       user_metadata: { full_name, role },
+      app_metadata: APP_ACCOUNT_METADATA,
     })
     if (authError || !authData.user) {
       return NextResponse.json(

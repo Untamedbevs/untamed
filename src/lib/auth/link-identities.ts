@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { isAppAccount } from '@/lib/auth/app-account'
 import { POINTS } from '@/lib/loyalty/constants'
 import { claimPendingOrdersForMember } from '@/lib/loyalty/orders'
 import { ensureReferralParticipant } from '@/lib/referral/helpers'
@@ -10,10 +11,10 @@ const UUID_REGEX =
 /**
  * Linking by email is only safe once the auth user has proven they own that
  * email. Reads the auth user server-side (callers pass only id + email) and
- * requires a confirmed email that is the same address we are linking by.
- * Every sign-in path in this app yields a confirmed user (magic links are
- * created with email_confirm: true or confirmed by verifyOtp), so this only
- * turns away users created some other way. Fails closed on a lookup error.
+ * requires a confirmed email that is the same address we are linking by, on
+ * an account this app created (see lib/auth/app-account.ts). A confirmed
+ * account made through Supabase's public sign-up carries a password someone
+ * else may have chosen, so it is never linked. Fails closed on a lookup error.
  */
 async function hasConfirmedEmail(
   admin: SupabaseClient,
@@ -27,6 +28,10 @@ async function hasConfirmedEmail(
   }
   const user = data.user
   if (!user.email_confirmed_at) return false
+  if (!isAppAccount(user)) {
+    console.warn(`[link-identities] auth user ${authUserId} was not created by the app; not linking`)
+    return false
+  }
   return (user.email || '').toLowerCase().trim() === normalizedEmail
 }
 

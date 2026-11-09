@@ -104,13 +104,19 @@ if (!authUser) {
     password,
     email_confirm: true,
     user_metadata: { full_name: fullName, role },
+    // Marks the login as created by the app (src/lib/auth/app-account.ts).
+    app_metadata: { untamed_portal: true },
   })
   if (error || !data.user) die(`Could not create the auth user: ${error?.message || 'unknown error'}`)
   authUser = data.user
   console.log('Created auth user.')
 } else if (resetPassword) {
   password = await readPassword()
-  const { error } = await supabase.auth.admin.updateUserById(authUser.id, { password, email_confirm: true })
+  const { error } = await supabase.auth.admin.updateUserById(authUser.id, {
+    password,
+    email_confirm: true,
+    app_metadata: { ...(authUser.app_metadata || {}), untamed_portal: true },
+  })
   if (error) die(`Could not reset the password: ${error.message}`)
   console.log('Reset password on the existing auth user.')
 } else {
