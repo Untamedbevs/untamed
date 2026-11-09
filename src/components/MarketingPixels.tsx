@@ -1,6 +1,8 @@
 'use client'
 
 import Script from 'next/script'
+import { usePathname } from 'next/navigation'
+import { isPrivateEmailPath } from '@/lib/email/private-paths'
 
 const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID
 const PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID
@@ -13,6 +15,10 @@ const ADS_ID = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID
  * these exist so ad platforms can optimize.
  */
 export function MarketingPixels() {
+  const pathname = usePathname()
+  // Email-link URLs carry recipient tokens; ad platforms never see them.
+  if (isPrivateEmailPath(pathname)) return null
+
   return (
     <>
       {GTM_ID && (
