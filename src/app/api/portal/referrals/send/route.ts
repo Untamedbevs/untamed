@@ -8,6 +8,7 @@ import {
   buildListUnsubscribeHeaders,
   buildUnsubscribeUrl,
 } from '@/lib/messaging/unsubscribe'
+import { isSuppressed } from '@/lib/messaging/suppressions'
 import { buildWarmIntroEmail } from '@/lib/referral/warm-intro-email'
 
 export const dynamic = 'force-dynamic'
@@ -100,6 +101,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { error: 'You already sent an invite to this email' },
       { status: 409 }
+    )
+  }
+
+  // Anyone who unsubscribed, bounced, or complained never gets a warm intro.
+  // The message doesn't say which, so it can't be used to probe addresses.
+  if (await isSuppressed(normalizedReferred)) {
+    return NextResponse.json(
+      {
+        error:
+          "We can't email that address. Copy your referral link and share it directly — they'll still get full credit when they sign up.",
+        code: 'RECIPIENT_NOT_DELIVERABLE',
+      },
+      { status: 422 }
     )
   }
 

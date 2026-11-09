@@ -3,7 +3,22 @@
  * Used by both the blast UI and the audience query layer.
  */
 
-export type Audience = 'loyalty' | 'referrers' | 'distributors' | 'all'
+export type Audience =
+  | 'subscribers'
+  | 'customers'
+  | 'loyalty'
+  | 'referrers'
+  | 'distributors'
+  | 'all'
+
+export const AUDIENCE_OPTIONS: { value: Audience; label: string; description: string }[] = [
+  { value: 'subscribers', label: 'Everyone on the list', description: 'Every contact subscribed to the chosen list' },
+  { value: 'customers', label: 'Past customers', description: 'People who placed an online order' },
+  { value: 'loyalty', label: 'Loyalty members', description: 'Loyalty program members' },
+  { value: 'referrers', label: 'Referrers', description: 'Active referral program participants' },
+  { value: 'distributors', label: 'Wholesale leads', description: 'Distributor and retail inquiries' },
+  { value: 'all', label: 'All known contacts', description: 'Customers, loyalty, referrers, and wholesale leads' },
+]
 
 export type FilterField =
   // Loyalty
@@ -27,6 +42,16 @@ export type FilterField =
   // UGC (works on both loyalty + distributor audiences)
   | 'ugc_status'
   | 'min_ugc_submissions'
+  // Customers
+  | 'ordered_after'
+  | 'ordered_before'
+  | 'min_orders'
+  | 'min_total_spent'
+  | 'bought_product'
+  // Any audience (from the contact record)
+  | 'state'
+  | 'engaged_within_days'
+  | 'not_engaged_days'
   // Shared
   | 'created_after'
   | 'created_before'
@@ -34,7 +59,7 @@ export type FilterField =
 export interface FilterOption {
   value: FilterField
   label: string
-  group: 'loyalty' | 'referrer' | 'distributor' | 'ugc' | 'shared'
+  group: 'loyalty' | 'referrer' | 'distributor' | 'ugc' | 'customer' | 'contact' | 'shared'
 }
 
 export const ALL_FILTER_OPTIONS: FilterOption[] = [
@@ -55,14 +80,26 @@ export const ALL_FILTER_OPTIONS: FilterOption[] = [
   { value: 'has_referrer', label: 'Has Referrer', group: 'distributor' },
   { value: 'ugc_status', label: 'UGC Submission Status', group: 'ugc' },
   { value: 'min_ugc_submissions', label: 'Min UGC Submissions', group: 'ugc' },
+  { value: 'ordered_after', label: 'Ordered On/After', group: 'customer' },
+  { value: 'ordered_before', label: 'Ordered On/Before', group: 'customer' },
+  { value: 'min_orders', label: 'Min Orders', group: 'customer' },
+  { value: 'min_total_spent', label: 'Min Total Spent ($)', group: 'customer' },
+  { value: 'bought_product', label: 'Bought Product (name contains)', group: 'customer' },
+  { value: 'state', label: 'State (from orders)', group: 'contact' },
+  { value: 'engaged_within_days', label: 'Opened/Clicked Within (days)', group: 'contact' },
+  { value: 'not_engaged_days', label: 'No Opens/Clicks For (days)', group: 'contact' },
   { value: 'created_after', label: 'Created After', group: 'shared' },
   { value: 'created_before', label: 'Created Before', group: 'shared' },
 ]
 
 export function getFilterOptions(audience: Audience): FilterOption[] {
+  // "Everyone on the list" can only be narrowed by contact-level filters.
+  if (audience === 'subscribers') return ALL_FILTER_OPTIONS.filter((o) => o.group === 'contact')
   return ALL_FILTER_OPTIONS.filter((o) => {
-    if (o.group === 'shared') return true
+    if (o.group === 'contact') return true
+    if (o.group === 'shared') return audience !== 'customers'
     if (audience === 'all') return true
+    if (o.group === 'customer') return audience === 'customers'
     if (o.group === 'loyalty') return audience === 'loyalty'
     if (o.group === 'referrer') return audience === 'referrers'
     if (o.group === 'distributor') return audience === 'distributors'
@@ -132,13 +169,20 @@ export function getValueOptions(field: FilterField): string[] | null {
       return TIER_NAMES
     case 'ugc_status':
       return UGC_STATUS_VALUES
+    case 'state':
+      return STATE_CODES
     default:
       return null
   }
 }
 
 export function isDateField(field: FilterField): boolean {
-  return field === 'created_after' || field === 'created_before'
+  return (
+    field === 'created_after' ||
+    field === 'created_before' ||
+    field === 'ordered_after' ||
+    field === 'ordered_before'
+  )
 }
 
 export function isNumberField(field: FilterField): boolean {
@@ -148,13 +192,24 @@ export function isNumberField(field: FilterField): boolean {
     field === 'min_consumer_signups' ||
     field === 'min_distributor_leads' ||
     field === 'min_paid_conversions' ||
-    field === 'min_ugc_submissions'
+    field === 'min_ugc_submissions' ||
+    field === 'min_orders' ||
+    field === 'min_total_spent' ||
+    field === 'engaged_within_days' ||
+    field === 'not_engaged_days'
   )
 }
 
 export function isTextField(field: FilterField): boolean {
-  return field === 'first_utm_source' || field === 'first_utm_campaign'
+  return field === 'first_utm_source' || field === 'first_utm_campaign' || field === 'bought_product'
 }
+
+export const STATE_CODES = [
+  'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DC', 'DE', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA',
+  'KS', 'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM',
+  'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA',
+  'WV', 'WI', 'WY',
+]
 
 export function formatFilterValue(value: string): string {
   return value.replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())

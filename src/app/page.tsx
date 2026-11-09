@@ -8,6 +8,7 @@ import { ArrowDown, Mail, Building2, MapPin } from 'lucide-react'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
 import { DrinkCard } from '@/components/DrinkCard'
+import { EmailSignupForm } from '@/components/EmailSignupForm'
 import { HomeCommunityStrip } from '@/components/community/HomeCommunityStrip'
 import { drinks } from '@/lib/drinks'
 import { siteAssetAbsoluteUrl } from '@/lib/site-assets'
@@ -607,6 +608,32 @@ export default function HomePage() {
         <HomeCommunityStrip />
 
         {/* ============================================
+            EMAIL SIGNUP SECTION
+            ============================================ */}
+        <section className="relative py-20 md:py-28">
+          <div className="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+            >
+              <div className="text-center mb-8">
+                <h2 className="font-condensed text-4xl md:text-5xl font-bold uppercase tracking-wider text-untamed-white mb-4">
+                  Get <span className="font-wild cyber-brush-fix text-gradient-wild">First Word</span>
+                </h2>
+                <p className="text-untamed-white-muted text-base md:text-lg max-w-xl mx-auto">
+                  New flavors, limited drops, and offers before anyone else. Pick what you want to hear about.
+                </p>
+              </div>
+              <div className="rounded-2xl border border-card-border bg-untamed-black-card p-6 md:p-8">
+                <EmailSignupForm variant="full" placement="home" />
+              </div>
+            </motion.div>
+          </div>
+        </section>
+
+        {/* ============================================
             CTA / FIND US SECTION
             ============================================ */}
         <section className="relative py-20 md:py-32 overflow-hidden">
@@ -690,7 +717,7 @@ export default function HomePage() {
         </section>
       </main>
 
-      <Footer />
+      <Footer showSignup={false} />
     </>
   )
 }

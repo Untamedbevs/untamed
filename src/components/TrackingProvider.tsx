@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, Suspense, type ReactNode } from 'react'
 import { usePathname } from 'next/navigation'
+import { isPrivateEmailPath } from '@/lib/email/private-paths'
 import {
   getAttribution,
   initTracking,
@@ -46,7 +47,7 @@ function TrackingInner({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
-    if (!state.ready) return
+    if (!state.ready || isPrivateEmailPath(pathname)) return
     trackPageView()
   }, [pathname, state.ready])
 

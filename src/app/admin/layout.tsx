@@ -39,6 +39,10 @@ import {
   MapPin,
   Sparkles,
   Compass,
+  Workflow,
+  LayoutTemplate,
+  Mail,
+  Settings,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { LucideIcon } from 'lucide-react'
@@ -80,7 +84,13 @@ const ALL_NAV_ITEMS: NavItem[] = [
     label: 'CRM',
     icon: MessageSquare,
     children: [
-      { href: '/admin/crm/blast', label: 'Email Blast', icon: Send },
+      { href: '/admin/crm/email', label: 'Email Dashboard', icon: BarChart3 },
+      { href: '/admin/crm/contacts', label: 'Contacts', icon: Users },
+      { href: '/admin/crm/blast', label: 'New Campaign', icon: Send },
+      { href: '/admin/crm/email/flows', label: 'Automated Flows', icon: Workflow },
+      { href: '/admin/crm/email/templates', label: 'Templates', icon: LayoutTemplate },
+      { href: '/admin/crm/outreach', label: 'Outreach', icon: Mail },
+      { href: '/admin/crm/email/settings', label: 'Email Settings', icon: Settings },
     ],
   },
   {
@@ -103,14 +113,17 @@ const SUPER_ADMIN_ITEMS: NavItem[] = [
   { href: '/admin/fonts', label: 'Fonts', icon: Type },
 ]
 
-const RESTRICTED_PATHS = ['/admin/loyalty', '/admin/ugc', '/admin/financial']
+const RESTRICTED_PATHS = ['/admin/loyalty', '/admin/ugc', '/admin/financial', '/admin/crm/contacts', '/admin/crm/outreach', '/admin/crm/email/settings']
 
 function getNavItems(role: string | undefined): NavItem[] {
   let items = ALL_NAV_ITEMS
   if (role === 'contractor_limited') {
-    items = items.filter(
-      (item) => !RESTRICTED_PATHS.some((p) => item.href.startsWith(p))
-    )
+    const allowed = (href: string) => !RESTRICTED_PATHS.some((p) => href.startsWith(p))
+    items = items
+      .filter((item) => allowed(item.href))
+      .map((item) =>
+        item.children ? { ...item, children: item.children.filter((c) => allowed(c.href)) } : item
+      )
   }
   if (role === 'super_admin') {
     items = [...items, ...SUPER_ADMIN_ITEMS]

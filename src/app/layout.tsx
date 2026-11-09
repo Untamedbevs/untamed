@@ -5,6 +5,7 @@ import './globals.css'
 import Script from 'next/script'
 import { Suspense } from 'react'
 import { AgeGate } from '@/components/AgeGate'
+import { AccelPayBrandScript } from '@/components/AccelPayBrandScript'
 import { TrackingProvider } from '@/components/TrackingProvider'
 import { ReferralBanner } from '@/components/ReferralBanner'
 import { AccelPayRouteSync } from '@/components/AccelPayRouteSync'
@@ -117,7 +118,7 @@ export default function RootLayout({
         <Script id="accelpay-brand" strategy="beforeInteractive">
           {`window.apbrand = { id: 5008728 };`}
         </Script>
-        <Script src="https://cart.accelpay.io/scripts/brand.js" strategy="afterInteractive" />
+        <AccelPayBrandScript />
         <MarketingPixels />
       </head>
       <body className="bg-untamed-black text-untamed-white antialiased">

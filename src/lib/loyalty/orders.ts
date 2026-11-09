@@ -14,6 +14,7 @@ import { randomUUID } from 'crypto'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { ensureReferralParticipant } from '@/lib/referral/helpers'
 import { applyOrderAttribution } from '@/lib/tracking/order-attribution'
+import { recordCheckoutConsent } from '@/lib/messaging/checkout-consent'
 
 export interface ParsedSaleItem {
   listingId?: number
@@ -35,6 +36,8 @@ export interface ParsedSale {
   discountCents: number
   items: ParsedSaleItem[]
   packCount: number
+  /** The checkout marketing checkbox (`buyerAcceptsMarketing`); null when absent. */
+  acceptsMarketing: boolean | null
   /** Original payload, stored for debugging since AccelPay shapes can change. */
   raw?: unknown
 }
@@ -70,6 +73,12 @@ function num(value: unknown): number {
 /** AccelPay money fields are dollar amounts; store them as integer cents. */
 function toCents(value: unknown): number {
   return Math.round(num(value) * 100)
+}
+
+function bool(value: unknown): boolean | null {
+  if (value === true || value === 'true') return true
+  if (value === false || value === 'false') return false
+  return null
 }
 
 function str(value: unknown): string | null {
@@ -181,6 +190,7 @@ export function parseAccelPaySale(body: unknown): ParsedSale | null {
     discountCents: toCents(sale?.discountAmount ?? sale?.discount_amount),
     items,
     packCount: packCountFromItems(items),
+    acceptsMarketing: bool(sale?.buyerAcceptsMarketing ?? root?.buyerAcceptsMarketing ?? b.buyerAcceptsMarketing),
     raw: body,
   }
 }
@@ -408,6 +418,8 @@ export async function creditOnlineOrder(
   }
 
   const orderId = order.id as string
+
+  await recordCheckoutConsent({ saleId: sale.saleId, email, acceptsMarketing: sale.acceptsMarketing })
 
   if (memberId && points > 0) {
     await awardOrderPoints(admin, orderId, memberId, memberBalance, points)

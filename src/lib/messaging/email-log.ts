@@ -4,7 +4,7 @@
  * Wraps `sendEmail()` / `sendRawEmail()` with a write to the `email_messages`
  * table so every outbound email is recorded (transactional + bulk).
  *
- * Throws if the SMTP send fails. Throws if DB insert fails after retries so
+ * Throws if the send fails. Throws if DB insert fails after retries so
  * the caller always knows about both failure modes.
  */
 
@@ -16,7 +16,18 @@ import {
   type SendEmailParams,
   type EmailAlias,
   type EmailAttachment,
-} from '@/lib/email/smtp'
+} from '@/lib/email/transport'
+
+/** The email went out but its log row couldn't be written. */
+export class EmailLogError extends Error {
+  constructor(
+    readonly messageId: string,
+    detail: string
+  ) {
+    super(`Email sent (message ID: ${messageId}) but failed to log to database: ${detail}`)
+    this.name = 'EmailLogError'
+  }
+}
 
 const LOG_INSERT_MAX_RETRIES = 2
 const LOG_INSERT_RETRY_DELAY_MS = 500
@@ -27,7 +38,7 @@ export interface LoggedEmailParams extends SendEmailParams {
    * Full addresses pass through as-is. Overridden by `from` if also set.
    */
   fromAlias?: EmailAlias | string
-  /** Thread grouping identifier (defaults to the SMTP message id) */
+  /** Thread grouping identifier (defaults to the message id) */
   threadId?: string
   /** Slug of the email template used (for analytics tracking) */
   templateSlug?: string
@@ -39,13 +50,19 @@ export interface LoggedEmailParams extends SendEmailParams {
   loyaltyMemberId?: string
   referralParticipantId?: string
   distributorLeadId?: string
+  /** email_contacts row; looked up by address when omitted */
+  contactId?: string
+  /** Automated flow this email belongs to */
+  flowSlug?: string
+  flowStepId?: string
+  flowEnrollmentId?: string
   /** File attachments (triggers SendRawEmail instead of SendEmail) */
   attachments?: EmailAttachment[]
 }
 
 /**
- * Send an email via Google Workspace SMTP and log it to the `email_messages`
- * table. Returns the message id.
+ * Send an email and log it to the `email_messages` table. Returns the message
+ * id (the SES MessageId when sent through SES).
  */
 export async function sendAndLogEmail(params: LoggedEmailParams): Promise<string> {
   const {
@@ -57,6 +74,10 @@ export async function sendAndLogEmail(params: LoggedEmailParams): Promise<string
     loyaltyMemberId,
     referralParticipantId,
     distributorLeadId,
+    contactId,
+    flowSlug,
+    flowStepId,
+    flowEnrollmentId,
     attachments,
     ...emailParams
   } = params
@@ -64,27 +85,45 @@ export async function sendAndLogEmail(params: LoggedEmailParams): Promise<string
   const resolvedFrom = resolveAlias(fromAlias)
   emailParams.from = emailParams.from || resolvedFrom
   emailParams.replyTo = emailParams.replyTo || resolvedFrom
+  emailParams.stream = emailParams.stream || 'transactional'
 
-  const messageId =
+  const { messageId, transport } =
     attachments && attachments.length > 0
       ? await sendRawEmail({ ...emailParams, attachments })
       : await sendEmail(emailParams)
 
   const supabase = createAdminClient()
   const toAddresses = Array.isArray(emailParams.to) ? emailParams.to : [emailParams.to]
+  const toEmail = toAddresses[0].trim().toLowerCase()
+
+  let resolvedContactId = contactId || null
+  if (!resolvedContactId) {
+    const { data: contact } = await supabase
+      .from('email_contacts')
+      .select('id')
+      .eq('email', toEmail)
+      .maybeSingle()
+    resolvedContactId = contact?.id || null
+  }
 
   const row = {
     campaign_id: campaignId || null,
     loyalty_member_id: loyaltyMemberId || null,
     referral_participant_id: referralParticipantId || null,
     distributor_lead_id: distributorLeadId || null,
+    email_contact_id: resolvedContactId,
+    flow_slug: flowSlug || null,
+    flow_step_id: flowStepId || null,
+    flow_enrollment_id: flowEnrollmentId || null,
     from_email: emailParams.from,
-    to_email: toAddresses[0],
+    to_email: toEmail,
     subject: emailParams.subject,
     body_html: emailParams.html,
     body_text: emailParams.text || '',
     direction: 'outbound' as const,
     status: 'sent',
+    stream: emailParams.stream,
+    transport,
     ses_message_id: messageId,
     thread_id: threadId || messageId,
     template_slug: templateSlug || null,
@@ -121,9 +160,7 @@ export async function sendAndLogEmail(params: LoggedEmailParams): Promise<string
   }
 
   if (lastError) {
-    throw new Error(
-      `Email sent (message ID: ${messageId}) but failed to log to database after ${LOG_INSERT_MAX_RETRIES + 1} attempts: ${lastError}`
-    )
+    throw new EmailLogError(messageId, `${LOG_INSERT_MAX_RETRIES + 1} attempts failed: ${lastError}`)
   }
 
   return messageId

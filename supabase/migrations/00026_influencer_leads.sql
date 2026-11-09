@@ -73,6 +73,7 @@ ALTER TABLE influencer_leads ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Staff can read influencer leads"
   ON influencer_leads FOR SELECT
+  TO authenticated
   USING (
     EXISTS (
       SELECT 1 FROM staff
@@ -83,10 +84,26 @@ CREATE POLICY "Staff can read influencer leads"
 
 CREATE POLICY "Staff can update influencer leads"
   ON influencer_leads FOR UPDATE
+  TO authenticated
   USING (
     EXISTS (
       SELECT 1 FROM staff
       WHERE staff.auth_user_id = auth.uid()
         AND staff.is_active = true
     )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM staff
+      WHERE staff.auth_user_id = auth.uid()
+        AND staff.is_active = true
+    )
   );
+
+-- Applications are inserted by the authenticated server route using service_role.
+-- Anonymous visitors never access lead records through the Data API directly.
+REVOKE ALL ON TABLE public.influencer_leads FROM PUBLIC, anon, authenticated;
+GRANT SELECT, UPDATE ON TABLE public.influencer_leads TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.influencer_leads TO service_role;
+
+NOTIFY pgrst, 'reload schema';

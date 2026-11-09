@@ -1,5 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin'
-import { sendEmail, resolveAlias } from '@/lib/email/smtp'
+import { sendEmail, resolveAlias, type SendResult } from '@/lib/email/transport'
 import { buildMagicLinkEmail } from '@/lib/auth/magic-link-email'
 
 const TEMPLATE_SLUG = 'portal-magic-link'
@@ -132,9 +132,9 @@ export async function sendPortalMagicLink(args: {
   })
   const from = resolveAlias('support')
 
-  let messageId: string
+  let sent: SendResult
   try {
-    messageId = await sendEmail({
+    sent = await sendEmail({
       to: email,
       from,
       replyTo: from,
@@ -144,7 +144,7 @@ export async function sendPortalMagicLink(args: {
     })
   } catch (err) {
     console.error(
-      '[magic-link] SMTP send failed',
+      '[magic-link] email send failed',
       err instanceof Error ? err.message : err
     )
     throw new MagicLinkError(
@@ -163,9 +163,11 @@ export async function sendPortalMagicLink(args: {
     body_text: 'Sign-in email sent. Link and code omitted from the log.',
     direction: 'outbound',
     status: 'sent',
-    ses_message_id: messageId,
-    thread_id: messageId,
+    ses_message_id: sent.messageId,
+    thread_id: sent.messageId,
     template_slug: TEMPLATE_SLUG,
+    stream: 'transactional',
+    transport: sent.transport,
     sent_at: new Date().toISOString(),
   })
   if (logError) {

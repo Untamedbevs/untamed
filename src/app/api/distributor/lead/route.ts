@@ -1,10 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse, after } from 'next/server'
 import { randomUUID } from 'crypto'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resolveReferralCode, generateUniqueCode } from '@/lib/referral/helpers'
 import { REF_COOKIE_NAME } from '@/lib/referral/constants'
 import { POINTS } from '@/lib/loyalty/constants'
 import { sendAndLogEmail } from '@/lib/messaging/email-log'
+import { requestEmbeddedSignup } from '@/lib/email/signup'
 import { resolveLeadAttribution } from '@/lib/tracking/lead-attribution'
 import { fbcFromFbclid, sendMetaCapiEvent } from '@/lib/tracking/meta-capi'
 import { z } from 'zod'
@@ -34,6 +35,14 @@ const leadSchema = z.object({
   businessType: z.enum(['bar_restaurant', 'liquor_store', 'distributor', 'event_venue', 'other']),
   volumeInterest: z.enum(['small', 'medium', 'large']).optional(),
   message: z.string().max(2000).optional(),
+  // Present only when the separate "email me trade updates" box is ticked.
+  emailSignup: z
+    .object({
+      copyVersion: z.string().max(60).optional(),
+      placement: z.string().max(200).optional(),
+      timezone: z.string().max(64).optional(),
+    })
+    .optional(),
   ref: z.string().optional(),
   visitor_id: z.string().max(80).optional(),
   session_id: z.string().max(80).optional(),
@@ -125,6 +134,18 @@ export async function POST(request: NextRequest) {
       })
     } catch (activityErr) {
       console.error('[distributor/lead] Activity log failed:', activityErr)
+    }
+
+    // Trade-updates opt-in: double opt-in by email. Never fails the inquiry.
+    if (data.emailSignup) {
+      await requestEmbeddedSignup({
+        form: 'trade',
+        email: data.email,
+        firstName: data.contactName.trim().split(/\s+/)[0],
+        optIn: data.emailSignup,
+        headers: request.headers,
+        defer: (task) => after(task),
+      })
     }
 
     try {

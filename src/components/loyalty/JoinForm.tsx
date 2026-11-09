@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Mail, User, Loader2, ArrowRight, CheckCircle, KeyRound } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { PORTAL_OTP_LENGTH } from '@/lib/auth/portal-otp'
+import { EmailOptInCheckbox, emailOptInPayload } from '@/components/EmailSignupForm'
 import type { Drink } from '@/lib/drinks'
 
 interface JoinFormProps {
@@ -37,6 +38,8 @@ export function JoinForm({
   const [step, setStep] = useState<Step>('details')
   const [email, setEmail] = useState('')
   const [firstName, setFirstName] = useState('')
+  const [emailOptIn, setEmailOptIn] = useState(false)
+  const [emailOptInAge, setEmailOptInAge] = useState(false)
   const [code, setCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -71,6 +74,8 @@ export function JoinForm({
           favorite_drink_slug: drink?.slug || '',
           visitor_id: visitorId || '',
         },
+        // Separate marketing opt-in; starts a double opt-in when ticked.
+        emailSignup: emailOptInPayload(emailOptIn, emailOptInAge),
       }),
     })
     const body = await res.json().catch(() => ({}))
@@ -215,6 +220,15 @@ export function JoinForm({
           className="w-full pl-12 pr-4 py-3.5 bg-untamed-black-light border border-card-border rounded-xl text-white placeholder:text-muted focus:outline-none transition-colors"
         />
       </div>
+
+      <EmailOptInCheckbox
+        form="join"
+        checked={emailOptIn}
+        onChange={setEmailOptIn}
+        ageChecked={emailOptInAge}
+        onAgeChange={setEmailOptInAge}
+        accentColor={color}
+      />
 
       {error && <p className="text-red-400 text-sm">{error}</p>}
 
