@@ -19,7 +19,7 @@ import {
 } from '@/lib/influencers/constants'
 
 const LEAD_NOTIFY_EMAIL = 'joe.colella@untamedbeverages.com'
-const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'https://untamedbevs.com'
+const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'https://untamedbeverages.com'
 
 const applySchema = z.object({
   name: z.string().min(1, 'Name is required').max(200),

@@ -75,3 +75,50 @@ export async function applyPoints(
 
   return { transactionId: row.transaction_id, newBalance: row.new_balance }
 }
+
+export interface RedeemRewardArgs {
+  memberId: string
+  rewardSlug: string
+  rewardLabel: string
+  pointsCost: number
+  retailValueCents?: number
+  shipState?: string | null
+}
+
+export interface RedeemRewardResult {
+  /** The saved loyalty_redemptions row. */
+  redemption: { id: string; redeem_transaction_id: string } & Record<string, unknown>
+  newBalance: number
+}
+
+/**
+ * Redeem a reward: debit its cost and record the redemption in one locked,
+ * all-or-nothing call (`loyalty_redeem_reward`, migration 00032), so a stop
+ * partway can't leave a debit without its redemption or the other way round.
+ * Returns 'insufficient' when the balance is too low; nothing is written then.
+ */
+export async function redeemReward(
+  admin: SupabaseClient,
+  args: RedeemRewardArgs
+): Promise<RedeemRewardResult | 'insufficient'> {
+  const { data, error } = await admin.rpc('loyalty_redeem_reward', {
+    p_member_id: args.memberId,
+    p_reward_slug: args.rewardSlug,
+    p_reward_label: args.rewardLabel,
+    p_points_cost: args.pointsCost,
+    p_retail_value_cents: args.retailValueCents ?? 0,
+    p_ship_state: args.shipState ?? null,
+  })
+
+  if (error) {
+    if (error.code === '23514') return 'insufficient'
+    throw new Error(`redeemReward failed: ${error.message}`)
+  }
+
+  const row = (Array.isArray(data) ? data[0] : data) as
+    | { redemption: RedeemRewardResult['redemption']; new_balance: number }
+    | undefined
+  if (!row) throw new Error('redeemReward: no result returned')
+
+  return { redemption: row.redemption, newBalance: row.new_balance }
+}

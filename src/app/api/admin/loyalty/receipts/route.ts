@@ -48,10 +48,20 @@ export async function PUT(request: NextRequest) {
     if (action !== 'approve' && action !== 'reject') {
       return NextResponse.json({ error: 'action must be approve or reject' }, { status: 400 })
     }
+    if (
+      customPoints !== undefined &&
+      customPoints !== null &&
+      !(Number.isInteger(customPoints) && customPoints >= 0)
+    ) {
+      return NextResponse.json(
+        { error: 'customPoints must be a whole number, 0 or more' },
+        { status: 400 }
+      )
+    }
 
     const { data: receipt } = await supabase
       .from('loyalty_receipts')
-      .select('*, member:loyalty_members(id, email, points_balance)')
+      .select('*')
       .eq('id', receiptId)
       .single()
 
@@ -83,32 +93,24 @@ export async function PUT(request: NextRequest) {
           : defaultPoints
         : 0
 
-    await supabase
-      .from('loyalty_receipts')
-      .update({
-        status: action === 'approve' ? 'approved' : 'rejected',
-        points_awarded: pointsToAward,
-        admin_notes: notes || null,
-        reviewed_at: new Date().toISOString(),
-      })
-      .eq('id', receiptId)
-
-    if (action === 'approve') {
-      await supabase.from('loyalty_transactions').insert({
-        member_id: receipt.member_id,
-        points: pointsToAward,
-        type: 'receipt_approved',
-        description: `Receipt approved (+${pointsToAward} pts)`,
-        receipt_id: receiptId,
-      })
-
-      const member = receipt.member as { id: string; points_balance: number } | null
-      if (member) {
-        await supabase
-          .from('loyalty_members')
-          .update({ points_balance: member.points_balance + pointsToAward })
-          .eq('id', member.id)
-      }
+    // One locked call: only a pending receipt changes, and the status and the
+    // points are written together, so two reviewers can't both credit it.
+    const { data, error } = await supabase.rpc('loyalty_review_receipt', {
+      p_receipt_id: receiptId,
+      p_approve: action === 'approve',
+      p_points: pointsToAward,
+      p_notes: notes || null,
+      p_staff_id: staff.id,
+    })
+    if (error) throw error
+    const row = (Array.isArray(data) ? data[0] : data) as
+      | { result: string; awarded: number }
+      | undefined
+    if (row?.result === 'already_reviewed') {
+      return NextResponse.json({ error: 'Receipt already reviewed' }, { status: 409 })
+    }
+    if (row?.result !== 'approved' && row?.result !== 'rejected') {
+      return NextResponse.json({ error: 'Receipt not found' }, { status: 404 })
     }
 
     return NextResponse.json({ ok: true, pointsAwarded: pointsToAward })

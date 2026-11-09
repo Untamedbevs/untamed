@@ -1,6 +1,6 @@
 import type { BlastFilters } from '@/lib/crm/blast-filters'
 
-const AUDIENCES = new Set(['loyalty', 'referrers', 'distributors', 'all'])
+const AUDIENCES = new Set(['loyalty', 'referrers', 'distributors', 'all', 'staff'])
 
 /** Validate a saved-segment filters payload. Returns null if unusable. */
 export function parseSegmentFilters(raw: unknown): BlastFilters | null {

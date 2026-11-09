@@ -19,6 +19,7 @@ const AUDIENCE_LABELS: Record<string, string> = {
   referrers: 'Referrers',
   distributors: 'Distributor leads',
   all: 'All contacts',
+  staff: 'Team (internal)',
 }
 
 function describeFilters(f: Segment['filters']): string[] {

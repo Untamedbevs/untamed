@@ -7,6 +7,11 @@
  * AccelPay sale id) and either credits the matching member immediately or holds
  * the points as a pending credit until someone signs up with that email.
  *
+ * Saving the order and crediting its points happen in one locked database call
+ * (`loyalty_credit_online_order`, migration 00032), so a redemption landing at
+ * the same time is never overwritten, and an order is never left saved without
+ * its points. docs/statecharts/order-points/ has the model this was checked with.
+ *
  * Receipt uploads are now reserved for IN-STORE / ON-PREMISE purchases.
  */
 
@@ -188,11 +193,6 @@ export function parseAccelPaySale(body: unknown): ParsedSale | null {
 // ---------------------------------------------------------------------------
 // Customer provisioning
 // ---------------------------------------------------------------------------
-interface OrderMember {
-  id: string
-  balance: number
-}
-
 /**
  * Find or create a customer (loyalty_member) for an online order. Unlike the
  * portal front door, this provisions a member WITHOUT a signup bonus (that
@@ -204,21 +204,16 @@ interface OrderMember {
 async function ensureMemberForOrder(
   admin: SupabaseClient,
   args: { email: string; firstName: string | null; visitorFingerprint: string | null }
-): Promise<OrderMember | null> {
+): Promise<string | null> {
   const normalized = args.email.toLowerCase().trim()
   if (!normalized) return null
 
   const existing = await admin
     .from('loyalty_members')
-    .select('id, points_balance')
+    .select('id')
     .eq('email', normalized)
     .maybeSingle()
-  if (existing.data) {
-    return {
-      id: existing.data.id as string,
-      balance: (existing.data.points_balance as number) ?? 0,
-    }
-  }
+  if (existing.data) return existing.data.id as string
 
   // First-touch attribution waterfall when we know the visitor.
   let visitor:
@@ -261,7 +256,7 @@ async function ensureMemberForOrder(
   const { data: created, error } = await admin
     .from('loyalty_members')
     .insert(insertData)
-    .select('id, points_balance')
+    .select('id')
     .single()
 
   if (error) {
@@ -269,12 +264,10 @@ async function ensureMemberForOrder(
     if ((error as { code?: string }).code === '23505') {
       const { data: raced } = await admin
         .from('loyalty_members')
-        .select('id, points_balance')
+        .select('id')
         .eq('email', normalized)
         .maybeSingle()
-      if (raced) {
-        return { id: raced.id as string, balance: (raced.points_balance as number) ?? 0 }
-      }
+      if (raced) return raced.id as string
     }
     console.error('[ensureMemberForOrder] insert failed:', error)
     return null
@@ -301,44 +294,25 @@ async function ensureMemberForOrder(
     console.error('[ensureMemberForOrder] referral participant failed:', err)
   }
 
-  return { id: memberId, balance: (created.points_balance as number) ?? 0 }
+  return memberId
 }
 
 // ---------------------------------------------------------------------------
 // Crediting
 // ---------------------------------------------------------------------------
-async function awardOrderPoints(
-  admin: SupabaseClient,
-  orderId: string,
-  memberId: string,
-  currentBalance: number,
+interface CreditRow {
+  result: CreditResult['status']
+  order_id: string
   points: number
-): Promise<void> {
-  await admin.from('loyalty_transactions').insert({
-    member_id: memberId,
-    points,
-    type: 'online_order',
-    description: `Online order (+${points} pts)`,
-    order_id: orderId,
-  })
-
-  await admin
-    .from('loyalty_members')
-    .update({ points_balance: currentBalance + points })
-    .eq('id', memberId)
-
-  await admin
-    .from('loyalty_orders')
-    .update({ member_id: memberId, points_claimed: true })
-    .eq('id', orderId)
 }
 
 /**
  * Record an AccelPay sale and credit points. Idempotent: a sale id we've
- * already stored is a no-op (`duplicate`). For any order with an email we now
- * provision a customer immediately (no more "pending until signup"); `pending`
- * is only returned for the rare sale with no buyer email. Always applies order
- * attribution (UTM/visitor + referral) before returning.
+ * already stored is a no-op (`duplicate`), unless an earlier delivery left
+ * that order unclaimed, in which case this delivery credits it. For any order
+ * with an email we provision a customer immediately; `pending` is only
+ * returned for the rare sale with no buyer email (or no points). Always
+ * applies order attribution (UTM/visitor + referral) before returning.
  */
 export async function creditOnlineOrder(
   admin: SupabaseClient,
@@ -361,25 +335,14 @@ export async function creditOnlineOrder(
     visitorFingerprint = priorAttribution.visitor_fingerprint as string
   }
 
-  let memberId: string | null = null
-  let memberBalance = 0
-  if (email) {
-    const member = await ensureMemberForOrder(admin, {
-      email,
-      firstName,
-      visitorFingerprint,
-    })
-    if (member) {
-      memberId = member.id
-      memberBalance = member.balance
-    }
-  }
+  const memberId = email
+    ? await ensureMemberForOrder(admin, { email, firstName, visitorFingerprint })
+    : null
 
-  const { data: order, error } = await admin
-    .from('loyalty_orders')
-    .insert({
+  // Save the order and credit it in one locked, all-or-nothing call.
+  const { data, error } = await admin.rpc('loyalty_credit_online_order', {
+    p_order: {
       accelpay_sale_id: sale.saleId,
-      member_id: memberId,
       email: email || 'unknown',
       status: sale.status ?? null,
       subtotal_cents: sale.subtotalCents,
@@ -389,41 +352,32 @@ export async function creditOnlineOrder(
       discount_cents: sale.discountCents,
       pack_count: packCount,
       points_awarded: points,
-      points_claimed: false,
       items: sale.items,
       raw_payload: sale.raw ?? null,
-    })
-    .select('id')
-    .single()
+    },
+    p_member_id: memberId,
+  })
+  if (error) throw new Error(`loyalty_credit_online_order failed: ${error.message}`)
+  const row = (Array.isArray(data) ? data[0] : data) as CreditRow | undefined
+  if (!row) throw new Error('loyalty_credit_online_order returned nothing')
 
-  if (error) {
-    // Unique violation on accelpay_sale_id => we've already processed this sale.
-    // Still (idempotently) apply attribution in case it arrived after the
-    // original processing run.
-    if ((error as { code?: string }).code === '23505') {
-      await applyOrderAttribution(admin, sale.saleId)
-      return { status: 'duplicate' }
-    }
-    throw error
-  }
-
-  const orderId = order.id as string
-
-  if (memberId && points > 0) {
-    await awardOrderPoints(admin, orderId, memberId, memberBalance, points)
-    await applyOrderAttribution(admin, sale.saleId)
-    return { status: 'credited', orderId, memberId, points }
-  }
-
+  // Attribution is idempotent, so a duplicate delivery still applies it in
+  // case it arrived after the original processing run.
   await applyOrderAttribution(admin, sale.saleId)
-  return { status: 'pending', orderId, points }
+
+  if (row.result === 'duplicate') return { status: 'duplicate' }
+  if (row.result === 'credited' && memberId) {
+    return { status: 'credited', orderId: row.order_id, memberId, points: row.points }
+  }
+  return { status: 'pending', orderId: row.order_id, points: row.points }
 }
 
 /**
- * Attach any pending online-order credits (member_id NULL) for `email` to the
- * given member and credit the points. Called whenever a member is provisioned
- * or linked, so points banked before signup land automatically. Idempotent via
- * a conditional claim on `points_claimed`.
+ * Credit this member's unclaimed online orders for `email`: orders banked
+ * before they had an account (member_id NULL), and any of their own orders an
+ * interrupted delivery left unclaimed. Called whenever a member is provisioned
+ * or linked. Each order is claimed and credited under a lock, once
+ * (`loyalty_claim_pending_orders`, migration 00032). Returns the points added.
  */
 export async function claimPendingOrdersForMember(
   admin: SupabaseClient,
@@ -433,56 +387,10 @@ export async function claimPendingOrdersForMember(
   const normalized = email.toLowerCase().trim()
   if (!normalized) return 0
 
-  const { data: pending } = await admin
-    .from('loyalty_orders')
-    .select('id, points_awarded')
-    .eq('points_claimed', false)
-    .is('member_id', null)
-    .ilike('email', normalized)
-
-  if (!pending || pending.length === 0) return 0
-
-  const { data: member } = await admin
-    .from('loyalty_members')
-    .select('points_balance')
-    .eq('id', memberId)
-    .maybeSingle()
-
-  let balance = (member?.points_balance as number) ?? 0
-  let totalAwarded = 0
-
-  for (const order of pending) {
-    // Atomically claim — only one caller wins if two run concurrently.
-    const { data: claimed } = await admin
-      .from('loyalty_orders')
-      .update({ member_id: memberId, points_claimed: true })
-      .eq('id', order.id)
-      .eq('points_claimed', false)
-      .select('id')
-      .maybeSingle()
-
-    if (!claimed) continue
-
-    const pts = (order.points_awarded as number) ?? 0
-    if (pts > 0) {
-      await admin.from('loyalty_transactions').insert({
-        member_id: memberId,
-        points: pts,
-        type: 'online_order',
-        description: `Online order (+${pts} pts)`,
-        order_id: order.id,
-      })
-      balance += pts
-      totalAwarded += pts
-    }
-  }
-
-  if (totalAwarded > 0) {
-    await admin
-      .from('loyalty_members')
-      .update({ points_balance: balance })
-      .eq('id', memberId)
-  }
-
-  return totalAwarded
+  const { data, error } = await admin.rpc('loyalty_claim_pending_orders', {
+    p_member_id: memberId,
+    p_email: normalized,
+  })
+  if (error) throw new Error(`loyalty_claim_pending_orders failed: ${error.message}`)
+  return (data as number | null) ?? 0
 }

@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Audience is required' }, { status: 400 })
     }
 
-    const allRecipients = await queryRecipients(filters)
+    const allRecipients = await queryRecipients(filters, { staffId: staff.id })
     const { allowed, suppressed } = await filterSuppressed(allRecipients)
 
     return NextResponse.json({

@@ -11,7 +11,7 @@ export interface GeocodeCandidate {
   kind: string
 }
 
-const NOMINATIM_UA = 'UntamedBeverages/1.0 (https://untamedbevs.com; locations lookup)'
+const NOMINATIM_UA = 'UntamedBeverages/1.0 (https://untamedbeverages.com; locations lookup)'
 
 interface NominatimHit {
   lat: string

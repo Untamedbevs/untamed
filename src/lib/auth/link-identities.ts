@@ -39,39 +39,20 @@ export async function linkAuthUserToIdentitiesByEmail(
  * Grants the signup bonus once if a member has never received one. Members
  * auto-created at order time (online orders) are provisioned WITHOUT a signup
  * bonus, so this preserves the welcome-bonus incentive for when they later
- * create a real portal account -- without ever double-granting.
+ * create a real portal account -- without ever double-granting: the check and
+ * the credit run under the member's row lock (`loyalty_grant_signup_bonus`,
+ * migration 00032).
  */
 export async function grantSignupBonusIfMissing(
   admin: SupabaseClient,
   memberId: string
 ): Promise<void> {
-  const { data: existingBonus } = await admin
-    .from('loyalty_transactions')
-    .select('id')
-    .eq('member_id', memberId)
-    .eq('type', 'signup_bonus')
-    .limit(1)
-    .maybeSingle()
-  if (existingBonus) return
-
-  const { data: member } = await admin
-    .from('loyalty_members')
-    .select('points_balance')
-    .eq('id', memberId)
-    .maybeSingle()
-  if (!member) return
-
-  await admin.from('loyalty_transactions').insert({
-    member_id: memberId,
-    points: POINTS.SIGNUP_BONUS,
-    type: 'signup_bonus',
-    description: 'Welcome to the Pack! Signup bonus.',
+  const { error } = await admin.rpc('loyalty_grant_signup_bonus', {
+    p_member_id: memberId,
+    p_points: POINTS.SIGNUP_BONUS,
+    p_description: 'Welcome to the Pack! Signup bonus.',
   })
-
-  await admin
-    .from('loyalty_members')
-    .update({ points_balance: ((member.points_balance as number) ?? 0) + POINTS.SIGNUP_BONUS })
-    .eq('id', memberId)
+  if (error) throw new Error(`loyalty_grant_signup_bonus failed: ${error.message}`)
 }
 
 export interface EnsureMemberResult {

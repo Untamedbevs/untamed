@@ -35,7 +35,8 @@ import {
   formatFilterValue,
 } from '@/lib/crm/blast-constants'
 import { cn } from '@/lib/utils'
-import { MERGE_TAGS, applyVariables, renderEmailHtml } from '@/lib/email/render'
+import { MERGE_TAGS, SAMPLE_LINK_VARS, applyVariables, renderEmailHtml, type EmailLayout } from '@/lib/email/render'
+import { EmailLayoutPicker, previewFrameBg } from '@/components/admin/EmailLayoutPicker'
 
 interface FilterRow {
   id: string
@@ -50,6 +51,7 @@ interface TemplateRow {
   subject: string
   body: string
   preheader: string | null
+  layout: EmailLayout
   sender_id: string | null
   default_audience: Audience | null
 }
@@ -67,6 +69,7 @@ const AUDIENCE_OPTIONS: { value: Audience; label: string; description: string }[
   { value: 'referrers', label: 'Referrers', description: 'Active referral participants' },
   { value: 'distributors', label: 'Distributor Leads', description: 'B2B retail / distribution prospects' },
   { value: 'all', label: 'All Contacts', description: 'Loyalty + referrers + distributors (deduped)' },
+  { value: 'staff', label: 'Team (internal test)', description: 'Active staff only: send to yourself or the founders first' },
 ]
 
 function insertAtCursor(
@@ -100,7 +103,7 @@ function rowsToFilters(audience: Audience, rows: FilterRow[]): BlastFilters {
     if (isNumberField(f)) {
       const n = parseInt(row.value, 10)
       if (!Number.isNaN(n)) target[f] = n
-    } else if (f === 'has_receipts' || f === 'referrer_active' || f === 'has_referrer') {
+    } else if (f === 'has_receipts' || f === 'referrer_active' || f === 'has_referrer' || f === 'only_me') {
       target[f] = row.value === 'yes'
     } else {
       target[f] = row.value
@@ -141,6 +144,7 @@ export default function BlastPage() {
   const [subject, setSubject] = useState('')
   const [textBody, setTextBody] = useState('')
   const [preheader, setPreheader] = useState('')
+  const [layout, setLayout] = useState<EmailLayout>('plain')
   const [templateId, setTemplateId] = useState<string | null>(null)
   const [templates, setTemplates] = useState<TemplateRow[]>([])
   const [segments, setSegments] = useState<SegmentRow[]>([])
@@ -164,6 +168,7 @@ export default function BlastPage() {
     campaignId: string
     recipientCount: number
     suppressedCount: number
+    noReferralCodeCount?: number
     scheduledFor?: string | null
   } | null>(null)
   const [confirmOpen, setConfirmOpen] = useState(false)
@@ -204,8 +209,7 @@ export default function BlastPage() {
       first_name: sample?.firstName || 'Alex',
       name: sample?.name || 'Alex Rivera',
       email: sample?.email || 'alex@example.com',
-      portal_login_url: 'https://untamedbevs.com/portal/login',
-      community_url: 'https://untamedbevs.com/community',
+      ...SAMPLE_LINK_VARS,
     }
     return {
       subject: applyVariables(subject, vars),
@@ -214,15 +218,17 @@ export default function BlastPage() {
         preheader: preheader ? applyVariables(preheader, vars) : undefined,
         unsubscribeUrl: '#',
         recipientEmail: vars.email,
+        layout,
       }),
     }
-  }, [subject, textBody, preheader, previewRecipients])
+  }, [subject, textBody, preheader, layout, previewRecipients])
 
   function applyTemplate(t: TemplateRow) {
     setTemplateId(t.id)
     setSubject(t.subject)
     setTextBody(t.body)
     setPreheader(t.preheader || '')
+    setLayout(t.layout || 'branded')
     if (t.default_audience) setAudience(t.default_audience)
     if (t.sender_id && CRM_SENDERS.some((x) => x.id === t.sender_id)) {
       setSenderId(t.sender_id as CrmSenderId)
@@ -259,6 +265,7 @@ export default function BlastPage() {
           subject,
           body: textBody,
           preheader,
+          layout,
           kind: 'campaign',
           sender_id: senderId,
           default_audience: audience,
@@ -278,7 +285,7 @@ export default function BlastPage() {
       const res = await fetch('/api/admin/crm/blast/test', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subject, textBody, preheader, senderId, to: testTo || undefined }),
+        body: JSON.stringify({ subject, textBody, preheader, layout, senderId, to: testTo || undefined }),
       })
       const data = await res.json()
       if (!res.ok) setTestState({ status: 'error', msg: data.error || 'Test failed' })
@@ -368,6 +375,7 @@ export default function BlastPage() {
           filters,
           subject,
           textBody,
+          layout,
           senderId,
           templateId,
           segmentId: activeSegment?.id || null,
@@ -567,6 +575,11 @@ export default function BlastPage() {
               </div>
 
               <div>
+                <label className="block text-xs font-medium text-[#A0A0A0] mb-1.5">Look</label>
+                <EmailLayoutPicker value={layout} onChange={setLayout} />
+              </div>
+
+              <div>
                 <label className="block text-xs font-medium text-[#A0A0A0] mb-1.5">
                   Preview text <span className="text-[#666]">(optional, shown after the subject in the inbox)</span>
                 </label>
@@ -615,7 +628,7 @@ export default function BlastPage() {
               title="Email preview"
               srcDoc={previewHtml.html}
               sandbox=""
-              className="w-full h-[480px] rounded-lg border border-[#2A2A2A] bg-[#0A0A0A]"
+              className={cn('w-full h-[480px] rounded-lg border border-[#2A2A2A]', previewFrameBg(layout))}
             />
             <div className="flex flex-wrap items-center gap-2 mt-3">
               <input
@@ -870,7 +883,7 @@ function FilterRowEditor({
 
 function MergeTagBar({ onInsert }: { onInsert: (tag: string) => void }) {
   return (
-    <div className="flex items-center gap-1 mt-1.5">
+    <div className="flex flex-wrap items-center gap-1 mt-1.5">
       <Tag className="w-3 h-3 text-[#666]" />
       {MERGE_TAGS.map((m) => (
         <button
@@ -1035,6 +1048,7 @@ function SuccessView({
     campaignId: string
     recipientCount: number
     suppressedCount: number
+    noReferralCodeCount?: number
     scheduledFor?: string | null
   }
   onNewBlast: () => void
@@ -1056,6 +1070,13 @@ function SuccessView({
               {' '}
               {sendResult.suppressedCount.toLocaleString()} suppressed recipients
               skipped.
+            </>
+          )}
+          {(sendResult.noReferralCodeCount ?? 0) > 0 && (
+            <>
+              {' '}
+              {sendResult.noReferralCodeCount!.toLocaleString()} recipients without a referral
+              code skipped.
             </>
           )}{' '}
           {sendResult.scheduledFor

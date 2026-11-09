@@ -134,8 +134,8 @@ export async function POST(request: NextRequest) {
         eventName: 'Lead',
         eventId,
         eventSourceUrl: data.landing_page
-          ? `https://untamedbevs.com${data.landing_page.startsWith('/') ? data.landing_page : `/${data.landing_page}`}`
-          : 'https://untamedbevs.com/retail',
+          ? `https://untamedbeverages.com${data.landing_page.startsWith('/') ? data.landing_page : `/${data.landing_page}`}`
+          : 'https://untamedbeverages.com/retail',
         userData: {
           email: data.email,
           phone: data.phone,

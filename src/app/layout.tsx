@@ -55,7 +55,7 @@ const helveticaCondensed = localFont({
   display: 'swap',
 })
 
-const siteUrl = 'https://untamedbevs.com'
+const siteUrl = 'https://untamedbeverages.com'
 const ogImage = {
   url: '/images/logo-mark.png',
   width: 1025,
