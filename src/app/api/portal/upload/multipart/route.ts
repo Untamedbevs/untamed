@@ -4,10 +4,20 @@ import {
   CompleteMultipartUploadCommand,
   UploadPartCommand,
   AbortMultipartUploadCommand,
+  ListPartsCommand,
 } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { resolveMember } from '@/lib/auth/resolve-member'
 import { buildUserUploadKey, getS3Client, s3PublicUrl } from '@/lib/storage/s3'
+import {
+  MULTIPART_MAX_PARTS,
+  UPLOAD_MAX_BYTES,
+  allowedPartSize,
+  allowedUploadSize,
+  describeLimit,
+  folderOfUserKey,
+} from '@/lib/storage/upload-limits'
+import { RATE_LIMITS, takeRateLimit } from '@/lib/security/rate-limit'
 
 export const dynamic = 'force-dynamic'
 
@@ -96,10 +106,22 @@ export async function POST(request: NextRequest) {
     const action = body.action as string
 
     if (action === 'init') {
-      const { filename, contentType, folder } = body
+      const { filename, contentType, folder, size } = body
       const targetFolder = folder || 'ugc/uploads'
       if (!ALLOWED_FOLDERS.has(targetFolder)) {
         return NextResponse.json({ error: 'Invalid folder' }, { status: 400 })
+      }
+      if (allowedUploadSize(targetFolder, size) === null) {
+        return NextResponse.json(
+          { error: `Files here can be up to ${describeLimit(targetFolder)}.` },
+          { status: 413 }
+        )
+      }
+      if (!(await takeRateLimit(RATE_LIMITS.largeUploadPerMember, member.authUserId))) {
+        return NextResponse.json(
+          { error: 'Too many large uploads started. Please try again in an hour.' },
+          { status: 429 }
+        )
       }
 
       const checked = checkUploadType(filename, contentType)
@@ -131,12 +153,19 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === 'part-url') {
-      const { uploadId, s3Key, partNumber } = body
+      const { uploadId, s3Key, partNumber, size } = body
       if (!uploadId || !s3Key || !partNumber) {
         return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
       }
       if (!s3Key.startsWith(`user-uploads/${member.authUserId}/`)) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      }
+      if (!Number.isInteger(partNumber) || partNumber < 1 || partNumber > MULTIPART_MAX_PARTS) {
+        return NextResponse.json({ error: 'Invalid part number' }, { status: 400 })
+      }
+      const partLength = allowedPartSize(size)
+      if (partLength === null) {
+        return NextResponse.json({ error: 'Invalid part size' }, { status: 400 })
       }
 
       const cmd = new UploadPartCommand({
@@ -144,10 +173,13 @@ export async function POST(request: NextRequest) {
         Key: s3Key,
         UploadId: uploadId,
         PartNumber: partNumber,
+        ContentLength: partLength,
       })
 
+      // Content-Length is signed, so each part must be exactly the declared size.
       const presignedUrl = await getSignedUrl(getS3Client(), cmd, {
         expiresIn: 3600,
+        signableHeaders: new Set(['content-length']),
       })
 
       return NextResponse.json({ presignedUrl })
@@ -164,6 +196,37 @@ export async function POST(request: NextRequest) {
       }
       if (!s3Key.startsWith(`user-uploads/${member.authUserId}/`)) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      }
+
+      // Add up what S3 actually received before the file is assembled; over the
+      // folder's limit, the upload is cancelled and its parts deleted.
+      const folder = folderOfUserKey(s3Key, member.authUserId)
+      const max = folder ? UPLOAD_MAX_BYTES[folder] : undefined
+      if (!folder || !max) {
+        return NextResponse.json({ error: 'Invalid upload' }, { status: 400 })
+      }
+      let total = 0
+      let marker: string | undefined
+      do {
+        const listed = await getS3Client().send(
+          new ListPartsCommand({
+            Bucket: process.env.AWS_S3_BUCKET!,
+            Key: s3Key,
+            UploadId: uploadId,
+            PartNumberMarker: marker,
+          })
+        )
+        for (const part of listed.Parts ?? []) total += part.Size ?? 0
+        marker = listed.IsTruncated ? listed.NextPartNumberMarker : undefined
+      } while (marker && total <= max)
+      if (total > max) {
+        await getS3Client()
+          .send(new AbortMultipartUploadCommand({ Bucket: process.env.AWS_S3_BUCKET!, Key: s3Key, UploadId: uploadId }))
+          .catch((err) => console.error('[portal/upload/multipart] abort after size check failed:', err))
+        return NextResponse.json(
+          { error: `Files here can be up to ${describeLimit(folder)}.` },
+          { status: 413 }
+        )
       }
 
       const cmd = new CompleteMultipartUploadCommand({

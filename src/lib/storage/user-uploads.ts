@@ -213,6 +213,7 @@ async function uploadViaPresignedUrl(
       filename: file.name,
       contentType: file.type || 'application/octet-stream',
       folder: UGC_FOLDERS[folder],
+      size: file.size,
     }),
   })
   if (!presignRes.ok) {
@@ -255,6 +256,7 @@ async function uploadViaMultipart(
       filename: file.name,
       contentType: file.type || 'application/octet-stream',
       folder: UGC_FOLDERS[folder],
+      size: file.size,
     }),
   })
   if (!initRes.ok) {
@@ -281,6 +283,7 @@ async function uploadViaMultipart(
         uploadId,
         s3Key,
         partNumber,
+        size: chunk.size,
       }),
     })
     if (!partUrlRes.ok) {

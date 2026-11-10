@@ -3,6 +3,7 @@ import { PutObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { resolveMember } from '@/lib/auth/resolve-member'
 import { buildUserUploadKey, getS3Client, s3PublicUrl } from '@/lib/storage/s3'
+import { allowedUploadSize, describeLimit } from '@/lib/storage/upload-limits'
 
 export const dynamic = 'force-dynamic'
 
@@ -83,7 +84,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { filename, contentType, folder } = await request.json()
+    const { filename, contentType, folder, size } = await request.json()
 
     if (!filename || !contentType) {
       return NextResponse.json(
@@ -105,22 +106,32 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const contentLength = allowedUploadSize(targetFolder, size)
+    if (contentLength === null) {
+      return NextResponse.json(
+        { error: `Files here can be up to ${describeLimit(targetFolder)}.` },
+        { status: 413 }
+      )
+    }
+
     const s3Key = buildUserUploadKey(member.authUserId, targetFolder, checked.filename)
 
     const command = new PutObjectCommand({
       Bucket: process.env.AWS_S3_BUCKET!,
       Key: s3Key,
       ContentType: checked.contentType,
+      ContentLength: contentLength,
       CacheControl: 'public, max-age=31536000, immutable',
     })
 
-    // Sign Content-Type so the browser's PUT must send the checked type; by
-    // default the presigner signs only `host` and S3 would store whatever
-    // Content-Type the PUT carries. The portal clients send the same value on
-    // the PUT that they send here.
+    // Sign Content-Type and Content-Length so the browser's PUT must send the
+    // checked type and exactly the declared size; by default the presigner
+    // signs only `host`, and S3 would store whatever the PUT carries. Browsers
+    // set Content-Length from the file itself, and the portal clients send the
+    // same type and size here that they PUT.
     const presignedUrl = await getSignedUrl(getS3Client(), command, {
       expiresIn: 600,
-      signableHeaders: new Set(['content-type']),
+      signableHeaders: new Set(['content-type', 'content-length']),
     })
 
     return NextResponse.json({

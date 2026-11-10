@@ -203,7 +203,7 @@ function HuntSheet({
       const res = await fetch('/api/portal/upload/presigned', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filename: file.name, contentType: file.type, folder: 'promotions/proofs' }),
+        body: JSON.stringify({ filename: file.name, contentType: file.type, folder: 'promotions/proofs', size: file.size }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.message || data.error || 'Upload failed')
