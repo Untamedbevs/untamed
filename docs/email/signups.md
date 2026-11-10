@@ -135,7 +135,7 @@ secret `1x0000000000000000000000000000000AA`) always pass, for local testing.
   `EMAIL_TRANSPORT=smtp`), from `loyalty@`, logged in `email_messages` with
   `template_slug` `signup-confirm` or `preferences-link`.
 - `CRON_SECRET` must be set: it signs the unsubscribe and manage links in these emails.
-- `NEXT_PUBLIC_SITE_URL` must be the public site, or confirmation links point elsewhere.
+- `NEXT_PUBLIC_SITE_URL` is optional. Unset, links use https://untamedbeverages.com; if it is set, it must be the public site.
 - Rate limits are constants at the top of `src/lib/email/signup.ts`. 20 per IP per hour
   can be too low for an in-person event on shared Wi-Fi; raise it for the day if needed.
 

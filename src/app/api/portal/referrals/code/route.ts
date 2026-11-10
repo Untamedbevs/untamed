@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getSiteOrigin } from '@/lib/email/config'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireMember } from '@/lib/auth/resolve-member'
 import { buildShareLinks, isValidReferralCode } from '@/lib/referral/helpers'
@@ -98,7 +99,7 @@ export async function PATCH(request: NextRequest) {
     )
   }
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || request.nextUrl.origin
+  const siteUrl = getSiteOrigin()
   const { consumerLink, distributorLink } = buildShareLinks(
     siteUrl,
     normalizedCode

@@ -28,9 +28,10 @@ export class MagicLinkError extends Error {
 /**
  * The origin the emailed sign-in link points at. The link carries a live
  * token_hash, so it uses the configured site URL rather than the request's
- * Host header. When NEXT_PUBLIC_SITE_URL is unset or not a valid http(s) URL:
- *   - in a deployed environment (Vercel sets VERCEL_ENV) the link uses the
- *     canonical site, never the request origin; this is logged;
+ * Host header. NEXT_PUBLIC_SITE_URL is optional:
+ *   - in a deployed environment (Vercel sets VERCEL_ENV) an unset value means
+ *     the canonical site, never the request origin; a set but invalid value
+ *     is logged and also falls back to the canonical site;
  *   - in local development (no VERCEL_ENV) it uses the request origin.
  */
 function linkOrigin(requestOrigin: string): string {
@@ -38,15 +39,9 @@ function linkOrigin(requestOrigin: string): string {
   if (configured) {
     const site = parseHttpOrigin(configured)
     if (site) return site
+    console.error('[magic-link] NEXT_PUBLIC_SITE_URL is not an http(s) URL; ignoring it')
   }
-  const problem = configured ? 'is not an http(s) URL' : 'is not set'
-  if (process.env.VERCEL_ENV) {
-    console.error(`[magic-link] NEXT_PUBLIC_SITE_URL ${problem}; using ${CANONICAL_SITE_ORIGIN}`)
-    return CANONICAL_SITE_ORIGIN
-  }
-  if (configured) {
-    console.error(`[magic-link] NEXT_PUBLIC_SITE_URL ${problem}; using the request origin (local)`)
-  }
+  if (process.env.VERCEL_ENV) return CANONICAL_SITE_ORIGIN
   const request = parseHttpOrigin(requestOrigin)
   if (!request) {
     throw new MagicLinkError('Could not send the sign-in email.', 400)

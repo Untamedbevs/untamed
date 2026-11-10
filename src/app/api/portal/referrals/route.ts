@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getSiteOrigin } from '@/lib/email/config'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireMember } from '@/lib/auth/resolve-member'
 import {
@@ -51,7 +52,7 @@ export async function GET(request: NextRequest) {
     .order('sent_at', { ascending: false })
     .limit(50)
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || request.nextUrl.origin
+  const siteUrl = getSiteOrigin()
   const { consumerLink, distributorLink } = buildShareLinks(
     siteUrl,
     participant.referral_code

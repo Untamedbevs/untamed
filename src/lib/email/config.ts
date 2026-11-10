@@ -146,9 +146,8 @@ export function getMarketingReadiness(): MarketingReadiness {
   if (!clean(process.env.CRON_SECRET)) {
     issues.push('CRON_SECRET is not set, so unsubscribe links cannot be signed.')
   }
-  if (!clean(process.env.NEXT_PUBLIC_SITE_URL)) {
-    warnings.push(`NEXT_PUBLIC_SITE_URL is not set; links will use ${DEFAULT_SITE_ORIGIN}.`)
-  } else if (/localhost|127\.0\.0\.1/.test(clean(process.env.NEXT_PUBLIC_SITE_URL)!)) {
+  // NEXT_PUBLIC_SITE_URL is optional: unset means the live site (DEFAULT_SITE_ORIGIN).
+  if (/localhost|127\.0\.0\.1/.test(clean(process.env.NEXT_PUBLIC_SITE_URL) || '')) {
     warnings.push('NEXT_PUBLIC_SITE_URL points at localhost, so unsubscribe links will not work for recipients.')
   }
 

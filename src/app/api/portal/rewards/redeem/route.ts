@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getSiteOrigin } from '@/lib/email/config'
 import { resolveMember } from '@/lib/auth/resolve-member'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { REWARDS } from '@/lib/loyalty/constants'
@@ -145,7 +146,7 @@ export async function POST(request: NextRequest) {
           <strong>${escapeHtml(reward.name)}</strong> for ${escapeHtml(String(reward.pointsCost))} points.</p>
           <p>Ships to state: ${escapeHtml(String(freshMember.residence_state))}. New balance: ${escapeHtml(String(newBalance))} points.</p>
           <p>Redemption ID: ${escapeHtml(String(redemption.id))}</p>
-          <p>Manage in <a href="${process.env.NEXT_PUBLIC_SITE_URL || ''}/admin/loyalty">/admin/loyalty</a>.</p>
+          <p>Manage in <a href="${getSiteOrigin()}/admin/loyalty">/admin/loyalty</a>.</p>
         `,
         text: `New redemption: ${memberName} (${freshMember.email}) redeemed ${reward.name} for ${reward.pointsCost} points. Ships to state: ${freshMember.residence_state}. New balance: ${newBalance}. Redemption ID: ${redemption.id}.`,
         loyaltyMemberId: freshMember.id,
