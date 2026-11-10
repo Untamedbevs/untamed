@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse, after } from 'next/server'
+import { RATE_LIMITS, clientIp, takeRateLimits } from '@/lib/security/rate-limit'
 import {
   MagicLinkError,
   sendPortalMagicLink,
@@ -27,6 +28,15 @@ export async function POST(request: NextRequest) {
   const email = typeof body?.email === 'string' ? body.email : ''
   const returnTo = typeof body?.returnTo === 'string' ? body.returnTo : undefined
   const metadata = readMetadata(body?.metadata)
+
+  // Each address already has its own hourly cap; this caps how many sign-in emails one
+  // visitor can send across different addresses.
+  if (!(await takeRateLimits([[RATE_LIMITS.signInPerIp, clientIp(request.headers)]]))) {
+    return NextResponse.json(
+      { error: 'Too many sign-in emails requested from here. Please try again in an hour.' },
+      { status: 429 }
+    )
+  }
 
   try {
     await sendPortalMagicLink({

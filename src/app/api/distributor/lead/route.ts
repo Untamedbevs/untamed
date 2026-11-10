@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse, after } from 'next/server'
+import { RATE_LIMITS, clientIp, takeRateLimits } from '@/lib/security/rate-limit'
 import { randomUUID } from 'crypto'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resolveReferralCode, generateUniqueCode } from '@/lib/referral/helpers'
@@ -88,6 +89,20 @@ export async function POST(request: NextRequest) {
     }
 
     const data = parsed.data
+
+    // Each submission writes records, sends a Meta event and an email, so cap how often one
+    // visitor or one address can submit.
+    const allowed = await takeRateLimits([
+      [RATE_LIMITS.leadPerIp, clientIp(request.headers)],
+      [RATE_LIMITS.leadPerEmail, data.email],
+    ])
+    if (!allowed) {
+      return NextResponse.json(
+        { error: 'Too many submissions from here. Please try again in an hour.' },
+        { status: 429 }
+      )
+    }
+
     const supabase = createAdminClient()
     const eventId = data.event_id || randomUUID()
     const attribution = await resolveLeadAttribution(supabase, {

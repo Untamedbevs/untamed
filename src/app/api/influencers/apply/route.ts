@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { RATE_LIMITS, clientIp, takeRateLimits } from '@/lib/security/rate-limit'
 import { randomUUID } from 'crypto'
 import { z } from 'zod'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -103,6 +104,17 @@ export async function POST(request: NextRequest) {
     }
 
     const data = parsed.data
+
+    const allowed = await takeRateLimits([
+      [RATE_LIMITS.influencerPerIp, clientIp(request.headers)],
+      [RATE_LIMITS.influencerPerEmail, data.email],
+    ])
+    if (!allowed) {
+      return NextResponse.json(
+        { error: 'Too many applications from here. Please try again later.' },
+        { status: 429 }
+      )
+    }
     const profileUrl = withHttps(data.profileUrl)
     if (!isHttpUrl(profileUrl)) {
       return NextResponse.json({ error: 'Profile URL must be a valid link' }, { status: 400 })
