@@ -229,7 +229,7 @@ export function PickYourFour({ siteNav = false }: { siteNav?: boolean }) {
   )
 
   return (
-    <div className={`flex min-h-screen flex-col bg-untamed-black ${showBar ? 'pb-[7.5rem]' : ''}`}>
+    <div className={`flex min-h-screen flex-col overflow-x-clip bg-untamed-black ${showBar ? 'pb-[7.5rem]' : ''}`}>
       {siteNav ? (
         <Navigation />
       ) : (
@@ -446,9 +446,10 @@ export function PickYourFour({ siteNav = false }: { siteNav?: boolean }) {
               >
                 {capOn && !reduceMotion && (
                   <motion.span
-                    className="pointer-events-none absolute inset-0 rounded-lg border-2 border-[#FFD700]"
-                    initial={{ opacity: 0.9, scale: 1 }}
-                    animate={{ opacity: 0, scale: 1.5 }}
+                    className="pointer-events-none absolute inset-0 rounded-lg"
+                    // A spreading shadow, not a scaled box: shadows never widen the page.
+                    initial={{ boxShadow: '0 0 0 0px rgba(255,215,0,0.9)' }}
+                    animate={{ boxShadow: '0 0 0 14px rgba(255,215,0,0)' }}
                     transition={{ duration: 0.9, ease: 'easeOut' }}
                     aria-hidden="true"
                   />
