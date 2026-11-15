@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { Check, Lock, Minus, Plus, Truck, X } from 'lucide-react'
+import { Check, Info, Lock, Minus, Plus, Truck, X } from 'lucide-react'
 import { Footer } from '@/components/Footer'
 import { Navigation } from '@/components/Navigation'
 import { NavCartButton } from '@/components/NavCartButton'
@@ -372,9 +372,11 @@ export function PickYourFour({ siteNav = false }: { siteNav?: boolean }) {
                     <button
                       type="button"
                       onClick={() => setAboutSlug(drink.slug)}
-                      className="mt-1 h-8 px-2 text-[11px] text-untamed-white-muted underline decoration-dotted underline-offset-4 hover:text-white sm:text-xs"
+                      className="mt-2 flex h-8 w-full items-center justify-center gap-1 rounded-full border bg-white/[0.04] font-condensed text-xs font-bold uppercase tracking-wider transition hover:bg-white/10 sm:h-9 sm:w-auto sm:px-4 sm:text-sm"
+                      style={{ borderColor: `${drink.colorLight}80`, color: drink.colorLight }}
                       aria-label={`About ${drink.name}`}
                     >
+                      <Info className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                       About
                     </button>
                   </div>
@@ -530,11 +532,12 @@ export function PickYourFour({ siteNav = false }: { siteNav?: boolean }) {
             <h2 id="mixes-heading" className="font-condensed text-3xl font-bold uppercase text-white sm:text-4xl">
               Or grab a ready-made four.
             </h2>
-            <p className="mt-1 text-sm text-untamed-white-muted">
-              One tap puts all four boxes in your cart. ${packPrice}
-              {promo ? ', shipped free.' : '.'}
+            <p className="mt-1 max-w-2xl text-sm text-untamed-white-muted">
+              Each one is {PACK_SIZE} boxes, already picked for you. Every box is a {CANS_PER_BOX}-pack of cans, so
+              you get {PACK_SIZE * CANS_PER_BOX} cans for ${packPrice}
+              {promo ? ', shipped free' : ''}. One tap puts all {PACK_SIZE} boxes in your cart.
             </p>
-            <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 lg:gap-5">
+            <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-5">
               {MIXED_PACKS.map((pack, index) => {
                 const packDrinks = pack.boxes.map((slug) => getDrinkBySlug(slug)).filter((d): d is Drink => !!d)
                 const first = packDrinks[0]
@@ -542,52 +545,112 @@ export function PickYourFour({ siteNav = false }: { siteNav?: boolean }) {
                 const featured = index === 0
                 const busy = addingKey === pack.slug
                 const added = addedPack === pack.slug
+                // One line per flavor: which box, and how many of it.
+                const contents: { drink: Drink; qty: number }[] = []
+                for (const d of packDrinks) {
+                  const line = contents.find((c) => c.drink.slug === d.slug)
+                  if (line) line.qty += 1
+                  else contents.push({ drink: d, qty: 1 })
+                }
+                const packMartinis = packDrinks.reduce((sum, d) => sum + martinisPerBox(d), 0)
                 return (
-                  <button
+                  <div
                     key={pack.slug}
-                    type="button"
-                    onClick={() => (added ? void openSideCart() : void addPack(pack))}
-                    disabled={!!addingKey}
-                    className={`group relative flex flex-col overflow-hidden rounded-2xl border border-white/10 text-left transition active:scale-[0.98] ${
-                      featured ? 'col-span-2 sm:col-span-3 lg:col-span-2' : ''
+                    className={`group relative flex flex-col overflow-hidden rounded-2xl border border-white/10 ${
+                      featured ? 'sm:col-span-2' : ''
                     }`}
                     style={{
-                      background: `radial-gradient(120% 90% at 0% 0%, ${first.colorLight}55, transparent 60%), radial-gradient(120% 90% at 100% 0%, ${last.colorLight}55, transparent 60%), #141414`,
+                      background: `radial-gradient(120% 60% at 0% 0%, ${first.colorLight}55, transparent 60%), radial-gradient(120% 60% at 100% 0%, ${last.colorLight}55, transparent 60%), #141414`,
                     }}
-                    aria-label={`Add ${pack.name} to cart: ${pack.pitch}`}
                   >
-                    <span
-                      className={`flex items-end justify-center px-3 pt-4 ${featured ? '-space-x-1 sm:-space-x-2' : '-space-x-2'}`}
-                      aria-hidden="true"
-                    >
+                    <div className="flex items-end justify-center -space-x-2 px-3 pt-4" aria-hidden="true">
                       {packDrinks.map((d, i) => (
                         <span
                           key={i}
-                          className={`relative block aspect-[2/5] transition-transform duration-300 group-hover:-translate-y-1 ${
-                            featured ? 'w-[15%] max-w-[4.5rem]' : 'w-[24%]'
-                          }`}
+                          className="relative block aspect-[2/5] w-[13%] max-w-[3.75rem] transition-transform duration-300 group-hover:-translate-y-1"
                           style={{ rotate: `${(i - (packDrinks.length - 1) / 2) * 5}deg`, marginBottom: `${-Math.abs(i - 1.5) * 3}px` }}
                         >
                           <Image
                             src={siteAssetAbsoluteUrl(d.canImage)}
                             alt=""
                             fill
-                            sizes="80px"
+                            sizes="64px"
                             className="object-contain drop-shadow-[0_8px_10px_rgba(0,0,0,0.7)]"
                             unoptimized
                           />
                         </span>
                       ))}
-                    </span>
-                    <span className="flex flex-1 flex-col px-3 pb-3 pt-3">
-                      <span className={`font-condensed font-bold uppercase leading-none text-white ${featured ? 'text-2xl' : 'text-lg'}`}>
-                        {pack.name}
-                      </span>
-                      <span className="mt-1 flex-1 text-xs leading-snug text-untamed-white-muted">{pack.pitch}</span>
-                      <span
-                        className={`mt-3 flex h-10 items-center justify-center gap-1.5 rounded-full font-condensed text-sm font-bold uppercase tracking-wider ${
+                    </div>
+                    <div className="flex flex-1 flex-col px-4 pb-4 pt-3">
+                      <h3 className="font-condensed text-2xl font-bold uppercase leading-none text-white">{pack.name}</h3>
+                      <p className="mt-1 text-sm leading-snug text-untamed-white-muted">{pack.pitch}</p>
+
+                      <p className="mt-4 font-condensed text-xs font-bold uppercase tracking-widest text-white/50">
+                        What&rsquo;s in the pack
+                      </p>
+                      <ul className={`mt-2 grid flex-1 content-start gap-2 ${featured ? 'sm:grid-cols-2' : ''}`}>
+                        {contents.map(({ drink: d, qty }) => (
+                          <li
+                            key={d.slug}
+                            className="flex items-center gap-3 rounded-xl border bg-black/40 p-2"
+                            style={{ borderColor: `${d.colorLight}55` }}
+                          >
+                            <span
+                              className="relative block h-16 w-20 shrink-0 rounded-lg"
+                              style={{ backgroundColor: `${d.colorLight}26` }}
+                            >
+                              <Image
+                                src={siteAssetAbsoluteUrl(d.boxImageFront)}
+                                alt={`${d.name} box`}
+                                fill
+                                sizes="80px"
+                                className="object-contain p-1 drop-shadow-[0_4px_6px_rgba(0,0,0,0.6)]"
+                                unoptimized
+                              />
+                              <span
+                                className="absolute -right-1.5 -top-1.5 flex h-6 min-w-6 items-center justify-center rounded-full px-1 font-condensed text-sm font-bold text-untamed-black"
+                                style={{ backgroundColor: d.colorLight }}
+                                aria-hidden="true"
+                              >
+                                &times;{qty}
+                              </span>
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="block font-condensed text-base font-bold uppercase leading-tight text-white">
+                                {qty} {qty === 1 ? 'box' : 'boxes'} of <span style={{ color: d.colorLight }}>{d.name}</span>
+                              </span>
+                              <span className="block text-xs leading-snug text-untamed-white-muted">
+                                {shortFlavor(d)} &bull; {qty * CANS_PER_BOX} cans
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setAboutSlug(d.slug)}
+                                className="mt-1.5 flex h-7 items-center gap-1 rounded-full border bg-white/[0.04] px-2.5 font-condensed text-xs font-bold uppercase tracking-wider transition hover:bg-white/10"
+                                style={{ borderColor: `${d.colorLight}80`, color: d.colorLight }}
+                                aria-label={`About ${d.name}`}
+                              >
+                                <Info className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                                About this drink
+                              </button>
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+
+                      <p className="mt-3 text-xs text-untamed-white-muted">
+                        <span className="font-semibold text-untamed-white">
+                          {packDrinks.length} boxes &bull; {packDrinks.length * CANS_PER_BOX} cans &bull; {packMartinis} martinis
+                        </span>
+                        {promo ? ' • Ships free' : ''}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => (added ? void openSideCart() : void addPack(pack))}
+                        disabled={!!addingKey}
+                        className={`mt-3 flex h-11 items-center justify-center gap-1.5 rounded-full font-condensed text-sm font-bold uppercase tracking-wider transition active:scale-[0.98] ${
                           added ? 'border border-[#FFD700] text-[#FFD700]' : 'bg-gradient-to-r from-[#FFD700] to-[#FFA500] text-untamed-black'
                         }`}
+                        aria-label={added ? `${pack.name} is in your cart. View cart` : `Add ${pack.name} to cart`}
                       >
                         {added ? (
                           <>
@@ -599,12 +662,12 @@ export function PickYourFour({ siteNav = false }: { siteNav?: boolean }) {
                         ) : (
                           <>
                             <Plus className="h-4 w-4" aria-hidden="true" />
-                            Add &bull; ${packPrice}
+                            Add all {packDrinks.length} boxes &bull; ${packPrice}
                           </>
                         )}
-                      </span>
-                    </span>
-                  </button>
+                      </button>
+                    </div>
+                  </div>
                 )
               })}
             </div>
