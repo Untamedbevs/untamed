@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { Check, Minus, Plus, Truck, X } from 'lucide-react'
+import { Check, Lock, Minus, Plus, Truck, X } from 'lucide-react'
 import { Footer } from '@/components/Footer'
 import { Navigation } from '@/components/Navigation'
 import { NavCartButton } from '@/components/NavCartButton'
@@ -115,6 +115,9 @@ export function PickYourFour({ siteNav = false }: { siteNav?: boolean }) {
   const full = count >= MAX_BOXES
   const freeShipping = promo && count >= HOLIDAY_PROMO.freeShippingBoxes
   const showAdded = justAdded > 0 && count === 0
+  /** The cap after the slots: gold once free shipping (or, off-promo, the minimum order) is reached. */
+  const capOn = promo ? freeShipping : canOrder
+  const capRemaining = promo ? Math.max(0, HOLIDAY_PROMO.freeShippingBoxes - count) : Math.max(0, MIN_BOXES - count)
   const box = drinks[0]
 
   function add(slug: string) {
@@ -384,10 +387,14 @@ export function PickYourFour({ siteNav = false }: { siteNav?: boolean }) {
             <div className="lg:flex lg:flex-col lg:justify-center lg:border-l lg:border-white/10 lg:bg-black/30 lg:p-8">
             <p className="hidden font-condensed text-2xl font-bold uppercase text-white lg:block">Your four</p>
             {/* Live box math: 1 2 3 4 = free shipping */}
+            <div className="mt-6 flex gap-1.5 lg:mt-4 lg:flex-col lg:gap-2.5">
             <div
-              className="mt-6 grid grid-cols-[repeat(4,minmax(0,1fr))_auto] gap-1.5 lg:mt-4 lg:grid-cols-2 lg:gap-2.5"
+              className={`grid min-w-0 flex-1 grid-cols-4 gap-1.5 lg:gap-2.5 ${
+                count <= PACK_SIZE ? 'lg:grid-cols-2' : count <= 6 ? 'lg:grid-cols-3' : 'lg:grid-cols-4'
+              }`}
             >
-              {Array.from({ length: PACK_SIZE }, (_, i) => {
+              {/* One slot per box: four to fill, then one more for every box past the four */}
+              {Array.from({ length: Math.max(PACK_SIZE, count) }, (_, i) => {
                 const drink = boxes[i] ? getDrinkBySlug(boxes[i]) : undefined
                 if (!drink) {
                   return (
@@ -423,19 +430,47 @@ export function PickYourFour({ siteNav = false }: { siteNav?: boolean }) {
                   </motion.button>
                 )
               })}
+            </div>
+              {/* Locked and grey until the fourth box, then it pops gold */}
               <motion.div
-                key={freeShipping ? 'free' : 'locked'}
-                initial={reduceMotion || !freeShipping ? false : { scale: 0.7 }}
-                animate={{ scale: 1 }}
-                transition={{ type: 'spring', bounce: 0.6 }}
-                className={`flex h-16 items-center gap-1.5 rounded-lg px-3 font-condensed text-sm font-bold uppercase tracking-wider sm:h-auto sm:px-5 sm:text-lg lg:col-span-2 lg:h-12 lg:justify-center ${
-                  freeShipping
-                    ? 'bg-[#FFD700] text-untamed-black shadow-[0_0_24px_rgba(255,215,0,0.45)]'
-                    : 'border border-dashed border-[#FFD700]/40 text-[#FFD700]/70'
+                key={capOn ? 'on' : 'locked'}
+                initial={reduceMotion || !capOn ? false : { scale: 0.4, rotate: -8 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: 'spring', stiffness: 380, damping: 11 }}
+                className={`relative flex min-h-16 w-[4.25rem] shrink-0 flex-col items-center justify-center gap-0.5 rounded-lg px-1.5 text-center font-condensed font-bold uppercase leading-none tracking-wider sm:w-24 lg:min-h-0 lg:h-14 lg:w-auto lg:flex-row lg:gap-2.5 ${
+                  capOn
+                    ? 'bg-[#FFD700] text-untamed-black shadow-[0_0_32px_rgba(255,215,0,0.6)]'
+                    : 'border border-dashed border-white/15 bg-white/[0.03] text-white/40'
                 }`}
+                aria-live="polite"
               >
-                <Truck className="h-4 w-4" aria-hidden="true" />
-                {promo ? 'Free' : 'Ships'}
+                {capOn && !reduceMotion && (
+                  <motion.span
+                    className="pointer-events-none absolute inset-0 rounded-lg border-2 border-[#FFD700]"
+                    initial={{ opacity: 0.9, scale: 1 }}
+                    animate={{ opacity: 0, scale: 1.5 }}
+                    transition={{ duration: 0.9, ease: 'easeOut' }}
+                    aria-hidden="true"
+                  />
+                )}
+                {capOn ? (
+                  <>
+                    <Truck className="h-5 w-5 lg:h-6 lg:w-6" aria-hidden="true" />
+                    <span className="text-base sm:text-lg lg:hidden">{promo ? 'Free' : 'Ships'}</span>
+                    <span className="hidden text-xl lg:inline">{promo ? 'Free shipping unlocked' : 'Ready to ship'}</span>
+                  </>
+                ) : (
+                  <>
+                    <Lock className="h-4 w-4" aria-hidden="true" />
+                    <span className="text-[11px] sm:text-sm lg:hidden">
+                      {capRemaining} more
+                    </span>
+                    <span className="hidden text-base lg:inline">
+                      {promo ? 'Free shipping locked' : 'Not enough yet'} &bull; {capRemaining} more{' '}
+                      {capRemaining === 1 ? 'box' : 'boxes'}
+                    </span>
+                  </>
+                )}
               </motion.div>
             </div>
             <div className="mt-2 flex items-center justify-between gap-3 text-xs text-untamed-white-muted">
